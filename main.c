@@ -61,9 +61,16 @@ Token *tokenize()
     }
 
     // Single-letter punctuator
-    if (strchr("+-*/()<>", *p))
+    if (strchr("+-*/()<>;=", *p))
     {
       cur = new_token(TK_RESERVED, cur, p++, 1);
+      continue;
+    }
+
+    if ('a' <= *p && *p <= 'z')
+    {
+      cur = new_token(TK_IDENT, cur, p++, 1);
+      cur->len = 1;
       continue;
     }
 
@@ -95,15 +102,25 @@ int main(int argc, char **argv)
   user_input = argv[1];
   // トークナイズする
   Token *token = tokenize();
-  Node *node = parse(token);
+  // Node *code[100];
+  Node **code = (Node **)malloc(sizeof(Node *) * 100);
+  program(token, code);
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  // 抽象構文木を下りながらコード生成
-  gen(node);
+  for (size_t i = 0; i < 100; i++)
+  {
+    Node *node = code[i];
+    if (node == NULL)
+    {
+      continue;
+    }
+    // 抽象構文木を下りながらコード生成
+    generate(node);
+  }
 
   // スタックトップに式全体の値が残っているはずなので
   // それをRAXにロードして関数からの返り値とする
