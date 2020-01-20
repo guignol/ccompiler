@@ -26,6 +26,13 @@ Token *consume_ident()
 	return NULL;
 }
 
+bool consumeReturn() {
+	if (token->kind != TK_RETURN)
+		return false;
+	token = token->next;
+	return true;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op)
@@ -73,15 +80,16 @@ Node *new_node_num(int val)
 }
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok) {
-  for (LVar *var = locals; var; var = var->next)
-    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
-      return var;
-  return NULL;
+LVar *find_lvar(Token *tok)
+{
+	for (LVar *var = locals; var; var = var->next)
+		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+			return var;
+	return NULL;
 }
 
 // program    = stmt*
-// stmt       = expr ";"
+// stmt       = expr ";" | "return" expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -113,7 +121,18 @@ void program(Token *tok, Node *code[])
 
 Node *stmt()
 {
-	Node *node = expr();
+	Node *node;
+
+	if (consumeReturn())
+	{
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_RETURN;
+		node->lhs = expr();
+	}
+	else
+	{
+		node = expr();
+	}
 	expect(";");
 	return node;
 }

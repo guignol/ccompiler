@@ -18,6 +18,9 @@ try() {
 
 make
 
+try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11;'
+try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;'
+
 try 5 'aaa = 3; aaa + 2;'
 try 5 'aaa = 3; b29 = 2; b29 + aaa;'
 try 5 'O0 = 3; O0 = 2; O0 + 3;'
