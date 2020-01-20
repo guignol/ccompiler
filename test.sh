@@ -53,4 +53,9 @@ try 1 '1 >= 0;'
 try 1 '1 >= 1;'
 try 0 '1 >= 2;'
 
+try 5 'a = 3; a + 2;'
+try 3 'a = 3; a;'
+try 3 '3;'
+try 5 'a = 3; z = 2; a + z;'
+
 echo OK
