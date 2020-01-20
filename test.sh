@@ -17,6 +17,16 @@ try() {
 }
 
 make
+
+try 5 'aaa = 3; aaa + 2;'
+try 5 'aaa = 3; b29 = 2; b29 + aaa;'
+try 5 'O0 = 3; O0 = 2; O0 + 3;'
+
+try 5 'a = 3; a + 2;'
+try 3 'a = 3; a;'
+try 3 '3;'
+try 5 'a = 3; z = 2; a + z;'
+
 # try 0 '1 + aaa'
 try 0 "0;"
 try "42" "42;"
@@ -52,10 +62,5 @@ try 0 '1 > 2;'
 try 1 '1 >= 0;'
 try 1 '1 >= 1;'
 try 0 '1 >= 2;'
-
-try 5 'a = 3; a + 2;'
-try 3 'a = 3; a;'
-try 3 '3;'
-try 5 'a = 3; z = 2; a + z;'
 
 echo OK

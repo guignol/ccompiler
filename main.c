@@ -23,6 +23,14 @@ bool startswith(char *p, char *q)
   return memcmp(p, q, strlen(q)) == 0;
 }
 
+bool is_alpha(char c) {
+  return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+}
+
+bool is_alnum(char c) {
+  return is_alpha(c) || ('0' <= c && c <= '9');
+}
+
 // 新しいトークンを作成してcurに繋げる
 Token *new_token(TokenKind kind, Token *cur, char *str, int len)
 {
@@ -67,10 +75,11 @@ Token *tokenize()
       continue;
     }
 
-    if ('a' <= *p && *p <= 'z')
-    {
-      cur = new_token(TK_IDENT, cur, p++, 1);
-      cur->len = 1;
+    if (is_alpha(*p)) {
+      char *q = p++;
+      while (is_alnum(*p))
+        p++;
+      cur = new_token(TK_IDENT, cur, q, p - q);
       continue;
     }
 
@@ -115,7 +124,10 @@ int main(int argc, char **argv)
   // 変数26個分の領域を確保する
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
-  printf("  sub rsp, 208\n");
+  if (locals)
+  {
+    printf("  sub rsp, %i\n", locals->offset);
+  }
 
   for (size_t i = 0; i < 100; i++)
   {
