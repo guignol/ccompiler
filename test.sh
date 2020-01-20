@@ -17,6 +17,7 @@ try() {
 }
 
 make
+# try 0 '1 + aaa'
 try 0 0
 try "42" "42"
 try 42 "40+2"

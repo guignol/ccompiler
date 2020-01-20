@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// 入力プログラム
-extern char *user_input;
+void error_at(char *loc, char *fmt, ...);
 
 // トークンの種類
 typedef enum
@@ -27,9 +26,6 @@ struct Token
   char *str;      // トークン文字列
   int len;        // トークンの長さ
 };
-
-// 現在着目しているトークン
-extern Token *token;
 
 /////////////////////////////////////////////////
 
@@ -58,5 +54,5 @@ struct Node
   int val;       // kindがND_NUMの場合のみ使う
 };
 
-Node *expr();
+Node *parse(Token *tok);
 void gen(Node *node);

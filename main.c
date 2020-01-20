@@ -2,23 +2,20 @@
 
 // 入力プログラム
 char *user_input;
-// 現在着目しているトークン
-Token *token;
 
-// エラーを報告するための関数
-// printfと同じ引数を取る
-void error(char *fmt, ...)
+// エラー箇所を報告する
+void error_at(char *loc, char *fmt, ...)
 {
   va_list ap;
   va_start(ap, fmt);
+
+  int pos = loc - user_input;
+  fprintf(stderr, "%s\n", user_input);
+  fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+  fprintf(stderr, "^ ");
   vfprintf(stderr, fmt, ap);
   fprintf(stderr, "\n");
   exit(1);
-}
-
-bool at_eof()
-{
-  return token->kind == TK_EOF;
 }
 
 bool startswith(char *p, char *q)
@@ -80,7 +77,7 @@ Token *tokenize()
       continue;
     }
 
-    error("トークナイズできません");
+    error_at(p, "トークナイズできません");
   }
 
   new_token(TK_EOF, cur, p, 0);
@@ -91,14 +88,14 @@ int main(int argc, char **argv)
 {
   if (argc != 2)
   {
-    error("引数の個数が正しくありません");
+    fprintf(stderr, "引数の個数が正しくありません\n");
     return 1;
   }
 
   user_input = argv[1];
   // トークナイズする
-  token = tokenize();
-  Node *node = expr();
+  Token *token = tokenize();
+  Node *node = parse(token);
 
   // アセンブリの前半部分を出力
   printf(".intel_syntax noprefix\n");
