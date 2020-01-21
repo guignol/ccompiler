@@ -47,7 +47,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len)
 int reserved(char *p)
 {
 	// Keyword
-	static char *kws[] = {"return", "if", "else", "while"};
+	static char *kws[] = {"return", "if", "else", "while", "for"};
 	for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
 	{
 		char *keyword = kws[i];

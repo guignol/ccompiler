@@ -18,6 +18,8 @@ try() {
 
 make
 
+try 99 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; 99;'
+try 10 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1;'
 try 10 'a = 0; while (a < 10) a = a + 1; return a;'
 
 try 37 'a = 1983; b = 2020; if ((b - a) == 37) return 37; else return 36;'

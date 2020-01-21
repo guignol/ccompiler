@@ -29,21 +29,51 @@ void gen(Node *node)
 {
 	switch (node->kind)
 	{
+	case ND_FOR:
+	{
+		int seq = labelseq++;
+		// init
+		if (node->lhs)
+			gen(node->lhs);
+		// begin
+		printf(".Lbegin%d:\n", seq);
+		// condition
+		if (node->condition)
+		{
+			gen(node->condition);
+			printf("  pop rax\n");
+			printf("  cmp rax, 0\n");
+			// if 0, goto end
+			printf("  je  .Lend%d\n", seq);
+		}
+		// execute
+		gen(node->execution);
+		// post execute
+		if (node->rhs)
+		{
+			gen(node->rhs);
+		}
+		// goto begin
+		printf("  jmp .Lbegin%d\n", seq);
+		// end:
+		printf(".Lend%d:\n", seq);
+		return;
+	}
 	case ND_WHILE:
 	{
 		int seq = labelseq++;
-		// begin
+		// begin:
 		printf(".Lbegin%d:\n", seq);
 		// condition
 		gen(node->condition);
 		printf("  pop rax\n");
-		printf("  cmp rax, 0\n"); 
+		printf("  cmp rax, 0\n");
 		// if 0, goto end
 		printf("  je  .Lend%d\n", seq);
 		// execute & goto begin
 		gen(node->lhs);
 		printf("  jmp .Lbegin%d\n", seq);
-		// end
+		// end:
 		printf(".Lend%d:\n", seq);
 		return;
 	}

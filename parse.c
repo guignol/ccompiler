@@ -86,6 +86,7 @@ LVar *find_lvar(Token *tok)
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
 //		        | "while" "(" expr ")" stmt
+//				| "for" "(" expr? ";" expr? ";" expr? ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -138,6 +139,32 @@ Node *stmt()
 		node->condition = expr();
 		expect(")");
 		node->lhs = stmt();
+		return node;
+	}
+	else if (consume("for"))
+	{
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_FOR;
+		expect("(");
+		// init
+		if (!consume(";"))
+		{
+			node->lhs = expr();
+			expect(";");
+		}
+		// condition
+		if (!consume(";"))
+		{
+			node->condition = expr();
+			expect(";");
+		}
+		// increment
+		if (!consume(")"))
+		{
+			node->rhs = expr();
+			expect(")");
+		}
+		node->execution = stmt();
 		return node;
 	}
 	else if (consume("return"))
