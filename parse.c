@@ -85,6 +85,7 @@ LVar *find_lvar(Token *tok)
 // stmt       = expr ";"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
+//		        | "while" "(" expr ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -127,6 +128,16 @@ Node *stmt()
 		expect(")");
 		node->lhs = stmt();
 		node->rhs = consume("else") ? stmt() : NULL;
+		return node;
+	}
+	else if (consume("while"))
+	{
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_WHILE;
+		expect("(");
+		node->condition = expr();
+		expect(")");
+		node->lhs = stmt();
 		return node;
 	}
 	else if (consume("return"))

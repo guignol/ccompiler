@@ -29,6 +29,24 @@ void gen(Node *node)
 {
 	switch (node->kind)
 	{
+	case ND_WHILE:
+	{
+		int seq = labelseq++;
+		// begin
+		printf(".Lbegin%d:\n", seq);
+		// condition
+		gen(node->condition);
+		printf("  pop rax\n");
+		printf("  cmp rax, 0\n"); 
+		// if 0, goto end
+		printf("  je  .Lend%d\n", seq);
+		// execute & goto begin
+		gen(node->lhs);
+		printf("  jmp .Lbegin%d\n", seq);
+		// end
+		printf(".Lend%d:\n", seq);
+		return;
+	}
 	case ND_IF:
 	{
 		int seq = labelseq++;

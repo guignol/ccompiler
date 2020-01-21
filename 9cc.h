@@ -48,6 +48,7 @@ typedef enum
 	ND_NUM,		 // 整数
 	ND_RETURN,   // return
 	ND_IF,		 // if
+	ND_WHILE,		 // while
 } NodeKind;
 
 typedef struct Node Node;
@@ -61,7 +62,7 @@ struct Node
 	int val;	   // kindがND_NUMの場合のみ使う
 	int offset;	// kindがND_LVARの場合のみ使う
 
-	Node *condition; // if (condition)
+	Node *condition; // if (condition), while (condition)
 };
 
 void program(Token *tok, Node *code[]);
