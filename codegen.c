@@ -23,10 +23,38 @@ void generate(Node node[])
   gen(node);
 }
 
+int labelseq = 0;
+
 void gen(Node *node)
 {
   switch (node->kind)
   {
+  case ND_IF:
+  {
+    int seq = labelseq++;
+    if (node->rhs)
+    {
+      gen(node->condition);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .Lelse%d\n", seq);
+      gen(node->lhs);
+      printf("  jmp .Lend%d\n", seq);
+      printf(".Lelse%d:\n", seq);
+      gen(node->rhs);
+      printf(".Lend%d:\n", seq);
+    }
+    else
+    {
+      gen(node->condition);
+      printf("  pop rax\n");
+      printf("  cmp rax, 0\n");
+      printf("  je  .Lend%d\n", seq);
+      gen(node->lhs);
+      printf(".Lend%d:\n", seq);
+    }
+    return;
+  }
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");

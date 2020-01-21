@@ -26,7 +26,8 @@ Token *consume_ident()
 	return NULL;
 }
 
-bool consumeReturn() {
+bool consumeReturn()
+{
 	if (token->kind != TK_RETURN)
 		return false;
 	token = token->next;
@@ -89,7 +90,9 @@ LVar *find_lvar(Token *tok)
 }
 
 // program    = stmt*
-// stmt       = expr ";" | "return" expr ";"
+// stmt       = expr ";"
+//				| "return" expr ";"
+//				| "if" "(" expr ")" stmt ("else" stmt)?
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -123,7 +126,18 @@ Node *stmt()
 {
 	Node *node;
 
-	if (consumeReturn())
+	if (consume("if"))
+	{
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_IF;
+		expect("(");
+		node->condition = expr();
+		expect(")");
+		node->lhs = stmt();
+		node->rhs = consume("else") ? stmt() : NULL;
+		return node;
+	}
+	else if (consumeReturn())
 	{
 		node = calloc(1, sizeof(Node));
 		node->kind = ND_RETURN;
