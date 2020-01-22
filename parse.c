@@ -305,6 +305,9 @@ Node *primary()
 			node->offset = lvar->offset;
 			locals = lvar;
 		}
+		node->debug_name = malloc(sizeof(char *));
+		strncpy(node->debug_name, lvar->name, lvar->len);
+		// node->debug_name = lvar->name;
 		return node;
 	}
 

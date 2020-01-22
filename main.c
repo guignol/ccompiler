@@ -20,12 +20,11 @@ int main(int argc, char **argv)
 	printf("main:\n");
 
 	// プロローグ
-	// 変数26個分の領域を確保する
 	printf("  push rbp\n");
 	printf("  mov rbp, rsp\n");
 	if (locals)
 	{
-		printf("  sub rsp, %i\n", locals->offset);
+		printf("  sub rsp, %i  # %i %s\n", locals->offset, locals->offset / 8, "variables prepared");
 	}
 
 	for (size_t i = 0; i < 100; i++)

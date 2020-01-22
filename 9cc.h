@@ -63,6 +63,7 @@ struct Node
 	Node *rhs;	 // 右辺
 	int val;	   // kindがND_NUMの場合のみ使う
 	int offset;	// kindがND_LVARの場合のみ使う
+	char *debug_name; // debug用？
 
 	Node *condition; // if (condition), while (condition)
 	Node *execution; // for (;;) statement

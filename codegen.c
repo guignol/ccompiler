@@ -1,5 +1,15 @@
 #include "9cc.h"
 
+void ___COMMENT___(char *format, ...)
+{
+	va_list ap;
+	va_start(ap, format);
+
+	printf("  # ");
+	vfprintf(stdout, format, ap);
+	printf("\n");
+}
+
 void error(char *message)
 {
 	fprintf(stderr, "%s", message);
@@ -10,10 +20,9 @@ void gen_lval(Node *node)
 {
 	if (node->kind != ND_LVAR)
 		error("代入の左辺値が変数ではありません");
-
 	printf("  mov rax, rbp\n");
 	printf("  sub rax, %d\n", node->offset);
-	printf("  push rax\n");
+	printf("  push rax # variable [%s]\n", node->debug_name);
 }
 
 void gen(Node *node);
@@ -31,6 +40,7 @@ void gen(Node *node)
 	{
 	case ND_BLOCK:
 	{
+		___COMMENT___("block begin");
 		gen(node->statement);
 		for (Node *next = node->statement->statement;
 			 next;
@@ -39,10 +49,12 @@ void gen(Node *node)
 			printf("  pop rax\n");
 			gen(next);
 		}
+		___COMMENT___("block end");
 		return;
 	}
 	case ND_FOR:
 	{
+		___COMMENT___("for begin");
 		int seq = labelseq++;
 		// init
 		if (node->lhs)
@@ -69,10 +81,12 @@ void gen(Node *node)
 		printf("  jmp .Lbegin%d\n", seq);
 		// end:
 		printf(".Lend%d:\n", seq);
+		___COMMENT___("for end");
 		return;
 	}
 	case ND_WHILE:
 	{
+		___COMMENT___("while begin");
 		int seq = labelseq++;
 		// begin:
 		printf(".Lbegin%d:\n", seq);
@@ -87,6 +101,7 @@ void gen(Node *node)
 		printf("  jmp .Lbegin%d\n", seq);
 		// end:
 		printf(".Lend%d:\n", seq);
+		___COMMENT___("while end");
 		return;
 	}
 	case ND_IF:
@@ -132,6 +147,7 @@ void gen(Node *node)
 		printf("  push rax\n");
 		return;
 	case ND_ASSIGN:
+		___COMMENT___("assign begin");
 		gen_lval(node->lhs);
 		gen(node->rhs);
 
@@ -139,12 +155,13 @@ void gen(Node *node)
 		printf("  pop rax\n");
 		printf("  mov [rax], rdi\n");
 		printf("  push rdi\n");
+		___COMMENT___("assign end");
 		return;
 	}
 
+	// 2項演算
 	gen(node->lhs);
 	gen(node->rhs);
-
 	printf("  pop rdi\n");
 	printf("  pop rax\n");
 
@@ -164,22 +181,26 @@ void gen(Node *node)
 		printf("  idiv rdi\n");
 		break;
 	case ND_EQL:
-		printf("  cmp rax, rdi\n");
+		printf("  cmp rax, rdi");
+		___COMMENT___("==");
 		printf("  sete al\n");
 		printf("  movzb rax, al\n");
 		break;
 	case ND_NOT:
-		printf("  cmp rax, rdi\n");
+		printf("  cmp rax, rdi");
+		___COMMENT___("!=");
 		printf("  setne al\n");
 		printf("  movzb rax, al\n");
 		break;
 	case ND_LESS:
-		printf("  cmp rax, rdi\n");
+		printf("  cmp rax, rdi");
+		___COMMENT___("<");
 		printf("  setl al\n");
 		printf("  movzb rax, al\n");
 		break;
 	case ND_LESS_EQL:
-		printf("  cmp rax, rdi\n");
+		printf("  cmp rax, rdi");
+		___COMMENT___("<=");
 		printf("  setle al\n");
 		printf("  movzb rax, al\n");
 		break;
