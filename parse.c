@@ -83,6 +83,7 @@ LVar *find_lvar(Token *tok)
 
 // program    = stmt*
 // stmt       = expr ";"
+//				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
 //		        | "while" "(" expr ")" stmt
@@ -119,6 +120,19 @@ void program(Token *tok, Node *code[])
 Node *stmt()
 {
 	Node *node;
+	if (consume("{"))
+	{
+		node = calloc(1, sizeof(Node));
+		node->kind = ND_BLOCK;
+		Node *last = node;
+		while (!consume("}"))
+		{
+			Node *next = stmt();
+			last->statement = next;
+			last = next;
+		}
+		return node;
+	}
 
 	if (consume("if"))
 	{

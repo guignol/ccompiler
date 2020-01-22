@@ -29,6 +29,18 @@ void gen(Node *node)
 {
 	switch (node->kind)
 	{
+	case ND_BLOCK:
+	{
+		gen(node->statement);
+		for (Node *next = node->statement->statement;
+			 next;
+			 next = next->statement)
+		{
+			printf("  pop rax\n");
+			gen(next);
+		}
+		return;
+	}
 	case ND_FOR:
 	{
 		int seq = labelseq++;

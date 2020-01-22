@@ -18,6 +18,18 @@ try() {
 
 make
 
+try 10 'a = 0; b = 1; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } b - 1;'
+try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } b - 1;'
+try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } a;'
+try 10 'a = 0; for (i = 0; i < 10; i = i + 1) { a = a + 1; }'
+
+try 3 '{ a = 3; }'
+try 2 '{ a = 3; b = 2; }'
+try 6 '{ a = 3; b = 2; c = 6; }'
+try 11 '{ a = 3; b = 2; c = 6; a + b + c; }'
+try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
+try 6 '{ a = 3; b = 2; return c = 6; a + b + c; }'
+
 try 99 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; 99;'
 try 10 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1;'
 try 10 'a = 0; while (a < 10) a = a + 1; return a;'

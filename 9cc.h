@@ -50,6 +50,7 @@ typedef enum
 	ND_IF,		 // if
 	ND_WHILE,	// while
 	ND_FOR,		 // for
+	ND_BLOCK,	// { }
 } NodeKind;
 
 typedef struct Node Node;
@@ -64,11 +65,14 @@ struct Node
 	int offset;	// kindがND_LVARの場合のみ使う
 
 	Node *condition; // if (condition), while (condition)
-	Node *execution; // for (;;) execution
+	Node *execution; // for (;;) statement
+	Node *statement; // { ...statement }
 };
 
 void program(Token *tok, Node *code[]);
 void generate(Node node[]);
+
+/////////////////////////////////////////////////
 
 typedef struct LVar LVar;
 
