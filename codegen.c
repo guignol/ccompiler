@@ -22,7 +22,7 @@ void gen_lval(Node *node)
 		error("代入の左辺値が変数ではありません");
 	printf("  mov rax, rbp\n");
 	printf("  sub rax, %d\n", node->offset);
-	printf("  push rax # variable [%s]\n", node->debug_name);
+	printf("  push rax # variable [%s]\n", node->name);
 }
 
 void gen(Node *node);
@@ -38,6 +38,10 @@ void gen(Node *node)
 {
 	switch (node->kind)
 	{
+	case ND_FUNC:
+		printf("  call %s\n", node->name);
+		printf("  push rax\n");
+		return;
 	case ND_BLOCK:
 	{
 		___COMMENT___("block begin");

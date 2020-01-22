@@ -3,10 +3,24 @@ try() {
 	expected="$1"
 	input="$2"
 
+	cat << END > foo.c
+#include <stdio.h>
+
+int foo()
+{
+	printf("--------------foo\n");
+	return 11;
+}
+END
+	gcc -c foo.c
+
 	./9cc "$input" >tmp.s
-	gcc -o tmp tmp.s
+	gcc -o tmp tmp.s foo.o
 	./tmp
 	actual="$?"
+	
+	rm foo.c
+	rm foo.o
 
 	if [ "$actual" = "$expected" ]; then
 		echo "$input => $actual"
@@ -17,6 +31,11 @@ try() {
 }
 
 make
+
+try 12 'b = 1; a = foo() + b;'
+try 11 'return foo();'
+try 12 'a = foo() + 1;'
+# exit 0
 
 try 3 '{ aa = 3; { b = 2; } aa; }'
 

@@ -95,7 +95,9 @@ LVar *find_lvar(Token *tok)
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | ident | "(" expr ")"
+// primary    = num |
+//				| ident ("(" ")")?
+// 				| "(" expr ")"
 
 Node *stmt();
 Node *expr();
@@ -287,27 +289,33 @@ Node *primary()
 	if (tok)
 	{
 		Node *node = calloc(1, sizeof(Node));
-		node->kind = ND_LVAR;
-
-		LVar *lvar = find_lvar(tok);
-		if (lvar)
+		if (consume("("))
 		{
-			node->offset = lvar->offset;
+			expect(")");
+			node->kind = ND_FUNC;
 		}
 		else
 		{
-			lvar = calloc(1, sizeof(LVar));
-			lvar->next = locals;
-			lvar->name = tok->str;
-			lvar->len = tok->len;
+			node->kind = ND_LVAR;
+			LVar *lvar = find_lvar(tok);
+			if (lvar)
+			{
+				node->offset = lvar->offset;
+			}
+			else
+			{
+				lvar = calloc(1, sizeof(LVar));
+				lvar->next = locals;
+				lvar->name = tok->str;
+				lvar->len = tok->len;
 
-			lvar->offset = (locals ? locals->offset : 0) + 8;
-			node->offset = lvar->offset;
-			locals = lvar;
+				lvar->offset = (locals ? locals->offset : 0) + 8;
+				node->offset = lvar->offset;
+				locals = lvar;
+			}
 		}
-		node->debug_name = malloc(sizeof(char *));
-		strncpy(node->debug_name, lvar->name, lvar->len);
-		// node->debug_name = lvar->name;
+		node->name = malloc(sizeof(char *));
+		strncpy(node->name, tok->str, tok->len);
 		return node;
 	}
 

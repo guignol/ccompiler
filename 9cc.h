@@ -45,6 +45,7 @@ typedef enum
 	ND_LESS_EQL, // <=
 	ND_ASSIGN,   // =
 	ND_LVAR,	 // ローカル変数
+	ND_FUNC,	 // 関数
 	ND_NUM,		 // 整数
 	ND_RETURN,   // return
 	ND_IF,		 // if
@@ -63,7 +64,7 @@ struct Node
 	Node *rhs;	 // 右辺
 	int val;	   // kindがND_NUMの場合のみ使う
 	int offset;	// kindがND_LVARの場合のみ使う
-	char *debug_name; // debug用？
+	char *name; // 変数名、関数名
 
 	Node *condition; // if (condition), while (condition)
 	Node *execution; // for (;;) statement
