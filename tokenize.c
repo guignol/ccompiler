@@ -69,7 +69,7 @@ int reserved(char *p)
 	}
 
 	// Single-letter punctuator
-	if (strchr("+-*/()<>;={}", *p))
+	if (strchr("+-*/()<>;={},", *p))
 		return 1;
 
 	return 0;

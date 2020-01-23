@@ -6,10 +6,18 @@ try() {
 	cat << END > foo.c
 #include <stdio.h>
 
-int foo()
-{
-	printf("--------------foo\n");
-	return 11;
+int hoge(int x, int y) {
+	printf("--------------hoge: %i, %i\n", x, y);
+	return x + y;
+}
+
+int bar(int v) {
+	printf("--------------bar: %i\n", v);
+	return v;
+}
+
+int foo() {
+	return bar(11);
 }
 END
 	gcc -c foo.c
@@ -35,6 +43,11 @@ make
 try 12 'b = 1; a = foo() + b;'
 try 11 'return foo();'
 try 12 'a = foo() + 1;'
+try 12 'a = bar(11) + 1;'
+try 12 'b = 11; a = bar(b) + 1;'
+try 12 'a = hoge(11, 1);'
+try 12 'a = 1; b = 11; return hoge(b, a);'
+try 12 'hoge(11, 1);'
 # exit 0
 
 try 3 '{ aa = 3; { b = 2; } aa; }'

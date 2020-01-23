@@ -39,9 +39,41 @@ void gen(Node *node)
 	switch (node->kind)
 	{
 	case ND_FUNC:
+	{
+		int count = 0;
+		if (node->args)
+		{
+			// RAX	返り値 / 引数の数	✔
+			// RDI	第1引数	✔
+			// RSI	第2引数	✔
+			// RDX	第3引数	✔
+			// RCX	第4引数	✔
+			// RBP	ベースポインタ
+			// RSP	スタックポインタ
+			// RBX	（特になし）
+			// R8	第5引数	✔
+			// R9	第6引数	✔
+			static char *registers[] = {"rdi",
+										"rsi",
+										"rdx",
+										"rcx",
+										"r8",
+										"r9"};
+			for (Node *arg = node->args; arg; arg = arg->args)
+			{
+				gen(arg);
+				count++;
+			}
+			for (size_t i = 0; i < count; i++) {
+
+				printf("  pop %s\n", registers[count - i - 1]);
+			}
+		}
+		printf("  mov rax, %i\n", count);
 		printf("  call %s\n", node->name);
 		printf("  push rax\n");
 		return;
+	}
 	case ND_BLOCK:
 	{
 		___COMMENT___("block begin");

@@ -96,8 +96,10 @@ LVar *find_lvar(Token *tok)
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
 // primary    = num |
-//				| ident ("(" ")")?
+//				| ident
+//				| ident "(" args ")"
 // 				| "(" expr ")"
+// args       = (expr ("," expr)* )?
 
 Node *stmt();
 Node *expr();
@@ -291,8 +293,17 @@ Node *primary()
 		Node *node = calloc(1, sizeof(Node));
 		if (consume("("))
 		{
-			expect(")");
 			node->kind = ND_FUNC;
+			if (!consume(")"))
+			{
+				Node *last = node;
+				last->args = expr();
+				while (consume(",") && (last = last->args))
+				{
+					last->args = expr();
+				}
+				expect(")");
+			}
 		}
 		else
 		{
