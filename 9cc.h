@@ -97,5 +97,5 @@ typedef struct Function
 	Node **body;
 } Function;
 
-void program(Token *tok, Node *code[], Variable **local_variables);
+Function *program(Token *tok);
 void generate(Function *func);

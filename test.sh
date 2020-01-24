@@ -1,5 +1,10 @@
 #!/bin/bash
+
 try() {
+	assert "$1" "main() { $2 }"
+}
+
+assert() {
 	expected="$1"
 	input="$2"
 

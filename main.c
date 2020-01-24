@@ -9,10 +9,7 @@ int main(int argc, char **argv)
 	}
 
 	Token *token = tokenize(argv[1]);
-	// Node *code[100];
-	Node **code = (Node **)malloc(sizeof(Node *) * 100);
-	Variable *locals;
-	program(token, code, &locals);
+	Function *function = program(token);
 
 	printf(".intel_syntax noprefix\n");
 	{
@@ -21,11 +18,6 @@ int main(int argc, char **argv)
 		printf("debug_moji: \n");
 		printf("  .quad .LC0\n");
 	}
-	Function *function;
-	function->name = "main";
-	function->parameters = NULL;
-	function->locals = locals;
-	function->body = code;
 	generate(function);
 	
 	return 0;

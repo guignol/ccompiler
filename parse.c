@@ -83,7 +83,15 @@ Variable *find_local_variable(Token *tok)
 	return NULL;
 }
 
-// program    = stmt*
+char *copy(char *str, int len)
+{
+	char *copied = malloc(sizeof(char *));
+	strncpy(copied, str, len);
+	return copied;
+}
+
+// program    = function*
+// function   = ident "(" ident* ")" { stmt* }
 // stmt       = expr ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
@@ -113,14 +121,39 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-void program(Token *tok, Node *code[], Variable **local_variables)
+Function *program(Token *tok)
 {
 	token = tok;
+
+	Token *function_name = consume_ident();
+	if (!function_name)
+		error_at(token->str, "関数名がありません");
+
+	expect("(");
+	// TODO 引数
+	expect(")");
+
+	expect("{");
+	// Node *code[100];
+	Node **body = (Node **)malloc(sizeof(Node *) * 100);
 	int i = 0;
-	while (!at_eof())
-		code[i++] = stmt();
-	code[i] = NULL;
-	*local_variables = locals;
+	while (!consume("}"))
+	{
+		body[i++] = stmt();
+	}
+
+	if (!at_eof())
+		error_at(token->str, "何かが残っています？");
+
+	body[i] = NULL;
+
+	Function *function = malloc(sizeof(Function*));
+	function->name = copy(function_name->str, function_name->len);
+	function->parameters = NULL;
+	function->locals = locals;
+	function->body = body;
+
+	return function;
 }
 
 Node *stmt()
@@ -327,8 +360,7 @@ Node *primary()
 				locals = lvar;
 			}
 		}
-		node->name = malloc(sizeof(char *));
-		strncpy(node->name, tok->str, tok->len);
+		node->name = copy(tok->str, tok->len);
 		return node;
 	}
 
