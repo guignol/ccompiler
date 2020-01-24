@@ -111,6 +111,7 @@ char *copy(char *str, int len)
 // 				| "(" expr ")"
 // args       = (expr ("," expr)* )?
 
+Function *function();
 Node *stmt();
 Node *expr();
 Node *assign();
@@ -121,10 +122,26 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-Function *program(Token *tok)
+Function *program(Token *t)
 {
-	token = tok;
+	token = t;
 
+	Function head;
+	head.next = NULL;
+	Function *cur = &head;
+	while (!at_eof())
+	{
+		cur->next =  function();
+		cur = cur->next;
+	}
+
+	token = NULL;
+
+	return head.next;
+}
+
+Function *function()
+{
 	Token *function_name = consume_ident();
 	if (!function_name)
 		error_at(token->str, "関数名がありません");
@@ -142,16 +159,15 @@ Function *program(Token *tok)
 		body[i++] = stmt();
 	}
 
-	if (!at_eof())
-		error_at(token->str, "何かが残っています？");
-
 	body[i] = NULL;
 
-	Function *function = malloc(sizeof(Function*));
+	Function *function = calloc(1, sizeof(Function));
 	function->name = copy(function_name->str, function_name->len);
 	function->parameters = NULL;
 	function->locals = locals;
 	function->body = body;
+
+	locals = NULL;
 
 	return function;
 }

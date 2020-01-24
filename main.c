@@ -19,6 +19,6 @@ int main(int argc, char **argv)
 		printf("  .quad .LC0\n");
 	}
 	generate(function);
-	
+
 	return 0;
 }

@@ -276,7 +276,8 @@ void gen(Node *node)
 	printf("  push rax\n");
 }
 
-void generate(Function *func) {
+void generate(Function *func)
+{
 	char *function_name = func->name;
 	printf(".global %s\n", function_name);
 	printf("%s:\n", function_name);
@@ -316,4 +317,7 @@ void generate(Function *func) {
 	printf("  mov rsp, rbp\n");
 	printf("  pop rbp\n");
 	printf("  ret\n");
+
+	if (func->next)
+		generate(func->next);
 }

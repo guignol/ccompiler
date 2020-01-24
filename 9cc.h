@@ -85,7 +85,9 @@ struct Variable
 	int offset;		// RBPからのオフセット
 };
 
-typedef struct Function
+typedef struct Function Function;
+
+struct Function
 {
 	// 関数名
 	char *name;
@@ -95,7 +97,9 @@ typedef struct Function
 	Variable *locals;
 	// 関数本体
 	Node **body;
-} Function;
+
+	Function *next;
+};
 
 Function *program(Token *tok);
 void generate(Function *func);

@@ -45,6 +45,11 @@ END
 
 make
 
+assert 13 'main() { return salut(); } salut() { a = 1; b = 12; return 13; }'
+# exit 0
+assert 13 'main() { return salut(); } salut() { return 13; }'
+assert 13 'main() { return bar(13); }'
+
 try 13 'printf(); return 13;'
 try 13 'a = 13;  printf(); return a;'
 # exit 0
