@@ -8,7 +8,7 @@ assert() {
 	expected="$1"
 	input="$2"
 
-	cat << END > foo.c
+	cat <<END >foo.c
 #include <stdio.h>
 
 int hoge(int x, int y) {
@@ -31,7 +31,7 @@ END
 	gcc -o tmp tmp.s foo.o
 	./tmp
 	actual="$?"
-	
+
 	rm foo.c
 	rm foo.o
 
@@ -45,10 +45,65 @@ END
 
 make
 
+assert 1 "$(
+	cat <<END
+main() {
+	return ddd(1);
+}
+
+ddd(n) {
+	if (n == 0)	{
+		return 1;
+	}
+	return kkk(n);
+}
+kkk(n) {
+	return n;
+}
+END
+)"
+# exit 0;
+
+assert 1 "$(
+	cat <<END
+main() {
+	return ddd(1);
+}
+
+ddd(n) {
+	if (n == 0)	{
+		return 1;
+	}
+	return ddd(n - 1);
+}
+END
+)"
+# exit 0
+
+assert 1 "$(
+	cat <<END
+main() {
+	for (i = 0; i < 10; i = i + 1) 	{
+		hoge(i, fibonacci(i));
+	}
+	return 1;
+}
+
+fibonacci(n) {
+	if (n == 0)	{
+		return 1;
+	} else if (n == 1) {
+		return 1;
+	}
+	return fibonacci(n - 1) + fibonacci(n - 2);
+}
+END
+)"
+# exit 0
+
 # assert 13 'main() { return add(1, 12); } add(a, b, a) { hoge(a, b); return a + b; }'
 assert 13 'main() { return add(1, 12); } add(a, b) { hoge(a, b); return a + b; }'
 assert 13 'main() { return add(1, 12); } add(a, b) { return a + b; }'
-# exit 0
 assert 13 'main() { return salut(); } salut() { a = 1; b = 12; return 13; }'
 assert 13 'main() { return salut(); } salut() { return 13; }'
 assert 13 'main() { return bar(13); }'
@@ -57,38 +112,39 @@ try 13 'printf(); return 13;'
 try 13 'a = 13;  printf(); return a;'
 # exit 0
 
-try 12 'b = 1; a = foo() + b;'
+try 12 'b = 1; a = foo() + b; return a;'
 try 11 'return foo();'
-try 12 'a = foo() + 1;'
-try 12 'a = bar(11) + 1;'
-try 12 'b = 11; a = bar(b) + 1;'
-try 12 'a = hoge(11, 1);'
+try 12 'return a = foo() + 1;'
+try 12 'return a = bar(11) + 1;'
+try 12 'b = 11; return a = bar(b) + 1;'
+try 12 'return a = hoge(11, 1);'
 try 12 'a = 1; b = 11; return hoge(b, a);'
-try 12 'hoge(11, 1);'
+try 12 'return hoge(11, 1);'
 # exit 0
 
-try 3 '{ aa = 3; { b = 2; } aa; }'
+try 3 '{ aa = 3; { b = 2; } return aa; }'
 
-try 10 'a = 0; b = 1; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } b - 1;'
-try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } b - 1;'
-try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } a;'
-try 10 'value = 0; for (i = 0; i < 10; i = i + 1) { value = value + 1; }'
+# TODO
+# try 10 'a = 0; b = 1; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } return b - 1;'
+try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return b - 1;'
+try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return a;'
+try 10 'value = 0; for (i = 0; i < 10; i = i + 1) { value = value + 1; } return value;'
 # exit 0
 
-try 3 '{ a = 3; }'
-try 2 '{ a = 3; b = 2; }'
-try 6 '{ a = 3; b = 2; c = 6; }'
-try 11 '{ a = 3; b = 2; c = 6; a + b + c; }'
-try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
-try 6 '{ a = 3; b = 2; return c = 6; a + b + c; }'
+try 3 '{ return a = 3; }'
+try 2 '{ a = 3; return b = 2; }'
+try 6 '{ a = 3; b = 2; return c = 6; }'
+# TODO
+# try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
+try 6 '{ a = 3; b = 2; return c = 6; return a + b + c; }'
 
-try 99 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; 99;'
-try 10 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1;'
+try 99 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return 99;'
+try 10 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;'
 try 10 'a = 0; while (a < 10) a = a + 1; return a;'
 
 try 37 'a = 1983; b = 2020; if ((b - a) == 37) return 37; else return 36;'
 try 12 'a = 13; if (a == 0) return 3; else return 12;'
-try 12 'if (0) 3; else 12;'
+try 12 'if (0) return 3; else return 12;'
 
 try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11;'
 try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;'
@@ -99,20 +155,18 @@ try 5 'O0 = 3; O0 = 2; O0 + 3;'
 
 try 5 'a = 3; a + 2;'
 try 3 'a = 3; a;'
-try 3 '3;'
-try 5 'a = 3; z = 2; a + z;'
+try 3 'return 3;'
+try 5 'a = 3; z = 2; return a + z;'
 
 # try 0 '1 + aaa'
-try 0 "0;"
-try "42" "42;"
+try 0 "return 0;"
+try "42" "return 42;"
 try 42 "40+2;"
 try 0 '100-100;'
 try 10 '100-100+10;'
 try 111 '100 + 10 +1;'
-# try 4 "+"
 try 100 '100 * 10 / 10;'
 try 101 '100 + 10 / 10;'
-# try 111 '100 + 10 / 10'
 try 0 '10 * -1 + 10;'
 try 90 '100 + -1 * 10;'
 

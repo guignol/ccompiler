@@ -282,7 +282,7 @@ Node *stmt()
 	}
 	else
 	{
-		node = expr();
+		node = new_node(ND_EXPR_STMT, expr(), NULL); // 式文
 	}
 	expect(";");
 	return node;

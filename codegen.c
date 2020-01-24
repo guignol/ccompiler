@@ -51,6 +51,7 @@ void gen(Node *node)
 	{
 	case ND_FUNC:
 	{
+		___COMMENT___("begin function call [%.*s]", node->len, node->name);
 		int count = 0;
 		if (node->args)
 		{
@@ -69,7 +70,7 @@ void gen(Node *node)
 		{
 			// デバッグ用: 引数なしのprintf()に固定の文字列を渡す
 			// スタックポインタのアラインなしだとクラッシュする場合があるのでその確認
-			if (node->kind == ND_FUNC && memcmp(node->name, "printf", strlen("printf")) == 0)
+			if (memcmp(node->name, "printf", strlen("printf")) == 0)
 			{
 				count = 2;
 				printf("  mov rdi, QWORD PTR debug_moji[rip]\n");
@@ -104,6 +105,7 @@ void gen(Node *node)
 			printf("  call %.*s\n", node->len, node->name);
 			printf("  push rax\n");
 		}
+		___COMMENT___("end function call [%.*s]", node->len, node->name);
 
 		return;
 	}
@@ -199,10 +201,14 @@ void gen(Node *node)
 		}
 		return;
 	}
+	case ND_EXPR_STMT:
+		gen(node->lhs);
+		printf("  add rsp, 8\n");
+		return;
 	case ND_RETURN:
 		gen(node->lhs);
 		printf("  pop rax\n");
-		printf("  jmp .Lreturn%s\n", function_name);
+		printf("  jmp .Lreturn.%s\n", function_name);
 		return;
 	case ND_NUM:
 		printf("  push %d\n", node->val);
@@ -309,14 +315,11 @@ void generate(Function *func)
 
 		// 抽象構文木を下りながらコード生成
 		gen(node);
-		// 式の評価結果としてスタックに一つの値が残っている
-		// はずなので、スタックが溢れないようにポップしておく
-		printf("  pop rax\n");
 	}
 
 	// エピローグ
 	// 最後の式の結果がRAXに残っているのでそれが返り値になる
-	printf(".Lreturn%s:\n", function_name);
+	printf(".Lreturn.%s:\n", function_name);
 	printf("  mov rsp, rbp\n");
 	printf("  pop rbp\n");
 	printf("  ret\n");
