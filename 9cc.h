@@ -72,21 +72,30 @@ struct Node
 	Node *args;		 // function( ...args )
 };
 
-void program(Token *tok, Node *code[]);
-void generate(Node node[]);
-
 /////////////////////////////////////////////////
 
-typedef struct LVar LVar;
+typedef struct Variable Variable;
 
-// ローカル変数の型
-struct LVar
+// 変数の型
+struct Variable
 {
-	LVar *next; // 次の変数かNULL
-	char *name; // 変数の名前
-	int len;	// 名前の長さ
-	int offset; // RBPからのオフセット
+	Variable *next; // 次の変数かNULL
+	char *name;		// 変数の名前
+	int len;		// 名前の長さ
+	int offset;		// RBPからのオフセット
 };
 
-// ローカル変数
-LVar *locals;
+typedef struct Function
+{
+	// 関数名
+	char *name;
+	// 引数
+	Variable *parameters;
+	// ローカル変数
+	Variable *locals;
+	// 関数本体
+	Node **body;
+} Function;
+
+void program(Token *tok, Node *code[], Variable **local_variables);
+void generate(Function *func);

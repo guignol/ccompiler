@@ -2,6 +2,8 @@
 
 // 現在着目しているトークン
 Token *token;
+// ローカル変数
+Variable *locals;
 
 // 次のトークンが期待している記号のときには、トークンを読み進めて
 // 真を返す。それ以外の場合には偽を返す。
@@ -73,9 +75,9 @@ Node *new_node_num(int val)
 }
 
 // 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok)
+Variable *find_local_variable(Token *tok)
 {
-	for (LVar *var = locals; var; var = var->next)
+	for (Variable *var = locals; var; var = var->next)
 		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
 			return var;
 	return NULL;
@@ -111,14 +113,14 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-void program(Token *tok, Node *code[])
+void program(Token *tok, Node *code[], Variable **local_variables)
 {
 	token = tok;
-	// return stmt();
 	int i = 0;
 	while (!at_eof())
 		code[i++] = stmt();
 	code[i] = NULL;
+	*local_variables = locals;
 }
 
 Node *stmt()
@@ -308,14 +310,14 @@ Node *primary()
 		else
 		{
 			node->kind = ND_LVAR;
-			LVar *lvar = find_lvar(tok);
+			Variable *lvar = find_local_variable(tok);
 			if (lvar)
 			{
 				node->offset = lvar->offset;
 			}
 			else
 			{
-				lvar = calloc(1, sizeof(LVar));
+				lvar = calloc(1, sizeof(Variable));
 				lvar->next = locals;
 				lvar->name = tok->str;
 				lvar->len = tok->len;

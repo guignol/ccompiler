@@ -25,13 +25,6 @@ void gen_lval(Node *node)
 	printf("  push rax # variable [%s]\n", node->name);
 }
 
-void gen(Node *node);
-
-void generate(Node node[])
-{
-	gen(node);
-}
-
 int labelseq = 0;
 
 void gen(Node *node)
@@ -281,4 +274,46 @@ void gen(Node *node)
 	}
 
 	printf("  push rax\n");
+}
+
+void generate(Function *func) {
+	char *function_name = func->name;
+	printf(".global %s\n", function_name);
+	printf("%s:\n", function_name);
+	Variable *locals = func->locals;
+
+	// プロローグ
+	printf("  push rbp\n");
+	printf("  mov rbp, rsp\n");
+	if (locals)
+	{
+		printf("  sub rsp, %i  # %i %s\n", locals->offset, locals->offset / 8, "variables prepared");
+
+		// xやyといったローカル変数が存在するものとしてコンパイルして、
+		// 関数のプロローグの中で、レジスタの値をそのローカル変数のためのスタック上の領域に書き出してください。
+		// そうすれば、その後は特に引数とローカル変数を区別することなく扱えるはずです。
+		// https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9715-%E9%96%A2%E6%95%B0%E3%81%AE%E5%AE%9A%E7%BE%A9%E3%81%AB%E5%AF%BE%E5%BF%9C%E3%81%99%E3%82%8B
+
+		// 使っていればローカル変数と同じようにparseされてるはず？
+		// だとすると、スタックは確保できてるので書き込むだけ？
+	}
+
+	for (size_t i = 0; i < 100; i++)
+	{
+		Node *node = func->body[i];
+		if (node == NULL)
+			break;
+
+		// 抽象構文木を下りながらコード生成
+		gen(node);
+		// 式の評価結果としてスタックに一つの値が残っている
+		// はずなので、スタックが溢れないようにポップしておく
+		printf("  pop rax\n");
+	}
+
+	// エピローグ
+	// 最後の式の結果がRAXに残っているのでそれが返り値になる
+	printf("  mov rsp, rbp\n");
+	printf("  pop rbp\n");
+	printf("  ret\n");
 }
