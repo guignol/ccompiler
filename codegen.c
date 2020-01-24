@@ -39,10 +39,11 @@ void gen_lval(Node *node)
 		error("代入の左辺値が変数ではありません");
 	printf("  mov rax, rbp\n");
 	printf("  sub rax, %d\n", node->offset);
-	printf("  push rax # variable [%s]\n", node->name);
+	printf("  push rax # variable [%.*s]\n", node->len, node->name);
 }
 
 int labelseq = 0;
+char *function_name;
 
 void gen(Node *node)
 {
@@ -68,7 +69,7 @@ void gen(Node *node)
 		{
 			// デバッグ用: 引数なしのprintf()に固定の文字列を渡す
 			// スタックポインタのアラインなしだとクラッシュする場合があるのでその確認
-			if (memcmp(node->name, "printf", strlen("printf")) == 0)
+			if (node->kind == ND_FUNC && memcmp(node->name, "printf", strlen("printf")) == 0)
 			{
 				count = 2;
 				printf("  mov rdi, QWORD PTR debug_moji[rip]\n");
@@ -87,12 +88,12 @@ void gen(Node *node)
 			printf("  and rax, 15\n");
 			printf("  jnz .Lcall%d\n", seq);
 			printf("  mov rax, 0\n");
-			printf("  call %s\n", node->name);
+			printf("  call %.*s\n", node->len, node->name);
 			printf("  jmp .Lend%d\n", seq);
 			printf(".Lcall%d:\n", seq);
 			printf("  sub rsp, 8\n");
 			printf("  mov rax, 0\n");
-			printf("  call %s\n", node->name);
+			printf("  call %.*s\n", node->len, node->name);
 			printf("  add rsp, 8\n");
 			printf(".Lend%d:\n", seq);
 			printf("  push rax\n");
@@ -100,7 +101,7 @@ void gen(Node *node)
 		else
 		{
 			printf("  mov rax, %i\n", count);
-			printf("  call %s\n", node->name);
+			printf("  call %.*s\n", node->len, node->name);
 			printf("  push rax\n");
 		}
 
@@ -201,9 +202,7 @@ void gen(Node *node)
 	case ND_RETURN:
 		gen(node->lhs);
 		printf("  pop rax\n");
-		printf("  mov rsp, rbp\n");
-		printf("  pop rbp\n");
-		printf("  ret\n");
+		printf("  jmp .Lreturn%s\n", function_name);
 		return;
 	case ND_NUM:
 		printf("  push %d\n", node->val);
@@ -279,7 +278,7 @@ void gen(Node *node)
 
 void generate(Function *func)
 {
-	char *function_name = func->name;
+	function_name = func->name;
 	printf(".global %s\n", function_name);
 	printf("%s:\n", function_name);
 
@@ -317,6 +316,7 @@ void generate(Function *func)
 
 	// エピローグ
 	// 最後の式の結果がRAXに残っているのでそれが返り値になる
+	printf(".Lreturn%s:\n", function_name);
 	printf("  mov rsp, rbp\n");
 	printf("  pop rbp\n");
 	printf("  ret\n");

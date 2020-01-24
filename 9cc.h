@@ -64,7 +64,9 @@ struct Node
 	Node *rhs;	 // 右辺
 	int val;	   // kindがND_NUMの場合のみ使う
 	int offset;	// kindがND_LVARの場合のみ使う
+
 	char *name;	// 変数名、関数名
+	int len;
 
 	Node *condition; // if (condition), while (condition)
 	Node *execution; // for (;;) statement

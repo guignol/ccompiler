@@ -45,6 +45,7 @@ END
 
 make
 
+# assert 13 'main() { return add(1, 12); } add(a, b, a) { hoge(a, b); return a + b; }'
 assert 13 'main() { return add(1, 12); } add(a, b) { hoge(a, b); return a + b; }'
 assert 13 'main() { return add(1, 12); } add(a, b) { return a + b; }'
 # exit 0

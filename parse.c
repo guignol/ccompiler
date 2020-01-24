@@ -108,7 +108,8 @@ Node *new_node_variable(char *str, int len)
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = ND_LVAR;
 	node->offset = variable->offset;
-	node->name = copy(str, len);
+	node->name = str;
+	node->len = len;
 	return node;
 }
 
@@ -392,7 +393,8 @@ Node *primary()
 				}
 				expect(")");
 			}
-			node->name = copy(tok->str, tok->len);
+			node->name = tok->str;
+			node->len = tok->len;
 			return node;
 		}
 		else
