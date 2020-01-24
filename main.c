@@ -16,6 +16,12 @@ int main(int argc, char **argv)
 
 	// アセンブリの前半部分を出力
 	printf(".intel_syntax noprefix\n");
+	{
+		printf(".LC0:\n");
+		printf("  .string \"%s\"\n", "moji: %i\\n");
+		printf("debug_moji: \n");
+		printf("  .quad .LC0\n");
+	}
 	printf(".global main\n");
 	printf("main:\n");
 

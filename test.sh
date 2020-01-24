@@ -40,6 +40,10 @@ END
 
 make
 
+try 13 'printf(); return 13;'
+try 13 'a = 13;  printf(); return a;'
+# exit 0
+
 try 12 'b = 1; a = foo() + b;'
 try 11 'return foo();'
 try 12 'a = foo() + 1;'

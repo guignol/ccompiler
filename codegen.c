@@ -64,14 +64,52 @@ void gen(Node *node)
 				gen(arg);
 				count++;
 			}
-			for (size_t i = 0; i < count; i++) {
+			for (size_t i = 0; i < count; i++)
+			{
 
 				printf("  pop %s\n", registers[count - i - 1]);
 			}
 		}
-		printf("  mov rax, %i\n", count);
-		printf("  call %s\n", node->name);
-		printf("  push rax\n");
+		else
+		{
+			// デバッグ用: 引数なしのprintf()に固定の文字列を渡す
+			// スタックポインタのアラインなしだとクラッシュする場合があるのでその確認
+			if (memcmp(node->name, "printf", strlen("printf")) == 0)
+			{
+				count = 2;
+				printf("  mov rdi, QWORD PTR debug_moji[rip]\n");
+				printf("  mov rsi, 2\n");
+			}
+		}
+		static bool doAlign = true;
+		if (doAlign)
+		{
+			// https://github.com/rui314/chibicc/commit/aedbf56c3af4914e3f183223ff879734683bec73
+			// We need to align RSP to a 16 byte boundary before
+			// calling a function because it is an ABI requirement.
+			// RAX is set to 0 for variadic function.
+			int seq = labelseq++;
+			printf("  mov rax, rsp\n");
+			printf("  and rax, 15\n");
+			printf("  jnz .Lcall%d\n", seq);
+			printf("  mov rax, 0\n");
+			printf("  call %s\n", node->name);
+			printf("  jmp .Lend%d\n", seq);
+			printf(".Lcall%d:\n", seq);
+			printf("  sub rsp, 8\n");
+			printf("  mov rax, 0\n");
+			printf("  call %s\n", node->name);
+			printf("  add rsp, 8\n");
+			printf(".Lend%d:\n", seq);
+			printf("  push rax\n");
+		}
+		else
+		{
+			printf("  mov rax, %i\n", count);
+			printf("  call %s\n", node->name);
+			printf("  push rax\n");
+		}
+
 		return;
 	}
 	case ND_BLOCK:
