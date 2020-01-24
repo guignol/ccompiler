@@ -1,5 +1,22 @@
 #include "9cc.h"
 
+// RAX	返り値 / 引数の数	✔
+// RDI	第1引数	✔
+// RSI	第2引数	✔
+// RDX	第3引数	✔
+// RCX	第4引数	✔
+// RBP	ベースポインタ
+// RSP	スタックポインタ
+// RBX	（特になし）
+// R8	第5引数	✔
+// R9	第6引数	✔
+static char *registers[] = {"rdi",
+							"rsi",
+							"rdx",
+							"rcx",
+							"r8",
+							"r9"};
+
 void ___COMMENT___(char *format, ...)
 {
 	va_list ap;
@@ -36,22 +53,6 @@ void gen(Node *node)
 		int count = 0;
 		if (node->args)
 		{
-			// RAX	返り値 / 引数の数	✔
-			// RDI	第1引数	✔
-			// RSI	第2引数	✔
-			// RDX	第3引数	✔
-			// RCX	第4引数	✔
-			// RBP	ベースポインタ
-			// RSP	スタックポインタ
-			// RBX	（特になし）
-			// R8	第5引数	✔
-			// R9	第6引数	✔
-			static char *registers[] = {"rdi",
-										"rsi",
-										"rdx",
-										"rcx",
-										"r8",
-										"r9"};
 			for (Node *arg = node->args; arg; arg = arg->args)
 			{
 				gen(arg);
@@ -281,22 +282,24 @@ void generate(Function *func)
 	char *function_name = func->name;
 	printf(".global %s\n", function_name);
 	printf("%s:\n", function_name);
-	Variable *locals = func->locals;
 
 	// プロローグ
 	printf("  push rbp\n");
 	printf("  mov rbp, rsp\n");
+	Variable *locals = func->locals;
 	if (locals)
 	{
 		printf("  sub rsp, %i  # %i %s\n", locals->offset, locals->offset / 8, "variables prepared");
 
-		// xやyといったローカル変数が存在するものとしてコンパイルして、
-		// 関数のプロローグの中で、レジスタの値をそのローカル変数のためのスタック上の領域に書き出してください。
-		// そうすれば、その後は特に引数とローカル変数を区別することなく扱えるはずです。
-		// https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9715-%E9%96%A2%E6%95%B0%E3%81%AE%E5%AE%9A%E7%BE%A9%E3%81%AB%E5%AF%BE%E5%BF%9C%E3%81%99%E3%82%8B
-
-		// 使っていればローカル変数と同じようにparseされてるはず？
-		// だとすると、スタックは確保できてるので書き込むだけ？
+		for (Variable *param = locals; param; param = param->next)
+		{
+			if (0 <= param->index)
+			{
+				printf("  mov rax, rbp\n");
+				printf("  sub rax, %d\n", param->offset);
+				printf("  mov [rax], %s  # parameter [%.*s]\n", registers[param->index], param->len, param->name);
+			}
+		}
 	}
 
 	for (size_t i = 0; i < 100; i++)

@@ -45,8 +45,10 @@ END
 
 make
 
-assert 13 'main() { return salut(); } salut() { a = 1; b = 12; return 13; }'
+assert 13 'main() { return add(1, 12); } add(a, b) { hoge(a, b); return a + b; }'
+assert 13 'main() { return add(1, 12); } add(a, b) { return a + b; }'
 # exit 0
+assert 13 'main() { return salut(); } salut() { a = 1; b = 12; return 13; }'
 assert 13 'main() { return salut(); } salut() { return 13; }'
 assert 13 'main() { return bar(13); }'
 

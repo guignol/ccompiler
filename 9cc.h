@@ -83,6 +83,8 @@ struct Variable
 	char *name;		// 変数の名前
 	int len;		// 名前の長さ
 	int offset;		// RBPからのオフセット
+
+	int index; // 関数の仮引数の場合、何番目か
 };
 
 typedef struct Function Function;
@@ -91,9 +93,7 @@ struct Function
 {
 	// 関数名
 	char *name;
-	// 引数
-	Variable *parameters;
-	// ローカル変数
+	// ローカル変数および引数
 	Variable *locals;
 	// 関数本体
 	Node **body;

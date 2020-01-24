@@ -57,6 +57,13 @@ bool at_eof()
 
 //////////////////////////////////////////////////////////////////
 
+char *copy(char *str, int len)
+{
+	char *copied = malloc(sizeof(char *));
+	strncpy(copied, str, len);
+	return copied;
+}
+
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs)
 {
 	Node *node = calloc(1, sizeof(Node));
@@ -74,20 +81,35 @@ Node *new_node_num(int val)
 	return node;
 }
 
-// 変数を名前で検索する。見つからなかった場合はNULLを返す。
-Variable *find_local_variable(Token *tok)
+Variable *find_local_variable(char *name, int len)
 {
 	for (Variable *var = locals; var; var = var->next)
-		if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+		if (var->len == len && !memcmp(name, var->name, var->len))
 			return var;
 	return NULL;
 }
 
-char *copy(char *str, int len)
+Variable *register_variable(char *str, int len)
 {
-	char *copied = malloc(sizeof(char *));
-	strncpy(copied, str, len);
-	return copied;
+	Variable *variable = calloc(1, sizeof(Variable));
+	variable->next = locals;
+	variable->name = str;
+	variable->len = len;
+	variable->offset = (locals ? locals->offset : 0) + 8;
+	variable->index = -1;
+	locals = variable;
+	return variable;
+}
+
+Node *new_node_variable(char *str, int len)
+{
+	Variable *variable = find_local_variable(str, len);
+	variable = variable ? variable : register_variable(str, len);
+	Node *node = calloc(1, sizeof(Node));
+	node->kind = ND_LVAR;
+	node->offset = variable->offset;
+	node->name = copy(str, len);
+	return node;
 }
 
 // program    = function*
@@ -128,11 +150,11 @@ Function *program(Token *t)
 
 	Function head;
 	head.next = NULL;
-	Function *cur = &head;
+	Function *tail = &head;
 	while (!at_eof())
 	{
-		cur->next =  function();
-		cur = cur->next;
+		tail->next = function();
+		tail = tail->next;
 	}
 
 	token = NULL;
@@ -147,23 +169,38 @@ Function *function()
 		error_at(token->str, "関数名がありません");
 
 	expect("(");
-	// TODO 引数
+
+	Variable head;
+	{
+		int i = 0;
+		for (Token *t = consume_ident(); t; t = consume_ident())
+		{
+			if (find_local_variable(t->str, t->len))
+				error_at(t->str, "引数名が重複しています");
+
+			Variable *param = register_variable(t->str, t->len);
+			param->index = i++;
+			if (!consume(","))
+				break;
+		}
+	}
 	expect(")");
 
 	expect("{");
 	// Node *code[100];
 	Node **body = (Node **)malloc(sizeof(Node *) * 100);
-	int i = 0;
-	while (!consume("}"))
 	{
-		body[i++] = stmt();
-	}
+		int i = 0;
+		while (!consume("}"))
+		{
+			body[i++] = stmt();
+		}
 
-	body[i] = NULL;
+		body[i] = NULL;
+	}
 
 	Function *function = calloc(1, sizeof(Function));
 	function->name = copy(function_name->str, function_name->len);
-	function->parameters = NULL;
 	function->locals = locals;
 	function->body = body;
 
@@ -341,9 +378,9 @@ Node *primary()
 	Token *tok = consume_ident();
 	if (tok)
 	{
-		Node *node = calloc(1, sizeof(Node));
 		if (consume("("))
 		{
+			Node *node = calloc(1, sizeof(Node));
 			node->kind = ND_FUNC;
 			if (!consume(")"))
 			{
@@ -355,29 +392,13 @@ Node *primary()
 				}
 				expect(")");
 			}
+			node->name = copy(tok->str, tok->len);
+			return node;
 		}
 		else
 		{
-			node->kind = ND_LVAR;
-			Variable *lvar = find_local_variable(tok);
-			if (lvar)
-			{
-				node->offset = lvar->offset;
-			}
-			else
-			{
-				lvar = calloc(1, sizeof(Variable));
-				lvar->next = locals;
-				lvar->name = tok->str;
-				lvar->len = tok->len;
-
-				lvar->offset = (locals ? locals->offset : 0) + 8;
-				node->offset = lvar->offset;
-				locals = lvar;
-			}
+			return new_node_variable(tok->str, tok->len);
 		}
-		node->name = copy(tok->str, tok->len);
-		return node;
 	}
 
 	// 次のトークンが"("なら、"(" expr ")"のはず
