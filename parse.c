@@ -256,7 +256,7 @@ Node *stmt()
 		// init
 		if (!consume(";"))
 		{
-			node->lhs = expr();
+			node->lhs = new_node(ND_EXPR_STMT, expr(), NULL);
 			expect(";");
 		}
 		// condition
@@ -268,7 +268,7 @@ Node *stmt()
 		// increment
 		if (!consume(")"))
 		{
-			node->rhs = expr();
+			node->rhs = new_node(ND_EXPR_STMT, expr(), NULL);
 			expect(")");
 		}
 		node->execution = stmt();

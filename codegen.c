@@ -117,7 +117,6 @@ void gen(Node *node)
 			 next;
 			 next = next->statement)
 		{
-			printf("  pop rax\n");
 			gen(next);
 		}
 		___COMMENT___("block end");
