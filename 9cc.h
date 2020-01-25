@@ -44,7 +44,7 @@ typedef enum
 	ND_LESS,	  // <
 	ND_LESS_EQL,  // <=
 	ND_ASSIGN,	// =
-	ND_LVAR,	  // ローカル変数
+	ND_VARIABLE,	  // ローカル変数
 	ND_FUNC,	  // 関数
 	ND_NUM,		  // 整数
 	ND_RETURN,	// return
@@ -53,6 +53,8 @@ typedef enum
 	ND_WHILE,	 // while
 	ND_FOR,		  // for
 	ND_BLOCK,	 // { }
+	ND_ADDRESS,	  // &a
+	ND_DEREF,	 // *a
 } NodeKind;
 
 typedef struct Node Node;

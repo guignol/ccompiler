@@ -33,13 +33,30 @@ void error(char *message)
 	exit(1);
 }
 
-void gen_lval(Node *node)
+void gen(Node *node);
+
+void gen_address(Node *node)
 {
-	if (node->kind != ND_LVAR)
+	switch (node->kind)
+	{
+	case ND_VARIABLE:
+		printf("  mov rax, rbp\n");
+		printf("  sub rax, %d\n", node->offset);
+		printf("  push rax # variable [%.*s]\n", node->len, node->name);
+		break;
+	case ND_DEREF:
+		/*
+			int x = 3;
+			int *y = &x;
+			*y = 4; // この代入とか
+			return x; // => 4
+		*/
+		gen(node->lhs);
+		break;
+	default:
 		error("代入の左辺値が変数ではありません");
-	printf("  mov rax, rbp\n");
-	printf("  sub rax, %d\n", node->offset);
-	printf("  push rax # variable [%.*s]\n", node->len, node->name);
+		break;
+	}
 }
 
 int labelseq = 0;
@@ -202,6 +219,7 @@ void gen(Node *node)
 	}
 	case ND_EXPR_STMT:
 		gen(node->lhs);
+		// 式文では値をスタックに残さない
 		printf("  add rsp, 8\n");
 		return;
 	case ND_RETURN:
@@ -212,15 +230,16 @@ void gen(Node *node)
 	case ND_NUM:
 		printf("  push %d\n", node->val);
 		return;
-	case ND_LVAR:
-		gen_lval(node);
+	case ND_VARIABLE:
+		// 変数のアドレスから、そのアドレスにある値を取り出す
+		gen_address(node);
 		printf("  pop rax\n");
 		printf("  mov rax, [rax]\n");
 		printf("  push rax\n");
 		return;
 	case ND_ASSIGN:
 		___COMMENT___("assign begin");
-		gen_lval(node->lhs);
+		gen_address(node->lhs);
 		gen(node->rhs);
 
 		printf("  pop rdi\n");
@@ -228,6 +247,21 @@ void gen(Node *node)
 		printf("  mov [rax], rdi\n");
 		printf("  push rdi\n");
 		___COMMENT___("assign end");
+		return;
+	case ND_ADDRESS:
+		// 変数のアドレスをスタックに積むだけ
+		gen_address(node->lhs);
+		return;
+	case ND_DEREF:
+		/*
+			int var = 3;
+			int *p = &var;
+			&p; // => 3
+	  	*/
+		gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
+		printf("  pop rax\n");
+		printf("  mov rax, [rax]\n"); // そのアドレスの値を取り出す
+		printf("  push rax\n");
 		return;
 	}
 

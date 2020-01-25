@@ -106,7 +106,7 @@ Node *new_node_variable(char *str, int len)
 	Variable *variable = find_local_variable(str, len);
 	variable = variable ? variable : register_variable(str, len);
 	Node *node = calloc(1, sizeof(Node));
-	node->kind = ND_LVAR;
+	node->kind = ND_VARIABLE;
 	node->offset = variable->offset;
 	node->name = str;
 	node->len = len;
@@ -127,7 +127,7 @@ Node *new_node_variable(char *str, int len)
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
-// unary      = ("+" | "-")? primary
+// unary      = ("+" | "-" | "*" | "&")? primary
 // primary    = num |
 //				| ident
 //				| ident "(" args ")"
@@ -371,6 +371,10 @@ Node *unary()
 		return primary();
 	if (consume("-"))
 		return new_node(ND_SUB, new_node_num(0), primary());
+	if (consume("*"))
+		return new_node(ND_DEREF, primary(), NULL);
+	if (consume("&"))
+		return new_node(ND_ADDRESS, primary(), NULL);
 	return primary();
 }
 

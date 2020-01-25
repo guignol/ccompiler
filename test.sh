@@ -45,6 +45,39 @@ END
 
 make
 
+assert 4 "$(
+	cat <<END
+main() {
+	x = 3;
+	y = &x;
+	*y = 4;
+	return x;
+}
+END
+)"
+
+assert 3 "$(
+	cat <<END
+main() {
+	x = 3;
+	y = 5;
+	z = &y + 8;
+	i = *z;
+	return i;
+}
+END
+)"
+
+assert 3 "$(
+	cat <<END
+main() {
+	x = 3;
+	y = &x;
+	return *y;
+}
+END
+)"
+
 try 10 'a = 0; b = 1; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } return b - 1;'
 try 11 ' a = 3; b = 2; c = 6; return a + b + c; '
 try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
