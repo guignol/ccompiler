@@ -8,32 +8,14 @@ assert() {
 	expected="$1"
 	input="$2"
 
-	cat <<END >foo.c
-#include <stdio.h>
-
-int hoge(int x, int y) {
-	printf("--------------hoge: %i, %i\n", x, y);
-	return x + y;
-}
-
-int bar(int v) {
-	printf("--------------bar: %i\n", v);
-	return v;
-}
-
-int foo() {
-	return bar(11);
-}
-END
-	gcc -c foo.c
+	gcc -c -o _test/foo.o _test/foo.c
 
 	./build/ccompiler "$input" >tmp.s
-	gcc -o tmp tmp.s foo.o
+	gcc -o tmp tmp.s _test/foo.o
 	./tmp
 	actual="$?"
 
-	rm foo.c
-	rm foo.o
+	rm _test/foo.o
 
 	if [ "$actual" = "$expected" ]; then
 		echo "$input => $actual"
@@ -45,9 +27,9 @@ END
 
 #make
 # For CMake 3.13 or later, use these options to set the source and build folders
-# cmake -B/path/to/my/build/folder -S/path/to/my/source/folder
+# $ cmake -B/path/to/my/build/folder -S/path/to/my/source/folder
 # For older CMake, use some undocumented options to set the source and build folders:
-# cmake -B/path/to/my/build/folder -H/path/to/my/source/folder
+# $ cmake -B/path/to/my/build/folder -H/path/to/my/source/folder
 # https://stackoverflow.com/a/24435795
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -Bbuild/ -H.
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4

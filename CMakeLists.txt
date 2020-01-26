@@ -11,3 +11,14 @@ add_executable(ccompiler
         main.c
         parse.c
         tokenize.c)
+
+#enable_testing()
+#
+#find_program(WSL_SHELL bash)
+#if (WSL_SHELL)
+#    add_test(
+#            NAME mytest
+#            COMMAND ${WSL_SHELL} ${CMAKE_CURRENT_SOURCE_DIR}/test.sh
+#            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#    )
+#endif (WSL_SHELL)
