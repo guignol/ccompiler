@@ -114,7 +114,7 @@ Node *new_node_variable(char *str, int len)
 }
 
 // program    = function*
-// function   = ident "(" ident* ")" { stmt* }
+// function   = "int" ident "(" ident* ")" { stmt* }
 // stmt       = expr ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
@@ -165,6 +165,7 @@ Function *program(Token *t)
 
 Function *function()
 {
+    expect("int");
 	Token *function_name = consume_ident();
 	if (!function_name)
 		error_at(token->str, "関数名がありません");

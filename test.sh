@@ -1,7 +1,7 @@
 #!/bin/bash
 
 try() {
-	assert "$1" "main() { $2 }"
+	assert "$1" "int main() { $2 }"
 }
 
 assert() {
@@ -36,7 +36,7 @@ assert() {
 
 assert 4 "$(
 	cat <<END
-main() {
+int main() {
 	x = 3;
 	y = &x;
 	*y = 4;
@@ -47,7 +47,7 @@ END
 
 assert 3 "$(
 	cat <<END
-main() {
+int main() {
 	x = 3;
 	y = 5;
 	z = &y + 8;
@@ -59,7 +59,7 @@ END
 
 assert 3 "$(
 	cat <<END
-main() {
+int main() {
 	x = 3;
 	y = &x;
 	return *y;
@@ -73,14 +73,14 @@ try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
 
 assert 1 "$(
 	cat <<END
-main() {
+int main() {
 	for (i = 0; i < 10; i = i + 1) 	{
 		hoge(i, fibonacci(i));
 	}
 	return 1;
 }
 
-fibonacci(n) {
+int fibonacci(n) {
 	if (n == 0)	{
 		return 1;
 	} else if (n == 1) {
@@ -92,12 +92,12 @@ END
 )"
 # exit 0
 
-# assert 13 'main() { return add(1, 12); } add(a, b, a) { hoge(a, b); return a + b; }'
-assert 13 'main() { return add(1, 12); } add(a, b) { hoge(a, b); return a + b; }'
-assert 13 'main() { return add(1, 12); } add(a, b) { return a + b; }'
-assert 13 'main() { return salut(); } salut() { a = 1; b = 12; return 13; }'
-assert 13 'main() { return salut(); } salut() { return 13; }'
-assert 13 'main() { return bar(13); }'
+# assert 13 'int main() { return add(1, 12); } add(a, b, a) { hoge(a, b); return a + b; }'
+assert 13 'int main() { return add(1, 12); } int add(a, b) { hoge(a, b); return a + b; }'
+assert 13 'int main() { return add(1, 12); } int add(a, b) { return a + b; }'
+assert 13 'int main() { return salut(); } int salut() { a = 1; b = 12; return 13; }'
+assert 13 'int main() { return salut(); } int salut() { return 13; }'
+assert 13 'int main() { return bar(13); }'
 
 try 13 'printf(); return 13;'
 try 13 'a = 13;  printf(); return a;'

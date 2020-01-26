@@ -4,7 +4,7 @@
 char *user_input;
 
 // エラー箇所を報告する
-void error_at(char *loc, char *fmt, ...)
+void error_at(const char *loc, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
@@ -47,7 +47,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len)
 int reserved(char *p)
 {
 	// Keyword
-	static char *kws[] = {"return", "if", "else", "while", "for"};
+	static char *kws[] = {"return", "if", "else", "while", "for", "int"};
 	for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
 	{
 		char *keyword = kws[i];

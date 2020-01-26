@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void error_at(char *loc, char *fmt, ...);
+void error_at(const char *loc, char *fmt, ...);
 
 // トークンの種類
 typedef enum
