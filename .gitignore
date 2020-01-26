@@ -5,3 +5,4 @@ tmp.s
 9cc.o
 xxx/
 *.o
+/build/

@@ -27,7 +27,7 @@ int foo() {
 END
 	gcc -c foo.c
 
-	./9cc "$input" >tmp.s
+	./build/ccompiler "$input" >tmp.s
 	gcc -o tmp tmp.s foo.o
 	./tmp
 	actual="$?"
@@ -43,7 +43,14 @@ END
 	fi
 }
 
-make
+#make
+# For CMake 3.13 or later, use these options to set the source and build folders
+# cmake -B/path/to/my/build/folder -S/path/to/my/source/folder
+# For older CMake, use some undocumented options to set the source and build folders:
+# cmake -B/path/to/my/build/folder -H/path/to/my/source/folder
+# https://stackoverflow.com/a/24435795
+/usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -Bbuild/ -H.
+/usr/bin/cmake --build ./build --target ccompiler -- -j 4
 
 assert 4 "$(
 	cat <<END
