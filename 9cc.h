@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void error_at(const char *loc, char *fmt, ...);
+void error_at(const char *loc, const char *fmt, ...);
 
 // トークンの種類
 typedef enum {
@@ -77,21 +77,34 @@ struct Node {
 
 /////////////////////////////////////////////////
 
+typedef struct Type Type;
+
+struct Type {
+    enum {
+        INT, POINTER
+    } ty;
+    Type *point_to;
+};
+
 typedef struct Variable Variable;
 
 // 変数
 struct Variable {
-    Variable *next; // 次の変数かNULL
-    char *name;        // 変数の名前
+    Type *type;      // 型
+    char *name;     // 変数の名前
     int len;        // 名前の長さ
-    int offset;        // RBPからのオフセット
+    int offset;     // RBPからのオフセット
 
     int index; // 関数の仮引数の場合、何番目か
+
+    Variable *next; // 次の変数かNULL
 };
 
 typedef struct Function Function;
 
 struct Function {
+    // 返り値の型
+    // Type *type; // TODO 関数フレーム内で確保した値へのポインタをそのまま返せない
     // 関数名
     char *name;
     // ローカル変数および引数

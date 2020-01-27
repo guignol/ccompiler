@@ -25,12 +25,19 @@ Token *consume_ident() {
     return NULL;
 }
 
+void assert_not_asterisk() {
+    if (token->kind == TK_RESERVED &&
+        strlen("*") == token->len &&
+        memcmp(token->str, "*", token->len) == 0)
+        error_at(token->str, "関数の入出力にポインタはまだ使えません");
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
+        memcmp(token->str, op, token->len) != 0)
         error_at(token->str, "'%s'ではありません", op);
     token = token->next;
 }
@@ -73,19 +80,21 @@ Node *new_node_num(int val) {
 }
 
 Variable *find_local_variable(char *name, int len) {
+    // 同じ型は宣言できない前提なので、型チェックはしない
     for (Variable *var = locals; var; var = var->next)
         if (var->len == len && !memcmp(name, var->name, var->len))
             return var;
     return NULL;
 }
 
-Variable *register_variable(char *str, int len) {
+Variable *register_variable(char *str, int len, Type *type) {
     Variable *variable = calloc(1, sizeof(Variable));
-    variable->next = locals;
+    variable->type = type;
     variable->name = str;
     variable->len = len;
     variable->offset = (locals ? locals->offset : 0) + 8;
     variable->index = -1;
+    variable->next = locals;
     locals = variable;
     return variable;
 }
@@ -163,6 +172,8 @@ Function *program(Token *t) {
 
 Function *function() {
     expect("int");
+    assert_not_asterisk();
+
     Token *function_name = consume_ident();
     if (!function_name)
         error_at(token->str, "関数名がありません");
@@ -171,6 +182,7 @@ Function *function() {
     {
         int i = 0;
         while (consume("int")) {
+            assert_not_asterisk();
             Token *t = consume_ident();
             if (t) {
                 if (find_local_variable(t->str, t->len))
@@ -179,7 +191,10 @@ Function *function() {
                 error_at(token->str, "引数名がありません");
             }
 
-            Variable *param = register_variable(t->str, t->len);
+            Type *type = calloc(1, sizeof(Type));
+            type->ty = INT;
+            type->point_to = NULL;
+            Variable *param = register_variable(t->str, t->len, type);
             param->index = i++;
             if (!consume(","))
                 break;
@@ -212,15 +227,21 @@ Function *function() {
 Node *stmt() {
     Node *node;
     if (consume("int")) {
+        Type *type = calloc(1, sizeof(Type));
+        type->ty = INT;
+        type->point_to = NULL;
         while (consume("*")) {
-            // TODO ポインタ型を読めるようにはしておく
+            Type *pointer = calloc(1, sizeof(Type));
+            type->ty = POINTER;
+            type->point_to = type;
+            type = pointer;
         }
         Token *t = consume_ident();
         if (!t)
             error_at(token->str, "変数名がありません");
         // 変数宣言が重複してたら何もしない
         if (!find_local_variable(t->str, t->len)) {
-            register_variable(t->str, t->len);
+            register_variable(t->str, t->len, type);
         }
         node = new_node(ND_NOTHING, NULL, NULL);
     } else if (consume("{")) {

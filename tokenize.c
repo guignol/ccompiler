@@ -18,7 +18,7 @@ int error_with_front_space(const char *message) {
 }
 
 // エラー箇所を報告する
-void error_at(const char *loc, char *fmt, ...) {
+void error_at(const char *loc, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 
