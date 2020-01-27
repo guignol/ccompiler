@@ -50,8 +50,7 @@ assert 3 "$(
 int main() {
 	x = 3;
 	y = 5;
-	z = &y + 8;
-	i = *z;
+	i = *(&y + 8);
 	return i;
 }
 END
@@ -61,8 +60,7 @@ assert 3 "$(
 	cat <<END
 int main() {
 	x = 3;
-	y = &x;
-	return *y;
+	return *(&x);
 }
 END
 )"
@@ -80,7 +78,7 @@ int main() {
 	return 1;
 }
 
-int fibonacci(n) {
+int fibonacci(int n) {
 	if (n == 0)	{
 		return 1;
 	} else if (n == 1) {
@@ -92,9 +90,9 @@ END
 )"
 # exit 0
 
-# assert 13 'int main() { return add(1, 12); } add(a, b, a) { hoge(a, b); return a + b; }'
-assert 13 'int main() { return add(1, 12); } int add(a, b) { hoge(a, b); return a + b; }'
-assert 13 'int main() { return add(1, 12); } int add(a, b) { return a + b; }'
+# assert 13 'int main() { return add(1, 12); } add(int a, int b, int a) { hoge(a, b); return a + b; }'
+assert 13 'int main() { return add(1, 12); } int add(int a, int b) { hoge(a, b); return a + b; }'
+assert 13 'int main() { return add(1, 12); } int add(int a, int b) { return a + b; }'
 assert 13 'int main() { return salut(); } int salut() { a = 1; b = 12; return 13; }'
 assert 13 'int main() { return salut(); } int salut() { return 13; }'
 assert 13 'int main() { return bar(13); }'

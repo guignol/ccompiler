@@ -171,20 +171,22 @@ Function *function()
 		error_at(token->str, "関数名がありません");
 
 	expect("(");
-
-	Variable head;
 	{
 		int i = 0;
-		for (Token *t = consume_ident(); t; t = consume_ident())
-		{
-			if (find_local_variable(t->str, t->len))
-				error_at(t->str, "引数名が重複しています");
+        while (consume("int")) {
+            Token *t = consume_ident();
+            if (t) {
+                if (find_local_variable(t->str, t->len))
+                    error_at(t->str, "引数名が重複しています");
+            } else {
+                error_at(token->str, "引数名がありません");
+            }
 
-			Variable *param = register_variable(t->str, t->len);
-			param->index = i++;
-			if (!consume(","))
-				break;
-		}
+            Variable *param = register_variable(t->str, t->len);
+            param->index = i++;
+            if (!consume(","))
+                break;
+        }
 	}
 	expect(")");
 
