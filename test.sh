@@ -37,6 +37,8 @@ assert() {
 assert 4 "$(
 	cat <<END
 int main() {
+	int x;
+	int *y;
 	x = 3;
 	y = &x;
 	*y = 4;
@@ -48,8 +50,11 @@ END
 assert 3 "$(
 	cat <<END
 int main() {
+  int x;
 	x = 3;
+  int y;
 	y = 5;
+  int i;
 	i = *(&y + 8);
 	return i;
 }
@@ -59,19 +64,21 @@ END
 assert 3 "$(
 	cat <<END
 int main() {
+	int x;
 	x = 3;
 	return *(&x);
 }
 END
 )"
 
-try 10 'a = 0; b = 1; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } return b - 1;'
-try 11 ' a = 3; b = 2; c = 6; return a + b + c; '
-try 11 '{ a = 3; b = 2; c = 6; return a + b + c; }'
+try 10 'int a; a = 0; int b; b = 1; int i; for (i = 0; i < 100; i = i + 1) { a = a + 1; b = a + 1; if (a == 10) return a; } return b - 1;'
+try 11 'int a; a = 3; int b; b = 2; int c; c = 6; return a + b + c; '
+try 11 'int a; int b; int c; { a = 3; b = 2; c = 6; return a + b + c; }'
 
 assert 1 "$(
 	cat <<END
 int main() {
+  int i;
 	for (i = 0; i < 10; i = i + 1) 	{
 		hoge(i, fibonacci(i));
 	}
@@ -93,55 +100,55 @@ END
 # assert 13 'int main() { return add(1, 12); } add(int a, int b, int a) { hoge(a, b); return a + b; }'
 assert 13 'int main() { return add(1, 12); } int add(int a, int b) { hoge(a, b); return a + b; }'
 assert 13 'int main() { return add(1, 12); } int add(int a, int b) { return a + b; }'
-assert 13 'int main() { return salut(); } int salut() { a = 1; b = 12; return 13; }'
+assert 13 'int main() { return salut(); } int salut() { int a; int b; a = 1; b = 12; return 13; }'
 assert 13 'int main() { return salut(); } int salut() { return 13; }'
 assert 13 'int main() { return bar(13); }'
 
 try 13 'printf(); return 13;'
-try 13 'a = 13;  printf(); return a;'
+try 13 'int a; a = 13;  printf(); return a;'
 # exit 0
 
-try 12 'b = 1; a = foo() + b; return a;'
+try 12 'int b; b = 1; int a; a = foo() + b; return a;'
 try 11 'return foo();'
-try 12 'return a = foo() + 1;'
-try 12 'return a = bar(11) + 1;'
-try 12 'b = 11; return a = bar(b) + 1;'
-try 12 'return a = hoge(11, 1);'
-try 12 'a = 1; b = 11; return hoge(b, a);'
+try 12 'int a; return a = foo() + 1;'
+try 12 'int a; return a = bar(11) + 1;'
+try 12 'int a; int b; b = 11; return a = bar(b) + 1;'
+try 12 'int a; return a = hoge(11, 1);'
+try 12 'int a; int b; a = 1; b = 11; return hoge(b, a);'
 try 12 'return hoge(11, 1);'
 # exit 0
 
-try 3 '{ aa = 3; { b = 2; } return aa; }'
+try 3 '{ int aa; int b; aa = 3; { b = 2; } return aa; }'
 
-try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return b - 1;'
-try 10 'a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return a;'
-try 10 'value = 0; for (i = 0; i < 10; i = i + 1) { value = value + 1; } return value;'
+try 10 'int a; int b; int i; a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return b - 1;'
+try 10 'int a; int b; int i; a = 0; b = 1; for (i = 0; i < 10; i = i + 1) { a = a + 1; b = a + 1; } return a;'
+try 10 'int value; int i; value = 0; for (i = 0; i < 10; i = i + 1) { value = value + 1; } return value;'
 # exit 0
 
-try 3 '{ return a = 3; }'
-try 2 '{ a = 3; return b = 2; }'
-try 6 '{ a = 3; b = 2; return c = 6; }'
-try 6 '{ a = 3; b = 2; return c = 6; return a + b + c; }'
+try 3 '{ int a; return a = 3; }'
+try 2 '{ int a; int b; a = 3; return b = 2; }'
+try 6 '{ int a; int b; int c; a = 3; b = 2; return c = 6; }'
+try 6 '{ int a; int b; int c; a = 3; b = 2; return c = 6; return a + b + c; }'
 
-try 99 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return 99;'
-try 10 'a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;'
-try 10 'a = 0; while (a < 10) a = a + 1; return a;'
+try 99 'int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; return 99;'
+try 10 'int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;'
+try 10 'int a; a = 0; while (a < 10) a = a + 1; return a;'
 
-try 37 'a = 1983; b = 2020; if ((b - a) == 37) return 37; else return 36;'
-try 12 'a = 13; if (a == 0) return 3; else return 12;'
+try 37 'int a; int b; a = 1983; b = 2020; if ((b - a) == 37) return 37; else return 36;'
+try 12 'int a; a = 13; if (a == 0) return 3; else return 12;'
 try 12 'if (0) return 3; else return 12;'
 
-try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11;'
-try 25 'a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;'
+try 25 'int a_3; int _loc; a_3 = 12; _loc = 3; return a_3 * _loc - 11;'
+try 25 'int a_3; int _loc; a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;'
 
-try 5 'aaa = 3; aaa + 2;'
-try 5 'aaa = 3; b29 = 2; b29 + aaa;'
-try 5 'O0 = 3; O0 = 2; O0 + 3;'
+try 5 'int aaa; aaa = 3; aaa + 2;'
+try 5 'int b29; int aaa; aaa = 3; b29 = 2; b29 + aaa;'
+try 5 'int O0; O0 = 3; O0 = 2; O0 + 3;'
 
-try 5 'a = 3; a + 2;'
-try 3 'a = 3; a;'
+try 5 'int a; a = 3; a + 2;'
+try 3 'int a; a = 3; a;'
 try 3 'return 3;'
-try 5 'a = 3; z = 2; return a + z;'
+try 5 'int a; int z; a = 3; z = 2; return a + z;'
 
 # try 0 '1 + aaa'
 try 0 "return 0;"

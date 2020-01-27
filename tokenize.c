@@ -3,19 +3,51 @@
 // 入力プログラム
 char *user_input;
 
+int error_with_front_space(const char *message)
+{
+    int space = 0;
+    for (int i = 0; i < strlen(message); ++i) {
+        if (isspace(message[i])) {
+            space++;
+        } else {
+            break;
+        }
+    }
+    fprintf(stderr, "%*s", space * 4, ""); // pos個の空白を出力
+    fprintf(stderr, "%s\n", message + space);
+    return space;
+}
+
 // エラー箇所を報告する
 void error_at(const char *loc, char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
 
-	int pos = loc - user_input;
-	fprintf(stderr, "%s\n", user_input);
-	fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
-	fprintf(stderr, "^ ");
-	vfprintf(stderr, fmt, ap);
-	fprintf(stderr, "\n");
-	exit(1);
+    char *head = user_input;
+    char *tail = strtok(user_input, "\n");
+    while (tail) {
+        if (loc < tail) {
+            int pos = loc - head;
+            int front_space = error_with_front_space(head);
+            fprintf(stderr, "%*s", front_space * 4, "");
+            fprintf(stderr, "%*s", pos - front_space, "");
+            fprintf(stderr, "^ ");
+            vfprintf(stderr, fmt, ap);
+            fprintf(stderr, "\n");
+            error_with_front_space(tail);
+            exit(1);
+        }
+        head = tail;
+        tail = strtok(NULL, "\n");
+    }
+
+    fprintf(stderr, "%s\n", head);
+    fprintf(stderr, "%*s", (int)(loc - user_input), "");
+    fprintf(stderr, "^ ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    exit(1);
 }
 
 bool startswith(char *p, char *q)

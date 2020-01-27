@@ -104,7 +104,8 @@ Variable *register_variable(char *str, int len)
 Node *new_node_variable(char *str, int len)
 {
 	Variable *variable = find_local_variable(str, len);
-	variable = variable ? variable : register_variable(str, len);
+	if (!variable)
+	    error_at(str, "変数の宣言がありません。");
 	Node *node = calloc(1, sizeof(Node));
 	node->kind = ND_VARIABLE;
 	node->offset = variable->offset;
@@ -114,8 +115,9 @@ Node *new_node_variable(char *str, int len)
 }
 
 // program    = function*
-// function   = "int" ident "(" ident* ")" { stmt* }
+// function   = type ident "(" (type ident)* ")" { stmt* }
 // stmt       = expr ";"
+//				| type ident ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -133,6 +135,7 @@ Node *new_node_variable(char *str, int len)
 //				| ident "(" args ")"
 // 				| "(" expr ")"
 // args       = (expr ("," expr)* )?
+// type       = "int" "*"*
 
 Function *function();
 Node *stmt();
@@ -216,7 +219,20 @@ Function *function()
 Node *stmt()
 {
 	Node *node;
-	if (consume("{"))
+	if (consume("int")) {
+        while (consume("*")) {
+            // TODO ポインタ型を読めるようにはしておく
+        }
+        Token *t = consume_ident();
+        if (!t)
+            error_at(token->str, "変数名がありません");
+        // 変数宣言が重複してたら何もしない
+        if (!find_local_variable(t->str, t->len)) {
+            register_variable(t->str, t->len);
+        }
+        node = new_node(ND_NOTHING, NULL, NULL);
+	}
+    else if (consume("{"))
 	{
 		node = calloc(1, sizeof(Node));
 		node->kind = ND_BLOCK;
@@ -229,8 +245,7 @@ Node *stmt()
 		}
 		return node;
 	}
-
-	if (consume("if"))
+	else if (consume("if"))
 	{
 		node = calloc(1, sizeof(Node));
 		node->kind = ND_IF;

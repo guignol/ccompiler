@@ -66,6 +66,8 @@ void gen(Node *node)
 {
 	switch (node->kind)
 	{
+    case ND_NOTHING:
+        return;
 	case ND_FUNC:
 	{
 		___COMMENT___("begin function call [%.*s]", node->len, node->name);

@@ -55,6 +55,7 @@ typedef enum
 	ND_BLOCK,	 // { }
 	ND_ADDRESS,	  // &a
 	ND_DEREF,	 // *a
+	ND_NOTHING // 変数宣言
 } NodeKind;
 
 typedef struct Node Node;
