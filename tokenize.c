@@ -3,8 +3,7 @@
 // 入力プログラム
 char *user_input;
 
-int error_with_front_space(const char *message)
-{
+int error_with_front_space(const char *message) {
     int space = 0;
     for (int i = 0; i < strlen(message); ++i) {
         if (isspace(message[i])) {
@@ -19,10 +18,9 @@ int error_with_front_space(const char *message)
 }
 
 // エラー箇所を報告する
-void error_at(const char *loc, char *fmt, ...)
-{
-	va_list ap;
-	va_start(ap, fmt);
+void error_at(const char *loc, char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
 
     char *head = user_input;
     char *tail = strtok(user_input, "\n");
@@ -43,117 +41,104 @@ void error_at(const char *loc, char *fmt, ...)
     }
 
     fprintf(stderr, "%s\n", head);
-    fprintf(stderr, "%*s", (int)(loc - user_input), "");
+    fprintf(stderr, "%*s", (int) (loc - user_input), "");
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
     exit(1);
 }
 
-bool startswith(char *p, char *q)
-{
-	return memcmp(p, q, strlen(q)) == 0;
+bool startswith(char *p, char *q) {
+    return memcmp(p, q, strlen(q)) == 0;
 }
 
-bool is_alpha(char c)
-{
-	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
+bool is_alpha(char c) {
+    return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
-bool is_alnum(char c)
-{
-	return is_alpha(c) || ('0' <= c && c <= '9');
+bool is_alnum(char c) {
+    return is_alpha(c) || ('0' <= c && c <= '9');
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, int len)
-{
-	Token *tok = calloc(1, sizeof(Token));
-	tok->kind = kind;
-	tok->str = str;
-	tok->len = len;
-	cur->next = tok;
-	return tok;
+Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
+    Token *tok = calloc(1, sizeof(Token));
+    tok->kind = kind;
+    tok->str = str;
+    tok->len = len;
+    cur->next = tok;
+    return tok;
 }
 
-int reserved(char *p)
-{
-	// Keyword
-	static char *kws[] = {"return", "if", "else", "while", "for", "int"};
-	for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++)
-	{
-		char *keyword = kws[i];
-		int len = strlen(keyword);
-		char next = p[len];
-		if (strncmp(p, keyword, len) == 0 && !is_alnum(next))
-			return len;
-	}
+int reserved(char *p) {
+    // Keyword
+    static char *kws[] = {"return", "if", "else", "while", "for", "int"};
+    for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
+        char *keyword = kws[i];
+        int len = strlen(keyword);
+        char next = p[len];
+        if (strncmp(p, keyword, len) == 0 && !is_alnum(next))
+            return len;
+    }
 
-	// Multi-letter punctuator
-	static char *ops[] = {"==", "!=", "<=", ">="};
-	for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++)
-	{
-		char *operator= ops[i];
-		int len = strlen(operator);
-		char next = p[len];
-		if (strncmp(p, operator, len) == 0)
-			return len;
-	}
+    // Multi-letter punctuator
+    static char *ops[] = {"==", "!=", "<=", ">="};
+    for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
+        char *operator = ops[i];
+        int len = strlen(operator);
+        char next = p[len];
+        if (strncmp(p, operator, len) == 0)
+            return len;
+    }
 
-	// Single-letter punctuator
-	if (strchr("+-*/()<>;={},&", *p))
-		return 1;
+    // Single-letter punctuator
+    if (strchr("+-*/()<>;={},&", *p))
+        return 1;
 
-	return 0;
+    return 0;
 }
 
 // 入力文字列pをトークナイズしてそれを返す
-Token *tokenize(char *p)
-{
-	user_input = p;
-	Token head;
-	head.next = NULL;
-	Token *cur = &head;
+Token *tokenize(char *p) {
+    user_input = p;
+    Token head;
+    head.next = NULL;
+    Token *cur = &head;
 
-	while (*p)
-	{
-		// 空白文字をスキップ
-		if (isspace(*p))
-		{
-			p++;
-			continue;
-		}
+    while (*p) {
+        // 空白文字をスキップ
+        if (isspace(*p)) {
+            p++;
+            continue;
+        }
 
-		int len = reserved(p);
-		if (0 < len)
-		{
-			cur = new_token(TK_RESERVED, cur, p, len);
-			p += len;
-			continue;
-		}
+        int len = reserved(p);
+        if (0 < len) {
+            cur = new_token(TK_RESERVED, cur, p, len);
+            p += len;
+            continue;
+        }
 
-		if (is_alpha(*p))
-		{
-			char *q = p++;
-			while (is_alnum(*p))
-				p++;
-			cur = new_token(TK_IDENT, cur, q, p - q);
-			continue;
-		}
+        if (is_alpha(*p)) {
+            char *q = p++;
+            while (is_alnum(*p))
+                p++;
+            cur = new_token(TK_IDENT, cur, q, p - q);
+            continue;
+        }
 
-		// Integer literal
-		if (isdigit(*p))
-		{
-			cur = new_token(TK_NUM, cur, p, 0);
-			char *q = p;
-			cur->val = strtol(p, &p, 10);
-			cur->len = p - q;
-			continue;
-		}
+        // Integer literal
+        if (isdigit(*p)) {
+            cur = new_token(TK_NUM, cur, p, 0);
+            char *q = p;
+            cur->val = strtol(p, &p, 10);
+            cur->len = p - q;
+            continue;
+        }
 
-		error_at(p, "トークナイズできません");
-	}
+        error_at(p, "トークナイズできません");
+    }
 
-	new_token(TK_EOF, cur, p, 0);
-	return head.next;
+    new_token(TK_EOF, cur, p, 0);
+    return head.next;
 }
