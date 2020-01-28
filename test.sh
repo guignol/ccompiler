@@ -34,6 +34,15 @@ assert() {
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -Bbuild/ -H.
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 
+#int main() {
+#    int a[5] = {1, 2, 3, 4, 5};
+#    int *p = a;
+#    p++;
+#    p = p + 1;
+#    p = 1 + p;
+#	return *p;
+#}
+
 assert 4 "$(
 	cat <<END
 int main() {

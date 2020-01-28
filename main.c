@@ -20,3 +20,8 @@ int main(int argc, char **argv) {
 
     return 0;
 }
+
+void error(char *message) {
+    fprintf(stderr, "%s", message);
+    exit(1);
+}

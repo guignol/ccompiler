@@ -64,23 +64,8 @@ char *copy(char *str, int len) {
     return copied;
 }
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = kind;
-    node->lhs = lhs;
-    node->rhs = rhs;
-    return node;
-}
-
-Node *new_node_num(int val) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_NUM;
-    node->val = val;
-    return node;
-}
-
 Variable *find_local_variable(char *name, int len) {
-    // 同じ型は宣言できない前提なので、型チェックはしない
+    // TODO 同名の変数は宣言できない前提なので、型チェックはしない
     for (Variable *var = locals; var; var = var->next)
         if (var->len == len && !memcmp(name, var->name, var->len))
             return var;
@@ -97,6 +82,107 @@ Variable *register_variable(char *str, int len, Type *type) {
     variable->next = locals;
     locals = variable;
     return variable;
+}
+
+Type *shared_int_type() {
+    static Type *int_type;
+    if (!int_type) {
+        int_type = calloc(1, sizeof(Type));
+        int_type->ty = INT;
+        int_type->point_to = NULL;
+    }
+    return int_type;
+}
+
+Type *create_pointer_type(Type *point_to) {
+    Type *type = calloc(1, sizeof(Type));
+    type->ty = POINTER;
+    type->point_to = point_to;
+    return type;
+}
+
+bool are_same_type(Type *left, Type *right) {
+    if (left->ty != right->ty) {
+        return false;
+    }
+    switch (left->ty) {
+        case INT:
+            return true;
+        case POINTER:
+            return are_same_type(left->point_to, right->point_to);
+    }
+}
+
+Type *find_type(const Node *node) {
+    switch (node->kind) {
+        case ND_FUNC: // TODO
+        case ND_MUL:
+        case ND_DIV:
+        case ND_EQL:
+        case ND_NOT:
+        case ND_LESS:
+        case ND_LESS_EQL:
+        case ND_NUM:
+            return shared_int_type();
+        case ND_ADD:
+        case ND_SUB: {
+            // TODO
+            Type *left = find_type(node->lhs);
+            Type *right = find_type(node->rhs);
+            if (left->ty == right->ty) {
+                switch (left->ty) {
+                    case INT:
+                        return left;
+                    case POINTER: {
+                        if (are_same_type(left, right)) {
+                            return left;
+                        }
+                        error("異なるポインター型の演算はできません？\n");
+                    }
+                }
+            } else {
+                switch (left->ty) {
+                    case INT:
+                        return right;
+                    case POINTER:
+                        return left;
+                }
+            }
+            case ND_VARIABLE:
+                return find_local_variable(node->name, node->len)->type;
+            case ND_ASSIGN: {
+                // 左右の型が同じことは検証済みの前提
+                return find_type(node->lhs);
+            }
+            case ND_ADDRESS: {
+                Type *operand_type = find_type(node->lhs);
+                return create_pointer_type(operand_type);
+            }
+            case ND_DEREF:
+                // オペランドがポインタ型であることは検証済みの前提
+                return find_type(node->lhs)->point_to;
+            default:
+                error("値を返さないはずです？\n");
+            return NULL;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////
+
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = kind;
+    node->lhs = lhs;
+    node->rhs = rhs;
+    return node;
+}
+
+Node *new_node_num(int val) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_NUM;
+    node->val = val;
+    return node;
 }
 
 Node *new_node_variable(char *str, int len) {
@@ -191,9 +277,7 @@ Function *function() {
                 error_at(token->str, "引数名がありません");
             }
 
-            Type *type = calloc(1, sizeof(Type));
-            type->ty = INT;
-            type->point_to = NULL;
+            Type *type = shared_int_type();
             Variable *param = register_variable(t->str, t->len, type);
             param->index = i++;
             if (!consume(","))
@@ -227,22 +311,18 @@ Function *function() {
 Node *stmt() {
     Node *node;
     if (consume("int")) {
-        Type *type = calloc(1, sizeof(Type));
-        type->ty = INT;
-        type->point_to = NULL;
+        Type *type = shared_int_type();
         while (consume("*")) {
-            Type *pointer = calloc(1, sizeof(Type));
-            type->ty = POINTER;
-            type->point_to = type;
+            Type *pointer = create_pointer_type(type);
             type = pointer;
         }
         Token *t = consume_ident();
         if (!t)
             error_at(token->str, "変数名がありません");
-        // 変数宣言が重複してたら何もしない
-        if (!find_local_variable(t->str, t->len)) {
-            register_variable(t->str, t->len, type);
-        }
+        //  TODO 同名の変数は宣言できないことにしておく
+        if (find_local_variable(t->str, t->len))
+            error_at(token->str, "変数名が重複しています");
+        register_variable(t->str, t->len, type);
         node = new_node(ND_NOTHING, NULL, NULL);
     } else if (consume("{")) {
         node = calloc(1, sizeof(Node));
@@ -309,8 +389,15 @@ Node *expr() {
 
 Node *assign() {
     Node *node = equality();
-    if (consume("="))
-        node = new_node(ND_ASSIGN, node, assign());
+    if (consume("=")) {
+        char *loc = token->str;
+        Node *rhs = assign();
+        if (are_same_type(find_type(node), find_type(rhs))) {
+            node = new_node(ND_ASSIGN, node, rhs);
+        } else {
+            error_at(loc, "代入式の左右の型が異なります。");
+        }
+    }
     return node;
 }
 
@@ -375,8 +462,14 @@ Node *unary() {
         return primary();
     if (consume("-"))
         return new_node(ND_SUB, new_node_num(0), primary());
-    if (consume("*"))
-        return new_node(ND_DEREF, primary(), NULL);
+    if (consume("*")) {
+        char *loc = token->str;
+        Node *operand = primary();
+        if (find_type(operand)->ty != POINTER) {
+            error_at(loc, "ポインタ型ではありません");
+        }
+        return new_node(ND_DEREF, operand, NULL);
+    }
     if (consume("&"))
         return new_node(ND_ADDRESS, primary(), NULL);
     return primary();

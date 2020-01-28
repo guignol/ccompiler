@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+void error(char *message);
 void error_at(const char *loc, const char *fmt, ...);
 
 // トークンの種類
@@ -40,18 +41,18 @@ typedef enum {
     ND_NOT,          // !=
     ND_LESS,      // <
     ND_LESS_EQL,  // <=
-    ND_ASSIGN,    // =
-    ND_VARIABLE,      // ローカル変数
-    ND_FUNC,      // 関数
-    ND_NUM,          // 整数
     ND_RETURN,    // return
     ND_EXPR_STMT, // 式文
     ND_IF,          // if
     ND_WHILE,     // while
     ND_FOR,          // for
     ND_BLOCK,     // { }
-    ND_ADDRESS,      // &a
-    ND_DEREF,     // *a
+    ND_FUNC,        // 関数コール : 今のところintのみ
+    ND_NUM,         // 整数 : int
+    ND_VARIABLE,    // ローカル変数 : 変数宣言を見れば分かる
+    ND_ADDRESS,     // &a : ノードの型を見れば分かる
+    ND_DEREF,       // *a : ノードの型を見れば分かる
+    ND_ASSIGN,      // = : ノードの型を見れば分かる
     ND_NOTHING // 変数宣言
 } NodeKind;
 
@@ -59,11 +60,11 @@ typedef struct Node Node;
 
 // 抽象構文木のノードの型
 struct Node {
-    NodeKind kind; // ノードの型
+    NodeKind kind; // ノードの種別
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
-    int offset;    // kindがND_LVARの場合のみ使う
+    int offset;    // 変数のRBPからのオフセット
 
     char *name; // 変数名、関数名
     int len;
@@ -81,7 +82,8 @@ typedef struct Type Type;
 
 struct Type {
     enum {
-        INT, POINTER
+        INT, // 4byte
+        POINTER // 8byte
     } ty;
     Type *point_to;
 };

@@ -26,11 +26,6 @@ void ___COMMENT___(char *format, ...) {
     printf("\n");
 }
 
-void error(char *message) {
-    fprintf(stderr, "%s", message);
-    exit(1);
-}
-
 void gen(Node *node);
 
 void gen_address(Node *node) {
