@@ -48,8 +48,8 @@ void error_at(const char *loc, const char *fmt, ...) {
     exit(1);
 }
 
-bool startswith(char *p, char *q) {
-    return memcmp(p, q, strlen(q)) == 0;
+bool start_with(const char *p, const char *str) {
+    return strncmp(p, str, strlen(str)) == 0;
 }
 
 bool is_alpha(char c) {
@@ -70,7 +70,7 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
     return tok;
 }
 
-int reserved(char *p) {
+int reserved(const char *p) {
     // Keyword
     static char *kws[] = {"return", "if", "else", "while", "for", "int"};
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
@@ -86,7 +86,6 @@ int reserved(char *p) {
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
         int len = strlen(operator);
-        char next = p[len];
         if (strncmp(p, operator, len) == 0)
             return len;
     }
@@ -108,6 +107,15 @@ Token *tokenize(char *p) {
     while (*p) {
         // 空白文字をスキップ
         if (isspace(*p)) {
+            p++;
+            continue;
+        }
+
+        if (start_with(p, "//")) {
+            p += 2;
+            while (!start_with(p, "\n")) {
+                p++;
+            }
             p++;
             continue;
         }

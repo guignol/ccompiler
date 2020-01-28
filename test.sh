@@ -64,7 +64,7 @@ int main() {
   int y;
 	y = 5;
   int i;
-	i = *(&y + 8);
+	i = *(&y + 8); // TODO ポインタ演算になっていない
 	return i;
 }
 END

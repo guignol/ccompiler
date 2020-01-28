@@ -126,7 +126,6 @@ Type *find_type(const Node *node) {
             return shared_int_type();
         case ND_ADD:
         case ND_SUB: {
-            // TODO
             Type *left = find_type(node->lhs);
             Type *right = find_type(node->rhs);
             if (left->ty == right->ty) {
