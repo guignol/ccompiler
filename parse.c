@@ -430,14 +430,44 @@ Node *relational() {
     }
 }
 
+int get_bytes(Node *node) {
+    Type *type = find_type(node);
+    if (type->ty == INT) {
+        return 1;
+    } else if (type->point_to->ty == INT) {
+        // intへのポインタ
+        return 4;
+    } else {
+        // intへのポインタのポインタ
+        return 8;
+    }
+}
+
+Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
+    const int bytes_l = get_bytes(left);
+    const int bytes_r = get_bytes(right);
+    if (bytes_l == bytes_r) {
+        return new_node(kind, left, right);
+    } else if (bytes_l == 1) {
+        left = new_node(ND_MUL, new_node_num(bytes_r), left);
+        return new_node(kind, left, right);
+    } else if (bytes_r == 1) {
+        right = new_node(ND_MUL, new_node_num(bytes_l), right);
+        return new_node(kind, left, right);
+    } else {
+        // TODO
+        error("異なるポインター型の演算はできません？\n");
+    }
+}
+
 Node *add() {
     Node *node = mul();
 
     for (;;) {
-        if (consume("+"))
-            node = new_node(ND_ADD, node, mul());
-        else if (consume("-"))
-            node = new_node(ND_SUB, node, mul());
+        if (consume("+")) {
+            node = pointer_calc(ND_ADD, node, mul());
+        } else if (consume("-"))
+            node = pointer_calc(ND_SUB, node, mul());
         else
             return node;
     }

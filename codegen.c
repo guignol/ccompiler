@@ -244,9 +244,11 @@ void gen(Node *node) {
 
     switch (node->kind) {
         case ND_ADD:
+            // TODO
             printf("  add rax, rdi\n");
             break;
         case ND_SUB:
+            // TODO
             printf("  sub rax, rdi\n");
             break;
         case ND_MUL:

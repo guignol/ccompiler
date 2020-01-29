@@ -8,14 +8,10 @@ assert() {
 	expected="$1"
 	input="$2"
 
-	gcc -c -o _test/foo.o _test/foo.c
-
 	./build/ccompiler "$input" >tmp.s
-	gcc -o tmp tmp.s _test/foo.o
+	gcc -o tmp tmp.s build/libfoo.a
 	./tmp
 	actual="$?"
-
-	rm _test/foo.o
 
 	if [ "$actual" = "$expected" ]; then
 		echo "$input => $actual"
@@ -33,25 +29,17 @@ assert() {
 # https://stackoverflow.com/a/24435795
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -Bbuild/ -H.
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
+/usr/bin/cmake --build ./build --target foo -- -j 4
 
-#int main() {
-#    int a[5] = {1, 2, 3, 4, 5};
-#    int *p = a;
-#    p++;
-#    p = p + 1;
-#    p = 1 + p;
-#	return *p;
-#}
-
-assert 4 "$(
+assert 2 "$(
 	cat <<END
 int main() {
-	int x;
-	int *y;
-	x = 3;
-	y = &x;
-	*y = 4;
-	return x;
+  int *p;
+  alloc_array_4(&p, 0, 1, 2, 3);
+  foo(*p);
+  p = p + 1;
+  p = 1 + p;
+  return *p;
 }
 END
 )"
@@ -60,12 +48,25 @@ assert 3 "$(
 	cat <<END
 int main() {
   int x;
-	x = 3;
   int y;
-	y = 5;
   int i;
-	i = *(&y + 8); // TODO ポインタ演算になっていない
-	return i;
+  x = 3;
+  y = 5;
+  i = *(&y + 2); // ポインタ演算？（関数フレームの実装に依存）
+  return i;
+}
+END
+)"
+
+assert 4 "$(
+	cat <<END
+int main() {
+  int x;
+  int *y;
+  x = 3;
+  y = &x;
+  *y = 4;
+  return x;
 }
 END
 )"

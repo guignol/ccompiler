@@ -12,6 +12,10 @@ add_executable(ccompiler
         parse.c
         tokenize.c)
 
+add_library(foo STATIC
+        _test/foo.c
+        )
+
 #enable_testing()
 #
 #find_program(WSL_SHELL bash)
