@@ -31,6 +31,16 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
+try 4 'int x; return sizeof(x);'
+try 8 'int *y; return sizeof(y);'
+try 4 'int x; return sizeof(x + 3);'
+try 8 'int *y; return sizeof(y + 3);'
+try 4 'int *y; return sizeof(*y);'
+# sizeofに渡す式は何でもよい
+try 4 'return sizeof(1);'
+# sizeofの結果は現在int型なのでsizeof(int)と同じ
+try 4 'return sizeof(sizeof(1));'
+
 assert 3 "$(
 	cat <<END
 int main() {

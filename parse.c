@@ -5,6 +5,52 @@ Token *token;
 // ローカル変数
 Variable *locals;
 
+// program    = function*
+// function   = type ident "(" (type ident)* ")" { stmt* }
+// stmt       = expr ";"
+//				| type ident ";"
+//				| "{" stmt* "}"
+//				| "return" expr ";"
+//				| "if" "(" expr ")" stmt ("else" stmt)?
+//		        | "while" "(" expr ")" stmt
+//				| "for" "(" expr? ";" expr? ";" expr? ")" stmt
+// expr       = assign
+// assign     = equality ("=" assign)?
+// equality   = relational ("==" relational | "!=" relational)*
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+// add        = mul ("+" mul | "-" mul)*
+// mul        = unary ("*" unary | "/" unary)*
+// unary      = "sizeof" unary
+//				| ("+" | "-" | "*" | "&")? primary
+// primary    = num |
+//				| ident
+//				| ident "(" args ")"
+// 				| "(" expr ")"
+// args       = (expr ("," expr)* )?
+// type       = "int" "*"*
+
+Function *function();
+
+Node *stmt();
+
+Node *expr();
+
+Node *assign();
+
+Node *equality();
+
+Node *relational();
+
+Node *add();
+
+Node *mul();
+
+Node *unary();
+
+Node *primary();
+
+//////////////////////////////////////////////////////////////////
+
 // 次のトークンが期待している記号のときには、トークンを読み進めて
 // 真を返す。それ以外の場合には偽を返す。
 bool consume(char *op) {
@@ -167,6 +213,36 @@ Type *find_type(const Node *node) {
     }
 }
 
+int get_weight(Node *node) {
+    Type *type = find_type(node);
+    if (!type) {
+        error("型が分かりません？");
+    }
+    if (type->ty == INT) {
+        return 1;
+    } else if (type->point_to->ty == INT) {
+        // intへのポインタ
+        return 4;
+    } else {
+        // intへのポインタのポインタ
+        return 8;
+    }
+}
+
+int get_size(Node *node) {
+    Type *type = find_type(node);
+    if (!type) {
+        error("型が分かりません？");
+    }
+    if (type->ty == INT) {
+        // int
+        return 4;
+    } else {
+        // ポインタ
+        return 8;
+    }
+}
+
 //////////////////////////////////////////////////////////////////
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -196,48 +272,7 @@ Node *new_node_variable(char *str, int len) {
     return node;
 }
 
-// program    = function*
-// function   = type ident "(" (type ident)* ")" { stmt* }
-// stmt       = expr ";"
-//				| type ident ";"
-//				| "{" stmt* "}"
-//				| "return" expr ";"
-//				| "if" "(" expr ")" stmt ("else" stmt)?
-//		        | "while" "(" expr ")" stmt
-//				| "for" "(" expr? ";" expr? ";" expr? ")" stmt
-// expr       = assign
-// assign     = equality ("=" assign)?
-// equality   = relational ("==" relational | "!=" relational)*
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-// add        = mul ("+" mul | "-" mul)*
-// mul        = unary ("*" unary | "/" unary)*
-// unary      = ("+" | "-" | "*" | "&")? primary
-// primary    = num |
-//				| ident
-//				| ident "(" args ")"
-// 				| "(" expr ")"
-// args       = (expr ("," expr)* )?
-// type       = "int" "*"*
-
-Function *function();
-
-Node *stmt();
-
-Node *expr();
-
-Node *assign();
-
-Node *equality();
-
-Node *relational();
-
-Node *add();
-
-Node *mul();
-
-Node *unary();
-
-Node *primary();
+//////////////////////////////////////////////////////////////////
 
 Function *program(Token *t) {
     token = t;
@@ -430,36 +465,23 @@ Node *relational() {
     }
 }
 
-int get_bytes(Node *node) {
-    Type *type = find_type(node);
-    if (type->ty == INT) {
-        return 1;
-    } else if (type->point_to->ty == INT) {
-        // intへのポインタ
-        return 4;
-    } else {
-        // intへのポインタのポインタ
-        return 8;
-    }
-}
-
 Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
-    const int bytes_l = get_bytes(left);
-    const int bytes_r = get_bytes(right);
-    if (bytes_l == bytes_r) {
+    const int weight_l = get_weight(left);
+    const int weight_r = get_weight(right);
+    if (weight_l == weight_r) {
         if (kind == ND_SUB) {
             // ポインタ同士の引き算
             Node *node = new_node(kind, left, right);
-            return new_node(ND_DIV, node, new_node_num(bytes_l));
+            return new_node(ND_DIV, node, new_node_num(weight_l));
         } else {
             // TODO 足し算はどうなるべきか
             return new_node(kind, left, right);
         }
-    } else if (bytes_l == 1) {
-        left = new_node(ND_MUL, new_node_num(bytes_r), left);
+    } else if (weight_l == 1) {
+        left = new_node(ND_MUL, new_node_num(weight_r), left);
         return new_node(kind, left, right);
-    } else if (bytes_r == 1) {
-        right = new_node(ND_MUL, new_node_num(bytes_l), right);
+    } else if (weight_r == 1) {
+        right = new_node(ND_MUL, new_node_num(weight_l), right);
         return new_node(kind, left, right);
     } else {
         // TODO
@@ -495,6 +517,12 @@ Node *mul() {
 }
 
 Node *unary() {
+    if (consume("sizeof")) {
+        Node *operand = unary();
+        int size = get_size(operand);
+        return new_node_num(size);
+    }
+
     if (consume("+"))
         return primary();
     if (consume("-"))
