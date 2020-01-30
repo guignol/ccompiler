@@ -31,6 +31,19 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
+assert 3 "$(
+	cat <<END
+int main() {
+  int *p;
+  int *q;
+  alloc_array_4(&p, 0, 1, 2, 3);
+  // foo(*p);
+  q = p + 3;
+  return q - p;
+}
+END
+)"
+
 assert 2 "$(
 	cat <<END
 int main() {

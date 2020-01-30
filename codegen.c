@@ -24,6 +24,7 @@ void ___COMMENT___(char *format, ...) {
     printf("  # ");
     vfprintf(stdout, format, ap);
     printf("\n");
+    va_end(ap);
 }
 
 void gen(Node *node);

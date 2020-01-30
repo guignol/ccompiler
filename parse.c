@@ -447,7 +447,14 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
     const int bytes_l = get_bytes(left);
     const int bytes_r = get_bytes(right);
     if (bytes_l == bytes_r) {
-        return new_node(kind, left, right);
+        if (kind == ND_SUB) {
+            // ポインタ同士の引き算
+            Node *node = new_node(kind, left, right);
+            return new_node(ND_DIV, node, new_node_num(bytes_l));
+        } else {
+            // TODO 足し算はどうなるべきか
+            return new_node(kind, left, right);
+        }
     } else if (bytes_l == 1) {
         left = new_node(ND_MUL, new_node_num(bytes_r), left);
         return new_node(kind, left, right);
@@ -467,6 +474,7 @@ Node *add() {
         if (consume("+")) {
             node = pointer_calc(ND_ADD, node, mul());
         } else if (consume("-"))
+            // TODO ポインタ同士の引き算はサイズで割る
             node = pointer_calc(ND_SUB, node, mul());
         else
             return node;
