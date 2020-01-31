@@ -21,6 +21,14 @@ assert() {
 	fi
 }
 
+# TODO メモ
+# popとpushは64bitのレジスタやアドレスのみ
+# mov rax, [rbp-4]はできるが
+# mov [rbp-8], raxは足りない分がゼロクリアされる
+# mov DWORD PTR [rbp-4], 5で即値を32bit枠に入れられる
+# TODO アセンブリのビルドと実行と確認
+# $ gcc -o tmp tmp.s; ./tmp; echo $?
+
 #make
 # For CMake 3.13 or later, use these options to set the source and build folders
 # $ cmake -B/path/to/my/build/folder -S/path/to/my/source/folder

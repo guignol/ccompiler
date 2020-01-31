@@ -110,6 +110,8 @@ bool at_eof() {
 
 //////////////////////////////////////////////////////////////////
 
+int get_size(Type *type);
+
 char *copy(char *str, int len) {
     char *copied = malloc(sizeof(char *));
     strncpy(copied, str, len);
@@ -230,30 +232,21 @@ int get_weight(Node *node) {
     switch (type->ty) {
         case TYPE_INT:
             return 1;
-        case TYPE_POINTER: {
-            switch (type->point_to->ty) {
-                case TYPE_INT:
-                    // intへのポインタ
-                    return 4;
-                case TYPE_POINTER:
-                    // ポインタのポインタ
-                    return 8;
-            }
-        }
+        case TYPE_POINTER:
+            return get_size(type->point_to);
     }
 }
 
-int get_size(Node *node) {
-    Type *type = find_type(node);
+int get_size(Type *type) {
     if (!type) {
         error("型が分かりません？");
         exit(1);
     }
     switch (type->ty) {
         case TYPE_INT:
-            return 4;
+            return sizeof(int); // 4
         case TYPE_POINTER:
-            return 8;
+            return sizeof(int *); // 8
     }
 }
 
@@ -546,7 +539,8 @@ Node *mul() {
 Node *unary() {
     if (consume("sizeof")) {
         Node *operand = unary();
-        int size = get_size(operand);
+        Type *type = find_type(operand);
+        int size = get_size(type);
         return new_node_num(size);
     }
 

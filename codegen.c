@@ -32,8 +32,7 @@ void gen(Node *node);
 void gen_address(Node *node) {
     switch (node->kind) {
         case ND_VARIABLE:
-            printf("  mov rax, rbp\n");
-            printf("  sub rax, %d\n", node->offset);
+            printf("  lea rax, [rbp - %d]\n", node->offset);
             printf("  push rax # variable [%.*s]\n", node->len, node->name);
             break;
         case ND_DEREF:
@@ -81,6 +80,7 @@ void gen(Node *node) {
                 }
             }
             static bool doAlign = true;
+            // TODO 型サイズ
             if (doAlign) {
                 // https://github.com/rui314/chibicc/commit/aedbf56c3af4914e3f183223ff879734683bec73
                 // We need to align RSP to a 16 byte boundary before
@@ -193,6 +193,7 @@ void gen(Node *node) {
         case ND_EXPR_STMT:
             gen(node->lhs);
             // 式文では値をスタックに残さない
+            // TODO intもスタックには64bitで積んでるはず
             printf("  add rsp, 8\n");
             return;
         case ND_RETURN:
@@ -217,6 +218,7 @@ void gen(Node *node) {
 
             printf("  pop rdi\n");
             printf("  pop rax\n");
+            // TODO 型ごとのサイズ
             printf("  mov [rax], rdi\n");
             printf("  push rdi\n");
             ___COMMENT___("assign end");
@@ -255,11 +257,9 @@ void gen(Node *node) {
 
     switch (node->kind) {
         case ND_ADD:
-            // TODO
             printf("  add rax, rdi\n");
             break;
         case ND_SUB:
-            // TODO
             printf("  sub rax, rdi\n");
             break;
         case ND_MUL:
@@ -322,6 +322,7 @@ void generate(Function *func) {
     printf("  mov rbp, rsp\n");
     Variable *locals = func->locals;
     if (locals) {
+        // TODO 型ごとのサイズ
         printf("  sub rsp, %i  # %i %s\n", locals->offset, locals->offset / 8, "variables prepared");
 
         for (Variable *param = locals; param; param = param->next) {
@@ -348,6 +349,8 @@ void generate(Function *func) {
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
+
+    function_name = NULL;
 
     if (func->next)
         generate(func->next);
