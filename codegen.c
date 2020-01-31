@@ -45,9 +45,10 @@ void gen_address(Node *node) {
             */
             gen(node->lhs);
             break;
-        default:
+        default: {
             error("代入の左辺値が変数ではありません");
-            break;
+            exit(1);
+        }
     }
 }
 
@@ -235,6 +236,15 @@ void gen(Node *node) {
             printf("  mov rax, [rax]\n"); // そのアドレスの値を取り出す
             printf("  push rax\n");
             return;
+        case ND_ADD:
+        case ND_SUB:
+        case ND_MUL:
+        case ND_DIV:
+        case ND_EQL:
+        case ND_NOT:
+        case ND_LESS:
+        case ND_LESS_EQL:
+            break;
     }
 
     // 2項演算
@@ -282,6 +292,20 @@ void gen(Node *node) {
             ___COMMENT___("<=");
             printf("  setle al\n");
             printf("  movzb rax, al\n");
+            break;
+        case ND_RETURN:
+        case ND_EXPR_STMT:
+        case ND_IF:
+        case ND_WHILE:
+        case ND_FOR:
+        case ND_BLOCK:
+        case ND_FUNC:
+        case ND_NUM:
+        case ND_VARIABLE:
+        case ND_ADDRESS:
+        case ND_DEREF:
+        case ND_ASSIGN:
+        case ND_NOTHING:
             break;
     }
 

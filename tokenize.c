@@ -26,7 +26,7 @@ void error_at(const char *loc, const char *fmt, ...) {
     char *tail = strtok(user_input, "\n");
     while (tail) {
         if (loc < tail) {
-            int pos = loc - head;
+            int pos = (int) (loc - head);
             int front_space = error_with_front_space(head);
             fprintf(stderr, "%*s", front_space * 4, "");
             fprintf(stderr, "%*s", pos - front_space, "");
@@ -34,7 +34,7 @@ void error_at(const char *loc, const char *fmt, ...) {
             vfprintf(stderr, fmt, ap);
             fprintf(stderr, "\n");
             error_with_front_space(tail);
-            exit(1);
+            return;
         }
         head = tail;
         tail = strtok(NULL, "\n");
@@ -45,7 +45,6 @@ void error_at(const char *loc, const char *fmt, ...) {
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
-    exit(1);
 }
 
 bool start_with(const char *p, const char *str) {
@@ -61,7 +60,7 @@ bool is_alnum(char c) {
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
+Token *new_token(TokenKind kind, Token *cur, char *str, size_t len) {
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
@@ -83,7 +82,7 @@ int reserved(const char *p) {
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
-        int len = strlen(keyword);
+        size_t len = strlen(keyword);
         char next = p[len];
         if (strncmp(p, keyword, len) == 0 && !is_alnum(next))
             return len;
@@ -93,7 +92,7 @@ int reserved(const char *p) {
     static char *ops[] = {"==", "!=", "<=", ">="};
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
-        int len = strlen(operator);
+        size_t len = strlen(operator);
         if (strncmp(p, operator, len) == 0)
             return len;
     }
@@ -147,12 +146,13 @@ Token *tokenize(char *p) {
         if (isdigit(*p)) {
             cur = new_token(TK_NUM, cur, p, 0);
             char *q = p;
-            cur->val = strtol(p, &p, 10);
+            cur->val = (int) strtol(p, &p, 10);
             cur->len = p - q;
             continue;
         }
 
         error_at(p, "トークナイズできません");
+        exit(1);
     }
 
     new_token(TK_EOF, cur, p, 0);

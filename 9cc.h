@@ -24,7 +24,7 @@ struct Token {
     Token *next;    // 次の入力トークン
     int val;        // kindがTK_NUMの場合、その数値
     char *str;        // トークン文字列
-    int len;        // トークンの長さ
+    size_t len;        // トークンの長さ
 };
 
 Token *tokenize(char *p);
@@ -82,8 +82,8 @@ typedef struct Type Type;
 
 struct Type {
     enum {
-        INT, // 4byte
-        POINTER // 8byte
+        TYPE_INT, // 4byte
+        TYPE_POINTER // 8byte
     } ty;
     Type *point_to;
 };

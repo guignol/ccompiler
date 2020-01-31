@@ -23,5 +23,4 @@ int main(int argc, char **argv) {
 
 void error(char *message) {
     fprintf(stderr, "%s", message);
-    exit(1);
 }

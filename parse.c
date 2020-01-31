@@ -56,7 +56,7 @@ Node *primary();
 bool consume(char *op) {
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
+        memcmp(token->str, op, token->len) != 0)
         return false;
     token = token->next;
     return true;
@@ -74,8 +74,10 @@ Token *consume_ident() {
 void assert_not_asterisk() {
     if (token->kind == TK_RESERVED &&
         strlen("*") == token->len &&
-        memcmp(token->str, "*", token->len) == 0)
+        memcmp(token->str, "*", token->len) == 0) {
         error_at(token->str, "関数の入出力にポインタはまだ使えません");
+        exit(1);
+    }
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
@@ -83,16 +85,20 @@ void assert_not_asterisk() {
 void expect(char *op) {
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
-        memcmp(token->str, op, token->len) != 0)
+        memcmp(token->str, op, token->len) != 0) {
         error_at(token->str, "'%s'ではありません", op);
+        exit(1);
+    }
     token = token->next;
 }
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
 int expect_number() {
-    if (token->kind != TK_NUM)
+    if (token->kind != TK_NUM) {
         error_at(token->str, "数ではありません");
+        exit(1);
+    }
     int val = token->val;
     token = token->next;
     return val;
@@ -134,7 +140,7 @@ Type *shared_int_type() {
     static Type *int_type;
     if (!int_type) {
         int_type = calloc(1, sizeof(Type));
-        int_type->ty = INT;
+        int_type->ty = TYPE_INT;
         int_type->point_to = NULL;
     }
     return int_type;
@@ -142,7 +148,7 @@ Type *shared_int_type() {
 
 Type *create_pointer_type(Type *point_to) {
     Type *type = calloc(1, sizeof(Type));
-    type->ty = POINTER;
+    type->ty = TYPE_POINTER;
     type->point_to = point_to;
     return type;
 }
@@ -152,9 +158,9 @@ bool are_same_type(Type *left, Type *right) {
         return false;
     }
     switch (left->ty) {
-        case INT:
+        case TYPE_INT:
             return true;
-        case POINTER:
+        case TYPE_POINTER:
             return are_same_type(left->point_to, right->point_to);
     }
 }
@@ -176,20 +182,21 @@ Type *find_type(const Node *node) {
             Type *right = find_type(node->rhs);
             if (left->ty == right->ty) {
                 switch (left->ty) {
-                    case INT:
+                    case TYPE_INT:
                         return left;
-                    case POINTER: {
+                    case TYPE_POINTER: {
                         if (are_same_type(left, right)) {
                             return left;
                         }
                         error("異なるポインター型の演算はできません？\n");
+                        exit(1);
                     }
                 }
             } else {
                 switch (left->ty) {
-                    case INT:
+                    case TYPE_INT:
                         return right;
-                    case POINTER:
+                    case TYPE_POINTER:
                         return left;
                 }
             }
@@ -206,9 +213,10 @@ Type *find_type(const Node *node) {
             case ND_DEREF:
                 // オペランドがポインタ型であることは検証済みの前提
                 return find_type(node->lhs)->point_to;
-            default:
+            default: {
                 error("値を返さないはずです？\n");
-            return NULL;
+                exit(1);
+            }
         }
     }
 }
@@ -217,15 +225,21 @@ int get_weight(Node *node) {
     Type *type = find_type(node);
     if (!type) {
         error("型が分かりません？");
+        exit(1);
     }
-    if (type->ty == INT) {
-        return 1;
-    } else if (type->point_to->ty == INT) {
-        // intへのポインタ
-        return 4;
-    } else {
-        // intへのポインタのポインタ
-        return 8;
+    switch (type->ty) {
+        case TYPE_INT:
+            return 1;
+        case TYPE_POINTER: {
+            switch (type->point_to->ty) {
+                case TYPE_INT:
+                    // intへのポインタ
+                    return 4;
+                case TYPE_POINTER:
+                    // ポインタのポインタ
+                    return 8;
+            }
+        }
     }
 }
 
@@ -233,13 +247,13 @@ int get_size(Node *node) {
     Type *type = find_type(node);
     if (!type) {
         error("型が分かりません？");
+        exit(1);
     }
-    if (type->ty == INT) {
-        // int
-        return 4;
-    } else {
-        // ポインタ
-        return 8;
+    switch (type->ty) {
+        case TYPE_INT:
+            return 4;
+        case TYPE_POINTER:
+            return 8;
     }
 }
 
@@ -262,8 +276,10 @@ Node *new_node_num(int val) {
 
 Node *new_node_variable(char *str, int len) {
     Variable *variable = find_local_variable(str, len);
-    if (!variable)
+    if (!variable) {
         error_at(str, "変数の宣言がありません。");
+        exit(1);
+    }
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_VARIABLE;
     node->offset = variable->offset;
@@ -295,8 +311,10 @@ Function *function() {
     assert_not_asterisk();
 
     Token *function_name = consume_ident();
-    if (!function_name)
+    if (!function_name) {
         error_at(token->str, "関数名がありません");
+        exit(1);
+    }
 
     expect("(");
     {
@@ -305,10 +323,13 @@ Function *function() {
             assert_not_asterisk();
             Token *t = consume_ident();
             if (t) {
-                if (find_local_variable(t->str, t->len))
+                if (find_local_variable(t->str, t->len)) {
                     error_at(t->str, "引数名が重複しています");
+                    exit(1);
+                }
             } else {
                 error_at(token->str, "引数名がありません");
+                exit(1);
             }
 
             Type *type = shared_int_type();
@@ -351,11 +372,15 @@ Node *stmt() {
             type = pointer;
         }
         Token *t = consume_ident();
-        if (!t)
+        if (!t) {
             error_at(token->str, "変数名がありません");
+            exit(1);
+        }
         //  TODO 同名の変数は宣言できないことにしておく
-        if (find_local_variable(t->str, t->len))
+        if (find_local_variable(t->str, t->len)) {
             error_at(token->str, "変数名が重複しています");
+            exit(1);
+        }
         register_variable(t->str, t->len, type);
         node = new_node(ND_NOTHING, NULL, NULL);
     } else if (consume("{")) {
@@ -430,6 +455,7 @@ Node *assign() {
             node = new_node(ND_ASSIGN, node, rhs);
         } else {
             error_at(loc, "代入式の左右の型が異なります。");
+            exit(1);
         }
     }
     return node;
@@ -486,6 +512,7 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
     } else {
         // TODO
         error("異なるポインター型の演算はできません？\n");
+        exit(1);
     }
 }
 
@@ -530,10 +557,13 @@ Node *unary() {
     if (consume("*")) {
         char *loc = token->str;
         Node *operand = primary();
-        if (find_type(operand)->ty != POINTER) {
-            error_at(loc, "ポインタ型ではありません");
+        switch (find_type(operand)->ty) {
+            case TYPE_INT:
+                error_at(loc, "ポインタ型ではありません");
+                exit(1);
+            case TYPE_POINTER:
+                return new_node(ND_DEREF, operand, NULL);
         }
-        return new_node(ND_DEREF, operand, NULL);
     }
     if (consume("&"))
         return new_node(ND_ADDRESS, primary(), NULL);
