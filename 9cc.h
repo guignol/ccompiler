@@ -6,6 +6,7 @@
 #include <string.h>
 
 void error(char *message);
+
 void error_at(const char *loc, const char *fmt, ...);
 
 // トークンの種類
@@ -57,6 +58,7 @@ typedef enum {
 } NodeKind;
 
 typedef struct Node Node;
+typedef struct Type Type;
 
 // 抽象構文木のノードの型
 struct Node {
@@ -64,6 +66,9 @@ struct Node {
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
+
+    // ND_VARIABLEの場合のみ
+    Type *type;
 
     int offset;    // 変数のRBPからのオフセット
     char *name; // 変数名、関数名
@@ -78,8 +83,6 @@ struct Node {
 
 /////////////////////////////////////////////////
 
-typedef struct Type Type;
-
 struct Type {
     enum {
         TYPE_INT, // 4byte
@@ -87,6 +90,18 @@ struct Type {
     } ty;
     Type *point_to;
 };
+
+Type *shared_int_type();
+
+Type *create_pointer_type(Type *point_to);
+
+bool are_same_type(Type *left, Type *right);
+
+Type *find_type(const Node *node);
+
+int get_weight(Node *node);
+
+int get_size(Type *type);
 
 typedef struct Variable Variable;
 

@@ -10,7 +10,9 @@ add_executable(ccompiler
         codegen.c
         main.c
         parse.c
-        tokenize.c)
+        tokenize.c
+        type.c
+        )
 
 add_library(foo STATIC
         _test/foo.c
