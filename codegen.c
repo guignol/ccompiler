@@ -17,6 +17,13 @@ static char *registers[] = {"rdi",
                             "r8",
                             "r9"};
 
+static char *registers_32[] = {"edi",
+                               "esi",
+                               "edx",
+                               "ecx",
+                               "r8d",
+                               "r9d"};
+
 void ___COMMENT___(char *format, ...) {
     va_list ap;
     va_start(ap, format);
@@ -28,6 +35,18 @@ void ___COMMENT___(char *format, ...) {
 }
 
 void gen(Node *node);
+
+void load(Node *node) {
+    // アドレスを取り出す
+    printf("  pop rax\n");
+    // アドレスの値を取り出す
+    if (type_32bit(find_type(node))) {
+        printf("  mov eax, DWORD PTR [rax]\n");
+    } else {
+        printf("  mov rax, [rax]\n");
+    }
+    printf("  push rax\n");
+}
 
 void gen_address(Node *node) {
     switch (node->kind) {
@@ -67,7 +86,6 @@ void gen(Node *node) {
                     count++;
                 }
                 for (size_t i = 0; i < count; i++) {
-
                     printf("  pop %s\n", registers[count - i - 1]);
                 }
             } else {
@@ -80,7 +98,8 @@ void gen(Node *node) {
                 }
             }
             static bool doAlign = true;
-            // TODO 型サイズ
+            // RSPはpushやpopで64bit(=8bytes)ずつ動く
+            // 関数のプロローグで32bit(=4bytes)ずつ動くこともあるが、それについては調整済み
             if (doAlign) {
                 // https://github.com/rui314/chibicc/commit/aedbf56c3af4914e3f183223ff879734683bec73
                 // We need to align RSP to a 16 byte boundary before
@@ -193,7 +212,6 @@ void gen(Node *node) {
         case ND_EXPR_STMT:
             gen(node->lhs);
             // 式文では値をスタックに残さない
-            // TODO intもスタックには64bitで積んでるはず
             printf("  add rsp, 8\n");
             return;
         case ND_RETURN:
@@ -207,9 +225,7 @@ void gen(Node *node) {
         case ND_VARIABLE:
             // 変数のアドレスから、そのアドレスにある値を取り出す
             gen_address(node);
-            printf("  pop rax\n");
-            printf("  mov rax, [rax]\n");
-            printf("  push rax\n");
+            load(node);
             return;
         case ND_ASSIGN:
             ___COMMENT___("assign begin");
@@ -218,8 +234,12 @@ void gen(Node *node) {
 
             printf("  pop rdi\n");
             printf("  pop rax\n");
-            // TODO 型ごとのサイズ
-            printf("  mov [rax], rdi\n");
+            // 型ごとのサイズ
+            if (type_32bit(find_type(node))) {
+                printf("  mov DWORD PTR [rax], edi\n");
+            } else {
+                printf("  mov [rax], rdi\n");
+            }
             printf("  push rdi\n");
             ___COMMENT___("assign end");
             return;
@@ -234,9 +254,7 @@ void gen(Node *node) {
                 &p; // => 3
               */
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
-            printf("  pop rax\n");
-            printf("  mov rax, [rax]\n"); // そのアドレスの値を取り出す
-            printf("  push rax\n");
+            load(node);
             return;
         case ND_ADD:
         case ND_SUB:
@@ -322,16 +340,38 @@ void generate(Function *func) {
     printf("  mov rbp, rsp\n");
     Variable *locals = func->locals;
     if (locals) {
-        // TODO 型ごとのサイズ
-        printf("  sub rsp, %i  # %i %s\n", locals->offset, locals->offset / 8, "variables prepared");
+        int stack_size = locals->offset;
+        while (stack_size % 16 != 0) {
+            // 関数呼び出し直前に4bytesずつの調整してもうまくいかなかったので
+            stack_size += 4;
+        }
+        printf("  sub rsp, %i  # stack size\n", stack_size);
 
+        int count = 0;
         for (Variable *param = locals; param; param = param->next) {
             if (0 <= param->index) {
                 printf("  mov rax, rbp\n");
                 printf("  sub rax, %d\n", param->offset);
-                printf("  mov [rax], %s  # parameter [%.*s]\n", registers[param->index], param->len, param->name);
+                if (type_32bit(param->type)) {
+                    printf("  mov %s[rax], %s  # parameter [%.*s]\n",
+                           "DWORD PTR ",
+                           registers_32[param->index],
+                           param->len,
+                           param->name
+                    );
+                } else {
+                    printf("  mov %s[rax], %s  # parameter [%.*s]\n",
+                           "",
+                           registers[param->index],
+                           param->len,
+                           param->name
+                    );
+                }
+
+                count++;
             }
         }
+        printf("  # %i %s\n", count, "arguments prepared");
     }
 
     for (size_t i = 0; i < 100; i++) {

@@ -28,6 +28,11 @@ assert() {
 # mov DWORD PTR [rbp-4], 5で即値を32bit枠に入れられる
 # TODO アセンブリのビルドと実行と確認
 # $ gcc -o tmp tmp.s; ./tmp; echo $?
+# TODO gdb入門
+# $ gdb ./tmp
+# (gdb) display /4i $pc
+# (gdb) start
+# (gdb) stepi
 
 #make
 # For CMake 3.13 or later, use these options to set the source and build folders
@@ -79,10 +84,12 @@ assert 3 "$(
 	cat <<END
 int main() {
   int x;
-  int y;
   int i;
+  int y;
   x = 3;
   y = 5;
+  // ポインタ演算では8bytesずつ動くので、
+  // 4bytesずつ並んでいるintの2つ分スタックポインタを動かす
   i = *(&y + 2); // ポインタ演算？（関数フレームの実装に依存）
   return i;
 }

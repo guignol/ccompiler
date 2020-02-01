@@ -111,3 +111,7 @@ int get_size(Type *type) {
             return sizeof(int *); // 8
     }
 }
+
+bool type_32bit(Type *type) {
+    return get_size(type) == 4; // bytes
+}

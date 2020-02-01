@@ -129,7 +129,7 @@ Variable *register_variable(char *str, int len, Type *type) {
     variable->type = type;
     variable->name = str;
     variable->len = len;
-    variable->offset = (locals ? locals->offset : 0) + 8;
+    variable->offset = (locals ? locals->offset : 0) + get_size(type);
     variable->index = -1;
     variable->next = locals;
     locals = variable;
@@ -469,7 +469,6 @@ Node *primary() {
             node->len = tok->len;
             return node;
         } else {
-            // TODO
             return new_node_variable(tok->str, tok->len);
         }
     }

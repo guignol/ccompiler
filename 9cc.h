@@ -103,6 +103,8 @@ int get_weight(Node *node);
 
 int get_size(Type *type);
 
+bool type_32bit(Type *type);
+
 typedef struct Variable Variable;
 
 // 変数
