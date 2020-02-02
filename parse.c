@@ -24,6 +24,7 @@ Variable *locals;
 //				| ("+" | "-" | "*" | "&")? primary
 // primary    = num |
 //				| ident
+//				| ident "[" num "]"
 //				| ident "(" args ")"
 // 				| "(" expr ")"
 // args       = (expr ("," expr)* )?
@@ -271,7 +272,7 @@ Node *stmt() {
              * ポインタの配列
              * int *p[3];
              *
-             * ポインタへのポインタの配列
+             * ポインタへのポインタの配列 TODO テスト書いてない
              * int **p[4];
              *
              * TODO 配列の配列
@@ -504,6 +505,14 @@ Node *primary() {
             node->name = tok->str;
             node->len = tok->len;
             return node;
+        } else if (consume("[")) {
+            // TODO int a[3]; 2[a] = 1; はまだ
+            // TODO 片方がintで、もう片方が配列orポインタ
+            Node *array_variable = new_node_variable(tok->str, tok->len);
+            Node *expression = expr();
+            expect("]");
+            Node *pointer = pointer_calc(ND_ADD, array_variable, expression);
+            return new_node(ND_DEREF, pointer, NULL);
         } else {
             return new_node_variable(tok->str, tok->len);
         }
