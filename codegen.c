@@ -51,6 +51,7 @@ void load(Node *node) {
 void gen_address(Node *node) {
     switch (node->kind) {
         case ND_VARIABLE:
+        case ND_VARIABLE_ARRAY:
             printf("  lea rax, [rbp - %d]\n", node->offset);
             printf("  push rax # variable [%.*s]\n", node->len, node->name);
             break;
@@ -61,6 +62,7 @@ void gen_address(Node *node) {
                 *y = 4; // この代入とか
                 return x; // => 4
             */
+            // TODO 配列の場合は gen_address(node->lhs); になる？
             gen(node->lhs);
             break;
         default: {
@@ -227,6 +229,10 @@ void gen(Node *node) {
             gen_address(node);
             load(node);
             return;
+        case ND_VARIABLE_ARRAY:
+            // 配列変数は不変で、先頭アドレスをそのまま使う
+            gen_address(node);
+            return;
         case ND_ASSIGN:
             ___COMMENT___("assign begin");
             gen_address(node->lhs);
@@ -320,6 +326,7 @@ void gen(Node *node) {
         case ND_FUNC:
         case ND_NUM:
         case ND_VARIABLE:
+        case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:
         case ND_DEREF:
         case ND_ASSIGN:
@@ -349,6 +356,7 @@ void generate(Function *func) {
 
         int count = 0;
         for (Variable *param = locals; param; param = param->next) {
+            // 関数の引数
             if (0 <= param->index) {
                 printf("  mov rax, rbp\n");
                 printf("  sub rax, %d\n", param->offset);

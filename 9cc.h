@@ -50,10 +50,11 @@ typedef enum {
     ND_BLOCK,       // { }
     ND_FUNC,        // 関数コール : 今のところintのみ
     ND_NUM,         // 整数 : int
-    ND_VARIABLE,    // ローカル変数 : 変数宣言を見れば分かる
-    ND_ADDRESS,     // &a : ノードの型を見れば分かる
-    ND_DEREF,       // *a : ノードの型を見れば分かる
-    ND_ASSIGN,      // = : ノードの型を見れば分かる
+    ND_VARIABLE,    // ローカル変数
+    ND_VARIABLE_ARRAY, // ローカル変数（配列）
+    ND_ADDRESS,     // &a
+    ND_DEREF,       // *a
+    ND_ASSIGN,      // =
     ND_NOTHING      // 変数宣言
 } NodeKind;
 
@@ -86,16 +87,31 @@ struct Node {
 struct Type {
     enum {
         TYPE_INT, // 4byte
-        TYPE_POINTER // 8byte
+        TYPE_POINTER, // 8byte
+        TYPE_ARRAY, // array_size * sizeof(point_to) byte
     } ty;
     Type *point_to;
+
+    /**
+     * sizeofか単項&のオペランドとして使われるとき以外、配列は、
+     * その配列の先頭要素を指すポインタに暗黙のうちに変換されるということになっているのです。
+     * [中略]
+     * Cにおいては配列アクセスのための[]演算子というものはありません。
+     * Cの[]は、ポインタ経由で配列の要素にアクセスするための簡便な記法にすぎないのです。
+     * https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9721-%E9%85%8D%E5%88%97%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B
+     */
+    size_t array_size;
 };
 
 Type *shared_int_type();
 
 Type *create_pointer_type(Type *point_to);
 
+Type *create_array_type(Type *element_type, int arraySize);
+
 bool are_same_type(Type *left, Type *right);
+
+bool are_compatible_type(Type *left, Type *right);
 
 Type *find_type(const Node *node);
 

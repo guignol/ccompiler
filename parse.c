@@ -8,7 +8,7 @@ Variable *locals;
 // program    = function*
 // function   = type ident "(" (type ident)* ")" { stmt* }
 // stmt       = expr ";"
-//				| type ident ";"
+//              | type ident ("[" num "]")* ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -159,8 +159,9 @@ Node *new_node_variable(char *str, int len) {
         error_at(str, "変数の宣言がありません。");
         exit(1);
     }
+    bool is_array = variable->type->ty == TYPE_ARRAY;
     Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_VARIABLE;
+    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = variable->type;
     node->offset = variable->offset;
     node->name = str;
@@ -261,6 +262,27 @@ Node *stmt() {
             error_at(token->str, "変数名が重複しています");
             exit(1);
         }
+        if (consume("[")) {
+            int array_size = expect_number();
+            /**
+             * intの配列
+             * int p[2]
+             *
+             * ポインタの配列
+             * int *p[3];
+             *
+             * ポインタへのポインタの配列
+             * int **p[4];
+             *
+             * TODO 配列の配列
+             * int p[5][6];
+             *
+             * TODO 配列へのポインタ
+             * int (*p)[];
+             */
+            type = create_array_type(type, array_size);
+            expect("]");
+        }
         register_variable(t->str, t->len, type);
         node = new_node(ND_NOTHING, NULL, NULL);
     } else if (consume("{")) {
@@ -331,7 +353,7 @@ Node *assign() {
     if (consume("=")) {
         char *loc = token->str;
         Node *rhs = assign();
-        if (are_same_type(find_type(node), find_type(rhs))) {
+        if (are_compatible_type(find_type(node), find_type(rhs))) {
             node = new_node(ND_ASSIGN, node, rhs);
         } else {
             error_at(loc, "代入式の左右の型が異なります。");
@@ -403,7 +425,7 @@ Node *add() {
         if (consume("+")) {
             node = pointer_calc(ND_ADD, node, mul());
         } else if (consume("-"))
-            // TODO ポインタ同士の引き算はサイズで割る
+            // ポインタ同士の引き算はサイズで割る
             node = pointer_calc(ND_SUB, node, mul());
         else
             return node;
@@ -436,18 +458,32 @@ Node *unary() {
     if (consume("-"))
         return new_node(ND_SUB, new_node_num(0), primary());
     if (consume("*")) {
+        // TODO 複数使えない
         char *loc = token->str;
         Node *operand = primary();
-        switch (find_type(operand)->ty) {
+        Type *type = find_type(operand);
+        switch (type->ty) {
             case TYPE_INT:
                 error_at(loc, "ポインタ型ではありません");
                 exit(1);
             case TYPE_POINTER:
+            case TYPE_ARRAY:
                 return new_node(ND_DEREF, operand, NULL);
+
         }
     }
-    if (consume("&"))
-        return new_node(ND_ADDRESS, primary(), NULL);
+    if (consume("&")) {
+        Node *operand = primary();
+        switch (find_type(operand)->ty) {
+            case TYPE_INT:
+            case TYPE_POINTER:
+                return new_node(ND_ADDRESS, operand, NULL);
+            case TYPE_ARRAY: {
+                // TODO 配列の先頭の要素のポインタを返す
+                error("TODO 配列の先頭の要素のポインタを返す @codegen.c\n");
+            }
+        }
+    }
     return primary();
 }
 

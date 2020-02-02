@@ -98,7 +98,7 @@ int reserved(const char *p) {
     }
 
     // Single-letter punctuator
-    if (strchr("+-*/()<>;={},&", *p))
+    if (strchr("+-*/()<>;={},&[]", *p))
         return 1;
 
     return 0;

@@ -1,24 +1,24 @@
 #!/bin/bash
 
 try() {
-	assert "$1" "int main() { $2 }"
+  assert "$1" "int main() { $2 }"
 }
 
 assert() {
-	expected="$1"
-	input="$2"
+  expected="$1"
+  input="$2"
 
-	./build/ccompiler "$input" >tmp.s
-	gcc -o tmp tmp.s build/libfoo.a
-	./tmp
-	actual="$?"
+  ./build/ccompiler "$input" >tmp.s
+  gcc -o tmp tmp.s build/libfoo.a
+  ./tmp
+  actual="$?"
 
-	if [ "$actual" = "$expected" ]; then
-		echo "$input => $actual"
-	else
-		echo "$input => $expected expected, but got $actual"
-		exit 1
-	fi
+  if [ "$actual" = "$expected" ]; then
+    echo "$input => $actual"
+  else
+    echo "$input => $expected expected, but got $actual"
+    exit 1
+  fi
 }
 
 # TODO メモ
@@ -44,6 +44,55 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
+assert 3 "$(
+  cat <<END
+int main() {
+  int *a[2];
+  int b;
+  int *c;
+  int *d;
+  b = 3;
+  c = &b;
+  *a = c;
+  d = *a;
+  return *d;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
+  int a[2];
+  *a = 3;
+  return *a;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
+  int a[2];
+  *a = 1;
+  *(a + 1) = 2;
+  int *p;
+  p = a;
+  return *p + *(p + 1);  // 3
+}
+END
+)"
+
+#assert 3 "$(
+#  cat <<END
+#int main() {
+#  int *a;
+#  *a = 1; // 未定義動作っぽい？
+#  return 1;
+#}
+#END
+#)"
+
 try 4 'int x; return sizeof(x);'
 try 8 'int *y; return sizeof(y);'
 try 4 'int x; return sizeof(x + 3);'
@@ -55,7 +104,7 @@ try 4 'return sizeof(1);'
 try 4 'return sizeof(sizeof(1));'
 
 assert 3 "$(
-	cat <<END
+  cat <<END
 int main() {
   int *p;
   int *q;
@@ -68,7 +117,7 @@ END
 )"
 
 assert 2 "$(
-	cat <<END
+  cat <<END
 int main() {
   int *p;
   alloc_array_4(&p, 0, 1, 2, 3);
@@ -81,7 +130,7 @@ END
 )"
 
 assert 3 "$(
-	cat <<END
+  cat <<END
 int main() {
   int x;
   int i;
@@ -97,7 +146,7 @@ END
 )"
 
 assert 4 "$(
-	cat <<END
+  cat <<END
 int main() {
   int x;
   int *y;
@@ -110,7 +159,7 @@ END
 )"
 
 assert 3 "$(
-	cat <<END
+  cat <<END
 int main() {
 	int x;
 	x = 3;
@@ -124,7 +173,7 @@ try 11 'int a; a = 3; int b; b = 2; int c; c = 6; return a + b + c; '
 try 11 'int a; int b; int c; { a = 3; b = 2; c = 6; return a + b + c; }'
 
 assert 1 "$(
-	cat <<END
+  cat <<END
 int main() {
   int i;
 	for (i = 0; i < 10; i = i + 1) 	{
