@@ -24,7 +24,7 @@ Variable *locals;
 //				| ("+" | "-" | "*" | "&")? primary
 // primary    = num |
 //				| ident
-//				| ident "[" num "]"
+//				| primary "[" primary "]" // TODO うまく表現できてないかも
 //				| ident "(" args ")"
 // 				| "(" expr ")"
 // args       = (expr ("," expr)* )?
@@ -169,6 +169,8 @@ Node *new_node_variable(char *str, int len) {
     node->len = len;
     return node;
 }
+
+Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
 
@@ -492,6 +494,7 @@ Node *primary() {
     Token *tok = consume_ident();
     if (tok) {
         if (consume("(")) {
+            // 関数呼び出し
             Node *node = calloc(1, sizeof(Node));
             node->kind = ND_FUNC;
             if (!consume(")")) {
@@ -505,17 +508,11 @@ Node *primary() {
             node->name = tok->str;
             node->len = tok->len;
             return node;
-        } else if (consume("[")) {
-            // TODO int a[3]; 2[a] = 1; はまだ
-            // TODO 片方がintで、もう片方が配列orポインタ
-            Node *array_variable = new_node_variable(tok->str, tok->len);
-            Node *expression = expr();
-            expect("]");
-            Node *pointer = pointer_calc(ND_ADD, array_variable, expression);
-            return new_node(ND_DEREF, pointer, NULL);
         } else {
-            return new_node_variable(tok->str, tok->len);
+            Node *variable = new_node_variable(tok->str, tok->len);
+            return with_index(variable);
         }
+
     }
 
     // 次のトークンが"("なら、"(" expr ")"のはず
@@ -526,5 +523,55 @@ Node *primary() {
     }
 
     // そうでなければ数値のはず
-    return new_node_num(expect_number());
+    Node *number = new_node_num(expect_number());
+    return with_index(number);
+}
+
+void assert_indexable(Node *left, Node *right) {
+    // 片方がintで、もう片方が配列orポインタ
+    Type *left_type = find_type(left);
+    Type *right_type = find_type(right);
+    switch (left_type->ty) {
+        case TYPE_INT: {
+            // 左がint
+            switch (right_type->ty) {
+                case TYPE_INT:
+                    error("int[int]はできません？");
+                    exit(1);
+                case TYPE_POINTER:
+                case TYPE_ARRAY:
+                    break;
+            }
+            break;
+        }
+        case TYPE_POINTER:
+        case TYPE_ARRAY: {
+            // 左が配列orポインタ
+            switch (right_type->ty) {
+                case TYPE_INT:
+                    break;
+                case TYPE_POINTER:
+                case TYPE_ARRAY:
+                    error("not_int[not_int]はできません？");
+                    exit(1);
+            }
+            break;
+        }
+    }
+}
+
+Node *with_index(Node *left) {
+    if (consume("[")) {
+        Node *right = expr();
+        expect("]");
+        // int a[2];
+        // a[1] = 3;
+        // は
+        // *(a + 1) = 3;
+        // の省略表現
+        assert_indexable(left, right);
+        Node *pointer = pointer_calc(ND_ADD, left, right);
+        return new_node(ND_DEREF, pointer, NULL);
+    }
+    return left;
 }

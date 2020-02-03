@@ -47,6 +47,21 @@ assert() {
 assert 3 "$(
   cat <<END
 int main() {
+  int a[2];
+  0[a] = 1;
+  1[a] = 2;
+  int *p;
+  p = a;
+  int maji;
+  maji = 0[p]; // ポインタにも[]使える
+  return maji + 1[a];  // 3
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
   int a[5];
   a[0] = 1;
   a[1] = 2;
