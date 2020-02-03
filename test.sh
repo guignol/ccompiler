@@ -47,6 +47,22 @@ assert() {
 assert 3 "$(
   cat <<END
 int main() {
+  int a[2];
+  int *b;
+  int c;
+  c = 3;
+  b = &c;
+  a[0] = *b;
+  b = &a;
+  // &a = &c; // TODO これはできない
+  return *b;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
   int a;
   int *b;
   int **c;

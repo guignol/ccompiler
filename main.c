@@ -6,7 +6,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Token *token = tokenize(argv[1]);
+    char *input = argv[1];
+    Token *token = tokenize(input);
     Function *function = program(token);
 
     printf(".intel_syntax noprefix\n");

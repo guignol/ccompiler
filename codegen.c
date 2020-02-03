@@ -62,7 +62,6 @@ void gen_address(Node *node) {
                 *y = 4; // この代入とか
                 return x; // => 4
             */
-            // TODO 配列の場合は gen_address(node->lhs); になる？
             gen(node->lhs);
             break;
         default: {

@@ -489,15 +489,7 @@ Node *unary() {
     }
     if (consume("&")) {
         Node *operand = primary();
-        switch (find_type(operand)->ty) {
-            case TYPE_INT:
-            case TYPE_POINTER:
-                return new_node(ND_ADDRESS, operand, NULL);
-            case TYPE_ARRAY: {
-                // TODO 配列の先頭の要素のポインタを返す
-                error("TODO 配列の先頭の要素のポインタを返す @codegen.c\n");
-            }
-        }
+        return new_node(ND_ADDRESS, operand, NULL);
     }
     return primary();
 }

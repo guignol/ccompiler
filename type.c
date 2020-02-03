@@ -99,7 +99,14 @@ Type *find_type(const Node *node) {
             }
             case ND_ADDRESS: {
                 Type *operand_type = find_type(node->lhs);
-                return create_pointer_type(operand_type);
+                switch (operand_type->ty) {
+                    case TYPE_INT:
+                    case TYPE_POINTER:
+                        return create_pointer_type(operand_type);
+                    case TYPE_ARRAY:
+                        // 配列の先頭の要素のポインタ
+                        return create_pointer_type(operand_type->point_to);
+                }
             }
             case ND_DEREF: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
