@@ -170,6 +170,17 @@ Node *new_node_variable(char *str, int len) {
     return node;
 }
 
+Node *new_node_dereference(Node *operand) {
+    Type *type = find_type(operand);
+    switch (type->ty) {
+        case TYPE_INT:
+            return NULL;
+        case TYPE_POINTER:
+        case TYPE_ARRAY:
+            return new_node(ND_DEREF, operand, NULL);
+    }
+}
+
 Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
@@ -274,7 +285,7 @@ Node *stmt() {
              * ポインタの配列
              * int *p[3];
              *
-             * ポインタへのポインタの配列 TODO テスト書いてない
+             * ポインタへのポインタの配列
              * int **p[4];
              *
              * TODO 配列の配列
@@ -461,19 +472,20 @@ Node *unary() {
     if (consume("-"))
         return new_node(ND_SUB, new_node_num(0), primary());
     if (consume("*")) {
-        // TODO 複数使えない
+        int dereference_count = 1;
+        while (consume("*")) {
+            dereference_count++;
+        }
         char *loc = token->str;
         Node *operand = primary();
-        Type *type = find_type(operand);
-        switch (type->ty) {
-            case TYPE_INT:
+        for (; 0 < dereference_count; dereference_count--) {
+            operand = new_node_dereference(operand);
+            if (!operand) {
                 error_at(loc, "ポインタ型ではありません");
                 exit(1);
-            case TYPE_POINTER:
-            case TYPE_ARRAY:
-                return new_node(ND_DEREF, operand, NULL);
-
+            }
         }
+        return operand;
     }
     if (consume("&")) {
         Node *operand = primary();

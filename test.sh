@@ -47,6 +47,41 @@ assert() {
 assert 3 "$(
   cat <<END
 int main() {
+  int a;
+  int *b;
+  int **c;
+  int ***d;
+  a = 1;
+  b = &a;
+  c = &b;
+  d = &c;
+  a = ***d + 2;
+  return a;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
+  // ポインタへのポインタの配列
+  int **p[4];
+  int a;
+  int *b;
+  int **c;
+  a = 1;
+  b = &a;
+  c = &b;
+  p[0] = c;
+  a = *(*(p[0])) + 2;
+  return **p[0];  // 3
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
   int a[2];
   0[a] = 1;
   1[a] = 2;
