@@ -56,6 +56,7 @@ void gen_address(Node *node) {
             printf("  push rax # variable [%.*s]\n", node->len, node->name);
             break;
         case ND_DEREF:
+        case ND_INDEX:
             /*
                 int x = 3;
                 int *y = &x;
@@ -253,6 +254,7 @@ void gen(Node *node) {
             gen_address(node->lhs);
             return;
         case ND_DEREF:
+        case ND_INDEX:
             /*
                 int var = 3;
                 int *p = &var;
@@ -261,7 +263,7 @@ void gen(Node *node) {
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             load(node);
             return;
-        case ND_DEREF_CONTINUE:
+        case ND_INDEX_CONTINUE:
             /*
              * int a[2][3];
              * a[1][2] = 1;
@@ -337,7 +339,8 @@ void gen(Node *node) {
         case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:
         case ND_DEREF:
-        case ND_DEREF_CONTINUE:
+        case ND_INDEX:
+        case ND_INDEX_CONTINUE:
         case ND_ASSIGN:
         case ND_NOTHING:
             break;

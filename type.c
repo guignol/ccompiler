@@ -142,7 +142,8 @@ Type *find_type(const Node *node) {
                 }
             }
             case ND_DEREF:
-            case ND_DEREF_CONTINUE: {
+            case ND_INDEX:
+            case ND_INDEX_CONTINUE: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
                 Type *type = find_type(node->lhs);
                 switch (type->ty) {

@@ -24,9 +24,10 @@ Variable *locals;
 //				| ("+" | "-" | "*" | "&")? primary
 // primary    = num |
 //				| ident
-//				| primary "[" primary "]" // TODO うまく表現できてないかも
+//				| primary ( "(" index ")" )? index*
 //				| ident "(" args ")"
 // 				| "(" expr ")"
+// index      = "[" primary "]"
 // args       = (expr ("," expr)* )?
 // type       = "int" "*"*
 
@@ -520,11 +521,11 @@ Node *primary() {
 
     }
 
-    // 次のトークンが"("なら、"(" expr ")"のはず
+    // 次のトークンが"("なら、"(" expr ")" または (a[0])[1]
     if (consume("(")) {
         Node *node = expr();
         expect(")");
-        return node;
+        return with_index(node);
     }
 
     // そうでなければ数値のはず
@@ -566,6 +567,9 @@ void assert_indexable(Node *left, Node *right) {
 }
 
 Node *with_index(Node *left) {
+    if (left->kind == ND_INDEX) {
+        left->kind = ND_INDEX_CONTINUE;
+    }
     while (consume("[")) {
         Node *right = expr();
         expect("]");
@@ -576,16 +580,19 @@ Node *with_index(Node *left) {
         // の省略表現
         assert_indexable(left, right);
         Node *pointer = pointer_calc(ND_ADD, left, right);
-        left = new_node(ND_DEREF_CONTINUE, pointer, NULL);
+        left = new_node(ND_INDEX_CONTINUE, pointer, NULL);
     }
-    if (left->kind == ND_DEREF_CONTINUE) {
+    if (left->kind == ND_INDEX_CONTINUE) {
         /*
          * 配列は代入できないので、[]でのアクセスは連続していて、
          * なので、ここで終端判定ができるはず
          * （ポインタ変数には代入できるけど忘れていいはず）
-         * TODO 途中に括弧は書ける (a[0])[1];
+         *
+         * ただし、括弧は書けるので、括弧の中をパースした後にもう一度ここを通る場合がある
+         * (a[0])[1];
+         * その判定のために ND_DEREF ではなく ND_INDEX という別の種別を導入した
          */
-        left->kind = ND_DEREF;
+        left->kind = ND_INDEX;
     }
     return left;
 }

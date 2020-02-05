@@ -7,6 +7,11 @@ int main(int argc, char **argv) {
     }
 
     char *input = argv[1];
+//    input = "int main() { \
+//              int a[2][3]; \
+//              (a[0])[1] = 12; \
+//              return (a[0])[1]; \
+//            }";
     Token *token = tokenize(input);
     Function *function = program(token);
 

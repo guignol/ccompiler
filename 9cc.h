@@ -54,6 +54,7 @@ typedef enum {
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
     ND_DEREF,       // *a
+    ND_INDEX, // a[0][1]
     /*
      * 配列の配列の場合
      *
@@ -68,7 +69,7 @@ typedef enum {
      * ただし、型チェックのためASTにはデリファレンスであることを示す必要がある
      *
      */
-            ND_DEREF_CONTINUE, // a[0][1]
+            ND_INDEX_CONTINUE, // a[0][1]
     ND_ASSIGN,      // =
     ND_NOTHING      // 変数宣言
 } NodeKind;
