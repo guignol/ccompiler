@@ -261,6 +261,7 @@ Function *function() {
 Node *stmt() {
     Node *node;
     if (consume("int")) {
+        // ローカル変数の宣言
         Type *type = shared_int_type();
         while (consume("*")) {
             Type *pointer = create_pointer_type(type);
@@ -276,7 +277,7 @@ Node *stmt() {
             error_at(token->str, "変数名が重複しています");
             exit(1);
         }
-        if (consume("[")) {
+        while (consume("[")) {
             int array_size = expect_number();
             /**
              * intの配列
@@ -288,7 +289,7 @@ Node *stmt() {
              * ポインタへのポインタの配列
              * int **p[4];
              *
-             * TODO 配列の配列
+             * intの配列の配列
              * int p[5][6];
              *
              * TODO 配列へのポインタ
@@ -565,7 +566,7 @@ void assert_indexable(Node *left, Node *right) {
 }
 
 Node *with_index(Node *left) {
-    if (consume("[")) {
+    while (consume("[")) {
         Node *right = expr();
         expect("]");
         // int a[2];
@@ -575,7 +576,16 @@ Node *with_index(Node *left) {
         // の省略表現
         assert_indexable(left, right);
         Node *pointer = pointer_calc(ND_ADD, left, right);
-        return new_node(ND_DEREF, pointer, NULL);
+        left = new_node(ND_DEREF_CONTINUE, pointer, NULL);
+    }
+    if (left->kind == ND_DEREF_CONTINUE) {
+        /*
+         * 配列は代入できないので、[]でのアクセスは連続していて、
+         * なので、ここで終端判定ができるはず
+         * （ポインタ変数には代入できるけど忘れていいはず）
+         * TODO 途中に括弧は書ける (a[0])[1];
+         */
+        left->kind = ND_DEREF;
     }
     return left;
 }

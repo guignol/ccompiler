@@ -261,6 +261,15 @@ void gen(Node *node) {
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             load(node);
             return;
+        case ND_DEREF_CONTINUE:
+            /*
+             * int a[2][3];
+             * a[1][2] = 1;
+             *   ↑
+             *   here
+             */
+            gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
+            return;
         case ND_ADD:
         case ND_SUB:
         case ND_MUL:
@@ -328,6 +337,7 @@ void gen(Node *node) {
         case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:
         case ND_DEREF:
+        case ND_DEREF_CONTINUE:
         case ND_ASSIGN:
         case ND_NOTHING:
             break;

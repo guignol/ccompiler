@@ -54,6 +54,21 @@ typedef enum {
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
     ND_DEREF,       // *a
+    /*
+     * 配列の配列の場合
+     *
+     * int a[2][3];
+     * a[1][2] = 1;
+     *   ↑
+     *   ここの話
+     *
+     * *(( *(a          + 1     ) ) + 2    ) = 1;
+     * *((  ([PBP - 24] + 1 * 12) ) + 2 * 4) = 1;
+     * 途中はデリファレンスせずにそのままポインタの足し算になる
+     * ただし、型チェックのためASTにはデリファレンスであることを示す必要がある
+     *
+     */
+            ND_DEREF_CONTINUE, // a[0][1]
     ND_ASSIGN,      // =
     ND_NOTHING      // 変数宣言
 } NodeKind;
@@ -107,7 +122,7 @@ Type *shared_int_type();
 
 Type *create_pointer_type(Type *point_to);
 
-Type *create_array_type(Type *element_type, int arraySize);
+Type *create_array_type(Type *element_type, int array_size);
 
 bool are_same_type(Type *left, Type *right);
 

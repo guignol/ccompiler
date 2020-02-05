@@ -17,12 +17,45 @@ Type *create_pointer_type(Type *point_to) {
     return type;
 }
 
-Type *create_array_type(Type *element_type, int arraySize) {
-    Type *type = calloc(1, sizeof(Type));
-    type->ty = TYPE_ARRAY;
-    type->point_to = element_type;
-    type->array_size = arraySize;
-    return type;
+Type *create_array_type(Type *element_type, int array_size) {
+    Type *array = calloc(1, sizeof(Type));
+    array->ty = TYPE_ARRAY;
+    array->array_size = array_size;
+    if (element_type->ty == TYPE_ARRAY) {
+        /*
+         * 配列の配列の場合
+         *
+         * int a[2][3];
+         * a[1][2] = 1;
+         *
+         * 0--,1--
+         * 444,444
+         * 012,012
+         *
+         * []の部分は宣言の表記順になる
+         * array of array of int
+         * 2*3*4    3*4      4
+         *
+         */
+        Type *terminal_array = element_type;
+        while (true) {
+            // array of int あるいは array of pointerまで下る
+            if (terminal_array->point_to->ty == TYPE_ARRAY) {
+                terminal_array = terminal_array->point_to;
+            } else {
+                break;
+            }
+        }
+        // 最後から手前に差し込む
+        Type *int_or_pointer = terminal_array->point_to;
+        terminal_array->point_to = array;
+        array->point_to = int_or_pointer;
+        return element_type;
+    } else {
+        // array of element_type
+        array->point_to = element_type;
+        return array;
+    }
 }
 
 bool are_same_type(Type *left, Type *right) {
@@ -108,7 +141,8 @@ Type *find_type(const Node *node) {
                         return create_pointer_type(operand_type->point_to);
                 }
             }
-            case ND_DEREF: {
+            case ND_DEREF:
+            case ND_DEREF_CONTINUE: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
                 Type *type = find_type(node->lhs);
                 switch (type->ty) {
