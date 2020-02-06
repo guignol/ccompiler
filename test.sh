@@ -10,12 +10,13 @@ assert() {
 
   ./build/ccompiler "$input" >tmp.s
   gcc -o tmp tmp.s build/libfoo.a
-  ./tmp
+  ./tmp >/dev/null
   actual="$?"
 
-  if [ "$actual" = "$expected" ]; then
-    echo "$input => $actual"
-  else
+  printf  "▓"
+
+  if [ "$actual" != "$expected" ]; then
+    echo
     echo "$input => $expected expected, but got $actual"
     exit 1
   fi
