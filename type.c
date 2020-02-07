@@ -66,8 +66,13 @@ bool are_same_type(Type *left, Type *right) {
         case TYPE_INT:
             return true;
         case TYPE_POINTER:
-        case TYPE_ARRAY:
             return are_same_type(left->point_to, right->point_to);
+        case TYPE_ARRAY:
+            if (left->array_size == right->array_size) {
+                return are_same_type(left->point_to, right->point_to);
+            } else {
+                return false;
+            }
     }
 }
 
@@ -75,8 +80,19 @@ bool are_compatible_type(Type *left, Type *right) {
     /*
      * 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
      * ポインタ型に配列型を代入することはできる
+     * int a[2];
+     * int *c;
+     * c = &a;
+     * c = a;
+     * 値としては、どちらも配列の先頭要素へのポインタ
      */
-    if (left->ty == TYPE_POINTER && right->ty == TYPE_ARRAY) {
+    if (left->ty == TYPE_POINTER &&
+        right->ty == TYPE_POINTER &&
+        right->point_to->ty == TYPE_ARRAY) {
+        return are_same_type(left->point_to, right->point_to->point_to);
+    }
+    if (left->ty == TYPE_POINTER &&
+        right->ty == TYPE_ARRAY) {
         return are_same_type(left->point_to, right->point_to);
     }
     return are_same_type(left, right);
@@ -132,14 +148,7 @@ Type *find_type(const Node *node) {
             }
             case ND_ADDRESS: {
                 Type *operand_type = find_type(node->lhs);
-                switch (operand_type->ty) {
-                    case TYPE_INT:
-                    case TYPE_POINTER:
-                        return create_pointer_type(operand_type);
-                    case TYPE_ARRAY:
-                        // 配列の先頭の要素のポインタ
-                        return create_pointer_type(operand_type->point_to);
-                }
+                return create_pointer_type(operand_type);
             }
             case ND_DEREF:
             case ND_INDEX:

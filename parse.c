@@ -483,7 +483,7 @@ Node *unary() {
         for (; 0 < dereference_count; dereference_count--) {
             operand = new_node_dereference(operand);
             if (!operand) {
-                error_at(loc, "ポインタ型ではありません");
+                error_at(loc, "ポインタ型ではありません\n");
                 exit(1);
             }
         }
@@ -542,7 +542,7 @@ void assert_indexable(Node *left, Node *right) {
             // 左がint
             switch (right_type->ty) {
                 case TYPE_INT:
-                    error("int[int]はできません？");
+                    error("int[int]はできません？\n");
                     exit(1);
                 case TYPE_POINTER:
                 case TYPE_ARRAY:
