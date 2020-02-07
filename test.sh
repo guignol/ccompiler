@@ -49,6 +49,32 @@ assert 8 "$(
   cat <<END
 int main() {
   int a[2][3];
+  int *b;
+  int (*c)[4];
+  b = a;
+  c = a;
+  a[1][2] = 5;
+  return a[1][2] + 3;
+}
+END
+)"
+
+assert 8 "$(
+  cat <<END
+int main() {
+  int a[2][3];
+  int (*b)[3];
+  b = &a;
+  a[1][2] = 5;
+  return a[1][2] + 3;
+}
+END
+)"
+
+assert 8 "$(
+  cat <<END
+int main() {
+  int a[2][3];
   int (*b)[3];
   b = a;
   a[1][2] = 5;

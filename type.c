@@ -76,13 +76,13 @@ bool are_same_type(Type *left, Type *right) {
     }
 }
 
-bool are_assignable_type(Type *left, Type *right) {
+Assignable are_assignable_type(Type *left, Type *right) {
     if (left->ty == TYPE_ARRAY) {
         // 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
-        return false;
+        return CANNOT_ASSIGN;
     }
     if (are_same_type(left, right)) {
-        return true;
+        return AS_SAME;
     }
     if (left->ty == TYPE_POINTER &&
         right->ty == TYPE_ARRAY &&
@@ -98,9 +98,9 @@ bool are_assignable_type(Type *left, Type *right) {
          * b = a;  => 右辺の型はint(*)[3]
          * 配列変数をそのまま使うと先頭要素へのポインタ（int(*)[3]）なので、gccではwarningが出ない
          */
-        return true;
+        return AS_SAME;
     }
-    // TODO ポインタ型にはあらゆるポインタ型が入るっぽいので通すが、Warningを出したい
+    // ポインタ型にはあらゆるポインタ型が入るっぽいので通す
     if (left->ty == TYPE_POINTER &&
         (right->ty == TYPE_POINTER ||
          right->ty == TYPE_ARRAY)) {
@@ -116,9 +116,9 @@ bool are_assignable_type(Type *left, Type *right) {
          * b = a;  => 右辺の型はint *で、gccではwarning
          * ただし、前者は型が完全一致して何も考慮すべきことはないのでこの例外処理は不要
          */
-        return true;
+        return AS_INCOMPATIBLE;
     }
-    return false;
+    return CANNOT_ASSIGN;
 }
 
 Type *find_type(const Node *node) {
@@ -230,4 +230,75 @@ int get_size(Type *type) {
 
 bool type_32bit(Type *type) {
     return get_size(type) == 4; // bytes
+}
+
+/////////////////////////////////////////////////
+
+Type *printing = NULL;
+
+int count_pointer(void) {
+    int count = 0;
+    while (printing->ty == TYPE_POINTER) {
+        count++;
+        printing = printing->point_to;
+    }
+    return count;
+}
+
+int count_array(int counts[]) {
+    int i;
+    for (i = 0; printing->ty == TYPE_ARRAY; ++i) {
+        counts[i] = printing->array_size;
+        printing = printing->point_to;
+    }
+    counts[i + 1] = 0;
+    return i;
+}
+
+void print_type(FILE *__stream, Type *type) {
+    printing = type;
+
+    fprintf(__stream, "int");
+    // int ***(**)[2][3]
+    const int pointers_inner = count_pointer();
+    int size_array[10];
+    const int arrays = count_array(size_array);
+    const int pointers_outer = count_pointer();
+
+    // 型に配列を含むかどうか
+    const bool contains_array = 0 < arrays;
+    // 配列へのポインタ
+    const bool point_to_array = contains_array && 0 < pointers_inner;
+    // 配列型を代入する場合は、配列の先頭要素へのポインタを表示する
+    const bool point_to_first_element = contains_array && !point_to_array;
+
+    for (int i = 0; i < pointers_outer; --i) {
+        fprintf(__stream, "*");
+    }
+
+    point_to_array && fprintf(__stream, "(");
+    for (int i = 0; i < pointers_inner; ++i) {
+        fprintf(__stream, "*");
+    }
+    point_to_array && fprintf(__stream, ")");
+
+    if (point_to_first_element) {
+        if (arrays == 1) {
+            fprintf(__stream, "*");
+        } else {
+            fprintf(__stream, "(*)");
+        }
+    }
+    for (int i = point_to_first_element ? 1 : 0; i < arrays; ++i) {
+        fprintf(__stream, "[%d]", size_array[i]);
+    }
+}
+
+void warn_incompatible_type(Type *left, Type *right) {
+    // TODO GCCの結果と比べる
+    // warning: assignment to '左辺の型' from incompatible pointer type '右辺の型'
+    fprintf(stderr, "\n");
+    print_type(stderr, left);
+    fprintf(stderr, " <= ");
+    print_type(stderr, right);
 }

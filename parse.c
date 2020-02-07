@@ -388,11 +388,18 @@ Node *assign() {
     if (consume("=")) {
         char *loc = token->str;
         Node *rhs = assign();
-        if (are_assignable_type(find_type(node), find_type(rhs))) {
-            node = new_node(ND_ASSIGN, node, rhs);
-        } else {
-            error_at(loc, "代入式の左右の型が異なります。");
-            exit(1);
+        Type *const left_type = find_type(node);
+        Type *const right_type = find_type(rhs);
+        switch (are_assignable_type(left_type, right_type)) {
+            case AS_INCOMPATIBLE:
+//                error_at(loc, "\nwarning: 代入式の左右の型が異なります。");
+//                warn_incompatible_type(left_type, right_type);
+            case AS_SAME:
+                node = new_node(ND_ASSIGN, node, rhs);
+                break;
+            case CANNOT_ASSIGN:
+                error_at(loc, "error: 代入式の左右の型が異なります。");
+                exit(1);
         }
     }
     return node;

@@ -126,6 +126,12 @@ struct Type {
     size_t array_size;
 };
 
+typedef enum {
+    CANNOT_ASSIGN = 0,
+    AS_SAME,
+    AS_INCOMPATIBLE,
+} Assignable;
+
 Type *shared_int_type();
 
 Type *create_pointer_type(Type *point_to);
@@ -134,7 +140,7 @@ Type *create_array_type(Type *element_type, int array_size);
 
 bool are_same_type(Type *left, Type *right);
 
-bool are_assignable_type(Type *left, Type *right);
+Assignable are_assignable_type(Type *left, Type *right);
 
 Type *find_type(const Node *node);
 
@@ -143,6 +149,10 @@ int get_weight(Node *node);
 int get_size(Type *type);
 
 bool type_32bit(Type *type);
+
+void warn_incompatible_type(Type *left, Type *right);
+
+/////////////////////////////////////////////////
 
 typedef struct Variable Variable;
 
