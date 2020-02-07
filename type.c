@@ -76,26 +76,49 @@ bool are_same_type(Type *left, Type *right) {
     }
 }
 
-bool are_compatible_type(Type *left, Type *right) {
-    /*
-     * 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
-     * ポインタ型に配列型を代入することはできる
-     * int a[2];
-     * int *c;
-     * c = &a;
-     * c = a;
-     * 値としては、どちらも配列の先頭要素へのポインタ
-     */
-    if (left->ty == TYPE_POINTER &&
-        right->ty == TYPE_POINTER &&
-        right->point_to->ty == TYPE_ARRAY) {
-        return are_same_type(left->point_to, right->point_to->point_to);
+bool are_assignable_type(Type *left, Type *right) {
+    if (left->ty == TYPE_ARRAY) {
+        // 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
+        return false;
+    }
+    if (are_same_type(left, right)) {
+        return true;
     }
     if (left->ty == TYPE_POINTER &&
-        right->ty == TYPE_ARRAY) {
-        return are_same_type(left->point_to, right->point_to);
+        right->ty == TYPE_ARRAY &&
+        are_same_type(left->point_to, right->point_to)) {
+        /*
+         * int a[2];
+         * int *c;
+         * c = a;  => 右辺の型はint*
+         * 配列変数をそのまま使うと先頭要素へのポインタ（int*）なので、gccではwarningが出ない
+         *
+         * int a[2][3];
+         * int (*b)[3];
+         * b = a;  => 右辺の型はint(*)[3]
+         * 配列変数をそのまま使うと先頭要素へのポインタ（int(*)[3]）なので、gccではwarningが出ない
+         */
+        return true;
     }
-    return are_same_type(left, right);
+    // TODO ポインタ型にはあらゆるポインタ型が入るっぽいので通すが、Warningを出したい
+    if (left->ty == TYPE_POINTER &&
+        (right->ty == TYPE_POINTER ||
+         right->ty == TYPE_ARRAY)) {
+        /*
+         * int a[2];
+         * int *c;
+         * c = &a; => 右辺の型はint(*)[2]で、gccではwarning
+         * 値としては、配列の先頭要素へのポインタ(int*)
+         *
+         * int a[2];
+         * int (*b)[2];
+         * b = &a; => 右辺の型はint (*)[2]
+         * b = a;  => 右辺の型はint *で、gccではwarning
+         * ただし、前者は型が完全一致して何も考慮すべきことはないのでこの例外処理は不要
+         */
+        return true;
+    }
+    return false;
 }
 
 Type *find_type(const Node *node) {
@@ -151,6 +174,7 @@ Type *find_type(const Node *node) {
                 return create_pointer_type(operand_type);
             }
             case ND_DEREF:
+            case ND_DEREF_ARRAY_POINTER:
             case ND_INDEX:
             case ND_INDEX_CONTINUE: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提

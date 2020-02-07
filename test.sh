@@ -45,6 +45,34 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
+assert 8 "$(
+  cat <<END
+int main() {
+  int a[2][3];
+  int (*b)[3];
+  b = a;
+  a[1][2] = 5;
+  return a[1][2] + 3;
+}
+END
+)"
+
+assert 8 "$(
+  cat <<END
+int main() {
+  int a[2];
+  a[0] = 1;
+  a[1] = 2;
+  int (*b)[2];
+  b = &a;
+  b = a;
+  (*b)[0] = 5;
+  (*b)[1] = 3;
+  return a[0] + a[1];
+}
+END
+)"
+
 assert 12 "$(
   cat <<END
 int main() {

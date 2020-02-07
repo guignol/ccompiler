@@ -177,6 +177,9 @@ Node *new_node_dereference(Node *operand) {
         case TYPE_INT:
             return NULL;
         case TYPE_POINTER:
+            if (type->point_to->ty == TYPE_ARRAY) {
+                return new_node(ND_DEREF_ARRAY_POINTER, operand, NULL);
+            }
         case TYPE_ARRAY:
             return new_node(ND_DEREF, operand, NULL);
     }
@@ -263,7 +266,8 @@ Node *stmt() {
     Node *node;
     if (consume("int")) {
         // ローカル変数の宣言
-        Type *type = shared_int_type();
+        bool backwards = consume("(");
+        Type *type = backwards ? NULL : shared_int_type();
         while (consume("*")) {
             Type *pointer = create_pointer_type(type);
             type = pointer;
@@ -278,6 +282,13 @@ Node *stmt() {
             error_at(token->str, "変数名が重複しています");
             exit(1);
         }
+        Type *backwards_pointer = NULL;
+        if (backwards) {
+            expect(")");
+            backwards_pointer = type;
+            type = shared_int_type();
+        }
+
         while (consume("[")) {
             int array_size = expect_number();
             /**
@@ -293,11 +304,19 @@ Node *stmt() {
              * intの配列の配列
              * int p[5][6];
              *
-             * TODO 配列へのポインタ
+             * 配列へのポインタ
              * int (*p)[];
              */
             type = create_array_type(type, array_size);
             expect("]");
+        }
+        if (backwards_pointer) {
+            Type *edge = backwards_pointer;
+            while (edge->point_to) {
+                edge = edge->point_to;
+            }
+            edge->point_to = type;
+            type = edge;
         }
         register_variable(t->str, t->len, type);
         node = new_node(ND_NOTHING, NULL, NULL);
@@ -369,7 +388,7 @@ Node *assign() {
     if (consume("=")) {
         char *loc = token->str;
         Node *rhs = assign();
-        if (are_compatible_type(find_type(node), find_type(rhs))) {
+        if (are_assignable_type(find_type(node), find_type(rhs))) {
             node = new_node(ND_ASSIGN, node, rhs);
         } else {
             error_at(loc, "代入式の左右の型が異なります。");
@@ -521,7 +540,7 @@ Node *primary() {
 
     }
 
-    // 次のトークンが"("なら、"(" expr ")" または (a[0])[1]
+    // 次のトークンが"("なら、"(" expr ")" または (a[0])[1], (*b)[1]
     if (consume("(")) {
         Node *node = expr();
         expect(")");

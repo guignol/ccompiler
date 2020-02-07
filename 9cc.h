@@ -54,6 +54,13 @@ typedef enum {
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
     ND_DEREF,       // *a
+    /*
+     * int (*b)[2];
+     * (*b)[1] = 1;
+     *   ↑
+     *   ここの話
+     */
+            ND_DEREF_ARRAY_POINTER, // *a
     ND_INDEX, // a[0][1]
     /*
      * 配列の配列の場合
@@ -127,7 +134,7 @@ Type *create_array_type(Type *element_type, int array_size);
 
 bool are_same_type(Type *left, Type *right);
 
-bool are_compatible_type(Type *left, Type *right);
+bool are_assignable_type(Type *left, Type *right);
 
 Type *find_type(const Node *node);
 

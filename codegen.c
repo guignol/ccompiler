@@ -66,7 +66,7 @@ void gen_address(Node *node) {
             gen(node->lhs);
             break;
         default: {
-            error("代入の左辺値が変数ではありません");
+            error("代入の左辺値が変数ではありません\n");
             exit(1);
         }
     }
@@ -259,9 +259,17 @@ void gen(Node *node) {
                 int var = 3;
                 int *p = &var;
                 &p; // => 3
-              */
+             */
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             load(node);
+            return;
+        case ND_DEREF_ARRAY_POINTER:
+            /*
+             * int (*b)[2];
+             * (*b)[1] = 1;
+             *   ↑
+             */
+            gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             return;
         case ND_INDEX_CONTINUE:
             /*
@@ -339,6 +347,7 @@ void gen(Node *node) {
         case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:
         case ND_DEREF:
+        case ND_DEREF_ARRAY_POINTER:
         case ND_INDEX:
         case ND_INDEX_CONTINUE:
         case ND_ASSIGN:
