@@ -45,6 +45,9 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
+#try 13 'printf(); return 13;'
+#exit 0
+
 assert 8 "$(
   cat <<END
 int main() {

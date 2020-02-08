@@ -120,6 +120,7 @@ char *copy(char *str, int len) {
 
 Variable *find_local_variable(char *name, int len) {
     // TODO 同名の変数は宣言できない前提なので、型チェックはしない
+    // TODO グローバル変数
     for (Variable *var = locals; var; var = var->next)
         if (var->len == len && !memcmp(name, var->name, var->len))
             return var;
@@ -189,8 +190,20 @@ Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
 
-Function *program(Token *t) {
+struct Program *program(Token *t) {
     token = t;
+    // TODO グローバル変数のアクセスは、
+    //  変数定義か、externによる変数宣言が先に無い場合はエラーになるので、
+    //  token（現在着目しているトークン）のようなグローバル変数でリストを用意する
+    struct Program *prog = calloc(1, sizeof(struct Program));
+    // デバッグ用の文字列
+    prog->globals = calloc(1, sizeof(Global));
+    prog->globals->label = "debug_moji";
+    prog->globals->label_length = (int) strlen(prog->globals->label);
+    prog->globals->directive = _string;
+    prog->globals->target = calloc(1, sizeof(directive_target));
+    prog->globals->target->literal = "moji: %i\\n";
+    prog->globals->target->literal_length = (int) strlen(prog->globals->target->literal);
 
     Function head;
     head.next = NULL;
@@ -202,7 +215,8 @@ Function *program(Token *t) {
 
     token = NULL;
 
-    return head.next;
+    prog->functions = head.next;
+    return prog;
 }
 
 Function *function() {

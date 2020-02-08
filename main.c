@@ -8,16 +8,36 @@ int main(int argc, char **argv) {
 
     char *input = argv[1];
     Token *token = tokenize(input);
-    Function *function = program(token);
+    struct Program *prog = program(token);
 
+    int label_suffix = -1;
     printf(".intel_syntax noprefix\n");
     {
-        printf(".LC0:\n");
-        printf("  .string \"%s\"\n", "moji: %i\\n");
-        printf("debug_moji: \n");
-        printf("  .quad .LC0\n");
+        for (Global *global = prog->globals; global; global = global->next) {
+            // ラベル
+            printf("%.*s:\n", global->label_length, global->label);
+            directive_target *target = global->target;
+            switch (global->directive) {
+                case _zero:
+                    printf("  .zero %d\n", target->value);
+                    break;
+                case _long:
+                    printf("  .long %d\n", target->value);
+                    break;
+                case _quad:
+                    printf("  .quad %.*s\n", target->label_length, target->label);
+                    break;
+                case _string: {
+                    label_suffix++;
+                    printf("  .quad .LC%d\n", label_suffix);
+                    printf(".LC%d:\n", label_suffix);
+                    printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
+                    break;
+                }
+            }
+        }
     }
-    generate(function);
+    generate(prog->functions);
 
     return 0;
 }

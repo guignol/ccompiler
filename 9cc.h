@@ -169,6 +169,7 @@ struct Variable {
 };
 
 typedef struct Function Function;
+typedef struct Global Global;
 
 struct Function {
     // 返り値の型
@@ -183,6 +184,67 @@ struct Function {
     Function *next;
 };
 
-Function *program(Token *tok);
+struct Program {
+    Function *functions;
+    Global *globals;
+};
+
+struct Program *program(Token *tok);
 
 void generate(Function *func);
+
+/////////////////////////////////////////////////
+
+
+//int x;
+//int x_x = 2;
+//int *y[20];
+//int *yy;
+//int *yy_yy = &x;
+//char *moji = "moji";
+
+// x:
+//  .zero 4
+// x_x:
+//  .long 2
+// y:
+//  .zero 160
+// yy:
+//  .zero 8
+// yy_yy:
+//  .quad x
+// .LC0:
+//  .string "moji"
+// moji:
+//  .quad .LC0
+// .LC1:
+//  .string "%s"
+
+typedef enum {
+    _zero,
+    _long,
+    _quad,
+    _string,
+} DIRECTIVE;
+
+typedef struct {
+    // VALUE
+    int value;
+    // REFER
+    char *label;
+    int label_length;
+    // STRING
+    char *literal;
+    int literal_length;
+} directive_target;
+
+
+struct Global {
+    char *label;
+    int label_length;
+
+    DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
+    directive_target *target;
+
+    Global *next;
+};
