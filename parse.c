@@ -2,13 +2,16 @@
 
 // 現在着目しているトークン
 Token *token;
+// グローバル変数
+Global *globals;
 // ローカル変数
 Variable *locals;
 
-// program    = function*
-// function   = type ident "(" (type ident)* ")" { stmt* }
+// program    = (function | global_var)*
+// global_var = decl_b ";"
+// function   = decl_a "(" decl_a? ("," decl_a)* ")" { stmt* }
 // stmt       = expr ";"
-//              | type ident ("[" num "]")* ";"
+//              | decl_b ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -21,7 +24,7 @@ Variable *locals;
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "sizeof" unary
-//				| ("+" | "-" | "*" | "&")? primary
+//				| ("+" | "-" | "*"* | "&"*)? primary
 // primary    = num |
 //				| ident
 //				| primary ( "(" index ")" )? index*
@@ -29,27 +32,31 @@ Variable *locals;
 // 				| "(" expr ")"
 // index      = "[" primary "]"
 // args       = (expr ("," expr)* )?
-// type       = "int" "*"*
+// decl_a     = "int" "*"* (pointed_id | ident)
+// decl_b     = decl_a ("[" num "]")*
+// pointed_id = "(" "*"* ident ")"
+// ident      =
+// num        =
 
-Function *function();
+Function *function(Token *function_name);
 
-Node *stmt();
+Node *stmt(void);
 
-Node *expr();
+Node *expr(void);
 
-Node *assign();
+Node *assign(void);
 
-Node *equality();
+Node *equality(void);
 
-Node *relational();
+Node *relational(void);
 
-Node *add();
+Node *add(void);
 
-Node *mul();
+Node *mul(void);
 
-Node *unary();
+Node *unary(void);
 
-Node *primary();
+Node *primary(void);
 
 //////////////////////////////////////////////////////////////////
 
@@ -104,6 +111,18 @@ int expect_number() {
     int val = token->val;
     token = token->next;
     return val;
+}
+
+Token *identifier() {
+    expect("int");
+    assert_not_asterisk();
+
+    Token *identifier = consume_ident();
+    if (!identifier) {
+        error_at(token->str, "関数名または変数名がありません");
+        exit(1);
+    }
+    return identifier;
 }
 
 bool at_eof() {
@@ -192,25 +211,36 @@ Node *with_index(Node *left);
 
 struct Program *program(Token *t) {
     token = t;
-    // TODO グローバル変数のアクセスは、
-    //  変数定義か、externによる変数宣言が先に無い場合はエラーになるので、
-    //  token（現在着目しているトークン）のようなグローバル変数でリストを用意する
+
     struct Program *prog = calloc(1, sizeof(struct Program));
-    // デバッグ用の文字列
-    prog->globals = calloc(1, sizeof(Global));
-    prog->globals->label = "debug_moji";
-    prog->globals->label_length = (int) strlen(prog->globals->label);
-    prog->globals->directive = _string;
-    prog->globals->target = calloc(1, sizeof(directive_target));
-    prog->globals->target->literal = "moji: %i\\n";
-    prog->globals->target->literal_length = (int) strlen(prog->globals->target->literal);
+    if (!globals) {
+        globals = calloc(1, sizeof(Global));
+        {
+            // デバッグ用の文字列
+            globals->label = "debug_moji";
+            globals->label_length = (int) strlen(globals->label);
+            globals->directive = _string;
+            globals->target = calloc(1, sizeof(directive_target));
+            globals->target->literal = "moji: %i\\n";
+            globals->target->literal_length = (int) strlen(globals->target->literal);
+        }
+    }
+    prog->globals = globals;
 
     Function head;
     head.next = NULL;
     Function *tail = &head;
     while (!at_eof()) {
-        tail->next = function();
-        tail = tail->next;
+        Token *prepared = identifier();
+        if (consume("(")) {
+            // 関数
+            tail->next = function(prepared);
+            tail = tail->next;
+        } else {
+            // グローバル変数
+            error("TODO: +++++++++++++++++++++++++++\n");
+            exit(1);
+        }
     }
 
     token = NULL;
@@ -219,17 +249,7 @@ struct Program *program(Token *t) {
     return prog;
 }
 
-Function *function() {
-    expect("int");
-    assert_not_asterisk();
-
-    Token *function_name = consume_ident();
-    if (!function_name) {
-        error_at(token->str, "関数名がありません");
-        exit(1);
-    }
-
-    expect("(");
+Function *function(Token *function_name) {
     {
         int i = 0;
         while (consume("int")) {
