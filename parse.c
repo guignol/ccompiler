@@ -38,6 +38,8 @@ Variable *locals;
 // ident      =
 // num        =
 
+Global *global_var(Token *variable_name);
+
 Function *function(Token *function_name);
 
 Node *stmt(void);
@@ -139,10 +141,16 @@ char *copy(char *str, int len) {
 
 Variable *find_local_variable(char *name, int len) {
     // TODO 同名の変数は宣言できない前提なので、型チェックはしない
-    // TODO グローバル変数
     for (Variable *var = locals; var; var = var->next)
         if (var->len == len && !memcmp(name, var->name, var->len))
             return var;
+    return NULL;
+}
+
+Global *find_global_variable(char *name, int len) {
+    for (Global *g = globals; g; g = g->next)
+        if (g->label_length == len && !memcmp(name, g->label, g->label_length))
+            return g;
     return NULL;
 }
 
@@ -185,7 +193,24 @@ Node *new_node_variable(char *str, int len) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = variable->type;
+    node->is_local = true;
+    node->name = str;
+    node->len = len;
     node->offset = variable->offset;
+    return node;
+}
+
+Node *new_node_variable_global(char *str, int len) {
+    Global *variable = find_global_variable(str, len);
+    if (!variable) {
+        // 関数スコープでは、グローバル変数が無い場合はローカル変数を探す
+        return NULL;
+    }
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_VARIABLE;
+    // TODO まずはintのみ
+    node->type = shared_int_type();
+    node->is_local = false;
     node->name = str;
     node->len = len;
     return node;
@@ -213,40 +238,60 @@ struct Program *program(Token *t) {
     token = t;
 
     struct Program *prog = calloc(1, sizeof(struct Program));
-    if (!globals) {
-        globals = calloc(1, sizeof(Global));
-        {
-            // デバッグ用の文字列
-            globals->label = "debug_moji";
-            globals->label_length = (int) strlen(globals->label);
-            globals->directive = _string;
-            globals->target = calloc(1, sizeof(directive_target));
-            globals->target->literal = "moji: %i\\n";
-            globals->target->literal_length = (int) strlen(globals->target->literal);
-        }
+    globals = calloc(1, sizeof(Global));
+    {
+        // デバッグ用の文字列
+        Global *g = globals;
+        g->label = "debug_moji";
+        g->label_length = (int) strlen(g->label);
+        g->directive = _string;
+        g->target = calloc(1, sizeof(directive_target));
+        g->target->literal = "moji: %i\\n";
+        g->target->literal_length = (int) strlen(g->target->literal);
     }
-    prog->globals = globals;
-
-    Function head;
-    head.next = NULL;
-    Function *tail = &head;
+    // 関数
+    Function head_f;
+    head_f.next = NULL;
+    Function *tail_f = &head_f;
+    // グローバル変数
+    Global head_g;
+    head_g.next = NULL;
+    Global *tail_g = &head_g;
+    {
+        tail_g->next = globals;
+        tail_g = tail_g->next;
+    }
     while (!at_eof()) {
-        Token *prepared = identifier();
+        Token *ident = identifier();
         if (consume("(")) {
             // 関数
-            tail->next = function(prepared);
-            tail = tail->next;
+            tail_f->next = function(ident);
+            tail_f = tail_f->next;
         } else {
             // グローバル変数
-            error("TODO: +++++++++++++++++++++++++++\n");
-            exit(1);
+            tail_g->next = global_var(ident);
+            tail_g = tail_g->next;
         }
     }
 
     token = NULL;
 
-    prog->functions = head.next;
+    prog->functions = head_f.next;
+    prog->globals = head_g.next;
     return prog;
+}
+
+Global *global_var(Token *variable_name) {
+    // TODO まずは宣言のみ
+    expect(";");
+    Global *g = calloc(1, sizeof(Global));
+    g->label = variable_name->str;
+    g->label_length = variable_name->len;
+    g->directive = _zero;
+    g->target = calloc(1, sizeof(directive_target));
+    // TODO まずはintのみ
+    g->target->value = get_size(shared_int_type());
+    return g;
 }
 
 Function *function(Token *function_name) {
@@ -575,7 +620,10 @@ Node *primary() {
             node->len = tok->len;
             return node;
         } else {
-            Node *variable = new_node_variable(tok->str, tok->len);
+            Node *variable = new_node_variable_global(tok->str, tok->len);
+            if (!variable) {
+                variable = new_node_variable(tok->str, tok->len);
+            }
             return with_index(variable);
         }
 

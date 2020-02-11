@@ -52,8 +52,13 @@ void gen_address(Node *node) {
     switch (node->kind) {
         case ND_VARIABLE:
         case ND_VARIABLE_ARRAY:
-            printf("  lea rax, [rbp - %d]\n", node->offset);
-            printf("  push rax # variable [%.*s]\n", node->len, node->name);
+            if (node->is_local) {
+                printf("  lea rax, [rbp - %d]\n", node->offset);
+                printf("  push rax # variable [%.*s]\n", node->len, node->name);
+            } else {
+                printf("  lea rax, %.*s[rip]\n", node->len, node->name);
+                printf("  push rax # variable [%.*s]\n", node->len, node->name);
+            }
             break;
         case ND_DEREF:
         case ND_INDEX:

@@ -91,12 +91,12 @@ struct Node {
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
 
-    // ND_VARIABLEの場合のみ
+    // 変数の場合のみ
     Type *type;
-
-    int offset;    // 変数のRBPからのオフセット
+    bool is_local;
     char *name; // 変数名、関数名
     int len;
+    int offset;    // ローカル変数のRBPからのオフセット
 
     Node *condition; // if (condition), while (condition)
     Node *execution; // for (;;) statement

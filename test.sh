@@ -48,6 +48,25 @@ assert() {
 #try 13 'printf(); return 13;'
 #exit 0
 
+#assert 8 "$(
+#  cat <<END
+#int main() {
+#}
+#END
+#)"
+
+assert 3 "$(
+  cat <<END
+int a;
+int main() {
+  a = 3;
+  int b;
+  b = 6;
+  return b - a;
+}
+END
+)"
+
 assert 8 "$(
   cat <<END
 int main() {

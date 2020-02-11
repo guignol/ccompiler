@@ -13,6 +13,8 @@ int main(int argc, char **argv) {
     int label_suffix = -1;
     printf(".intel_syntax noprefix\n");
     {
+        printf("\n");
+        printf(".data\n");
         for (Global *global = prog->globals; global; global = global->next) {
             // ラベル
             printf("%.*s:\n", global->label_length, global->label);
@@ -37,6 +39,8 @@ int main(int argc, char **argv) {
             }
         }
     }
+    printf("\n");
+    printf(".text\n");
     generate(prog->functions);
 
     return 0;
