@@ -186,8 +186,8 @@ Node *new_node_num(int val) {
 Node *new_node_variable(char *str, int len) {
     Variable *variable = find_local_variable(str, len);
     if (!variable) {
-        error_at(str, "変数の宣言がありません。");
-        exit(1);
+        // ローカル変数が無い場合はグローバル変数を探す
+        return NULL;
     }
     bool is_array = variable->type->ty == TYPE_ARRAY;
     Node *node = calloc(1, sizeof(Node));
@@ -203,8 +203,8 @@ Node *new_node_variable(char *str, int len) {
 Node *new_node_variable_global(char *str, int len) {
     Global *variable = find_global_variable(str, len);
     if (!variable) {
-        // 関数スコープでは、グローバル変数が無い場合はローカル変数を探す
-        return NULL;
+        error_at(str, "変数の宣言がありません。");
+        exit(1);
     }
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_VARIABLE;
@@ -620,9 +620,9 @@ Node *primary() {
             node->len = tok->len;
             return node;
         } else {
-            Node *variable = new_node_variable_global(tok->str, tok->len);
+            Node *variable = new_node_variable(tok->str, tok->len);
             if (!variable) {
-                variable = new_node_variable(tok->str, tok->len);
+                variable = new_node_variable_global(tok->str, tok->len);
             }
             return with_index(variable);
         }

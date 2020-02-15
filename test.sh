@@ -59,6 +59,20 @@ assert 3 "$(
   cat <<END
 int a;
 int main() {
+  a = 6;
+  int b;
+  b = a;
+  int a;
+  a = 3;
+  return b - a;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int a;
+int main() {
   a = 3;
   int b;
   b = 6;
