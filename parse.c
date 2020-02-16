@@ -2,12 +2,52 @@
 
 // 現在着目しているトークン
 Token *token;
-// 関数定義
-FunctionDeclaration *func_decl;
-// グローバル変数
-Global *globals;
 // ローカル変数
 Variable *locals;
+
+/////////////////////////
+
+struct Declaration_C {
+    Declaration *head;
+    Declaration *tail;
+};
+// 関数定義
+struct Declaration_C *declarations;
+
+void add_function_declaration(Declaration *next) {
+    if (!declarations) {
+        declarations = calloc(1, sizeof(struct Declaration_C));
+    }
+    if (!declarations->head) {
+        declarations->head = next;
+        declarations->tail = next;
+        return;
+    }
+    declarations->tail = declarations->tail->next = next;
+}
+
+/////////////////////////
+
+struct Global_C {
+    Global *head;
+    Global *tail;
+};
+// グローバル変数
+struct Global_C *globals;
+
+void add_global_variables(Global *next) {
+    if (!globals) {
+        globals = calloc(1, sizeof(struct Global_C));
+    }
+    if (!globals->head) {
+        globals->head = next;
+        globals->tail = next;
+        return;
+    }
+    globals->tail = globals->tail->next = next;
+}
+
+/////////////////////////
 
 // program    = (function | global_var)*
 // global_var = decl_b ";"
@@ -128,14 +168,14 @@ Variable *find_local_variable(char *name, int len) {
 }
 
 Global *find_global_variable(char *name, int len) {
-    for (Global *g = globals; g; g = g->next)
+    for (Global *g = globals->head; g; g = g->next)
         if (g->label_length == len && !memcmp(name, g->label, g->label_length))
             return g;
     return NULL;
 }
 
-FunctionDeclaration *find_function(char *name, int len) {
-    for (FunctionDeclaration *d = func_decl; d; d = d->next)
+Declaration *find_function(char *name, int len) {
+    for (Declaration *d = declarations->head; d; d = d->next)
         if (d->len == len && !strncmp(name, d->name, d->len))
             return d;
     return NULL;
@@ -227,39 +267,27 @@ struct Program *program(Token *t) {
     Function head_f;
     head_f.next = NULL;
     Function *tail_f = &head_f;
-    // 関数定義
-    func_decl = calloc(1, sizeof(FunctionDeclaration));
-    func_decl->name = "";
-    func_decl->len = 0;
-    FunctionDeclaration *tail_d = func_decl;
     {
-        // デバッグ用の関数
+        // デバッグ用の関数定義
         static char *foo[] = {"hoge", "bar", "foo", "alloc_array_4", "printf"};
         for (int i = 0; i < sizeof(foo) / sizeof(*foo); ++i) {
-            FunctionDeclaration *d = calloc(1, sizeof(FunctionDeclaration));
+            Declaration *d = calloc(1, sizeof(Declaration));
             d->name = foo[i];
             d->len = (int) strlen(d->name);
-            tail_d = tail_d->next = d;
+            add_function_declaration(d);
         }
     }
-    // グローバル変数
-    Global head_g;
-    head_g.next = NULL;
-    Global *tail_g = &head_g;
+
     {
-        tail_g->next = globals = calloc(1, sizeof(Global));
-        {
-            // TODO これを設定しない場合の考慮がされていない
-            // デバッグ用の文字列
-            Global *g = globals;
-            g->label = "debug_moji";
-            g->label_length = (int) strlen(g->label);
-            g->directive = _string;
-            g->target = calloc(1, sizeof(directive_target));
-            g->target->literal = "moji: %i\\n";
-            g->target->literal_length = (int) strlen(g->target->literal);
-        }
-        tail_g = tail_g->next;
+        // デバッグ用のグローバル変数
+        Global *g = calloc(1, sizeof(Global));
+        g->label = "debug_moji";
+        g->label_length = (int) strlen(g->label);
+        g->directive = _string;
+        g->target = calloc(1, sizeof(directive_target));
+        g->target->literal = "moji: %i\\n";
+        g->target->literal_length = (int) strlen(g->target->literal);
+        add_global_variables(g);
     }
     while (!at_eof()) {
         expect("int");
@@ -282,21 +310,14 @@ struct Program *program(Token *t) {
                 exit(1);
             }
             // 関数
-            {
-                // 再帰呼び出しでの定義チェックがあるため、先に関数定義として追加
-                // TODO 引数のチェックが入った場合は、もう少し先で追加することになる
-                FunctionDeclaration *d = calloc(1, sizeof(FunctionDeclaration));
-                d->name = identifier->str;
-                d->len = identifier->len;
-                tail_d = tail_d->next = d;
-            }
             tail_f = tail_f->next = function(identifier);
         } else {
             // グローバル変数
             Type *const type = pointer
                                ? create_pointer_type(shared_int_type())
                                : shared_int_type();
-            tail_g = tail_g->next = global_var(identifier, type);
+            Global *const g = global_var(identifier, type);
+            add_global_variables(g);
         }
     }
 
@@ -304,7 +325,7 @@ struct Program *program(Token *t) {
 
     struct Program *prog = calloc(1, sizeof(struct Program));
     prog->functions = head_f.next;
-    prog->globals = head_g.next;
+    prog->globals = globals->head;
     return prog;
 }
 
@@ -353,6 +374,12 @@ Function *function(Token *function_name) {
         }
     }
     expect(")");
+
+    // 再帰呼び出しでの定義チェックがあるため、先に関数定義として追加
+    Declaration *d = calloc(1, sizeof(Declaration));
+    d->name = function_name->str;
+    d->len = function_name->len;
+    add_function_declaration(d);
 
     expect("{");
     // Node *code[100];
