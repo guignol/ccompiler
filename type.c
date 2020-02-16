@@ -1,5 +1,15 @@
 #include "9cc.h"
 
+Type *shared_char_type() {
+    static Type *char_type;
+    if (!char_type) {
+        char_type = calloc(1, sizeof(Type));
+        char_type->ty = TYPE_CHAR;
+        char_type->point_to = NULL;
+    }
+    return char_type;
+}
+
 Type *shared_int_type() {
     static Type *int_type;
     if (!int_type) {
@@ -63,6 +73,7 @@ bool are_same_type(Type *left, Type *right) {
         return false;
     }
     switch (left->ty) {
+        case TYPE_CHAR:
         case TYPE_INT:
             return true;
         case TYPE_POINTER:
@@ -82,6 +93,12 @@ Assignable are_assignable_type(Type *left, Type *right) {
         return CANNOT_ASSIGN;
     }
     if (are_same_type(left, right)) {
+        return AS_SAME;
+    }
+    if (left->ty == TYPE_CHAR && right->ty == TYPE_INT) {
+        return AS_SAME;
+    }
+    if (left->ty == TYPE_INT && right->ty == TYPE_CHAR) {
         return AS_SAME;
     }
     if (left->ty == TYPE_POINTER &&
@@ -127,7 +144,8 @@ Type *find_type(const Node *node) {
         exit(1);
     }
     switch (node->kind) {
-        case ND_FUNC: // TODO
+        case ND_FUNC:
+            return node->type;
         case ND_MUL:
         case ND_DIV:
         case ND_EQL:
@@ -142,6 +160,7 @@ Type *find_type(const Node *node) {
             Type *right = find_type(node->rhs);
             if (left->ty == right->ty) {
                 switch (left->ty) {
+                    case TYPE_CHAR:
                     case TYPE_INT:
                         return left;
                     case TYPE_POINTER:
@@ -155,6 +174,7 @@ Type *find_type(const Node *node) {
                 }
             } else {
                 switch (left->ty) {
+                    case TYPE_CHAR:
                     case TYPE_INT:
                         return right;
                     case TYPE_POINTER:
@@ -180,6 +200,7 @@ Type *find_type(const Node *node) {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
                 Type *type = find_type(node->lhs);
                 switch (type->ty) {
+                    case TYPE_CHAR:
                     case TYPE_INT:
                         error("ポインタ型ではありません\n");
                         exit(1);
@@ -203,6 +224,7 @@ int get_weight(Node *node) {
         exit(1);
     }
     switch (type->ty) {
+        case TYPE_CHAR:
         case TYPE_INT:
             return 1;
         case TYPE_POINTER:
@@ -219,6 +241,8 @@ int get_size(Type *type) {
         exit(1);
     }
     switch (type->ty) {
+        case TYPE_CHAR:
+            return sizeof(char); // 1
         case TYPE_INT:
             return sizeof(int); // 4
         case TYPE_POINTER:
@@ -228,13 +252,25 @@ int get_size(Type *type) {
     }
 }
 
-bool type_32bit(Type *type) {
-    return get_size(type) == 4; // bytes
-}
-
 /////////////////////////////////////////////////
 
 Type *printing = NULL;
+
+char *base_type_name() {
+    Type *type = printing;
+    while (type->point_to) {
+        type = type->point_to;
+    }
+    switch (type->ty) {
+        case TYPE_CHAR:
+            return "char";
+        case TYPE_INT:
+            return "int";
+        default:
+            error("型が不明です\n");
+            exit(1);
+    }
+}
 
 int count_pointer(void) {
     int count = 0;
@@ -258,7 +294,7 @@ int count_array(int counts[]) {
 void print_type(FILE *__stream, Type *type) {
     printing = type;
 
-    fprintf(__stream, "int");
+    fprintf(__stream, "%s", base_type_name());
     // int ***(**)[2][3]
     const int pointers_inner = count_pointer();
     int size_array[10];
@@ -297,8 +333,9 @@ void print_type(FILE *__stream, Type *type) {
 void warn_incompatible_type(Type *left, Type *right) {
     // TODO GCCの結果と比べる
     // warning: assignment to '左辺の型' from incompatible pointer type '右辺の型'
-    fprintf(stderr, "\n");
+    fprintf(stderr, "【");
     print_type(stderr, left);
     fprintf(stderr, " <= ");
     print_type(stderr, right);
+    fprintf(stderr, " 】\n");
 }

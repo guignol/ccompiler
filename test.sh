@@ -11,6 +11,7 @@ assert() {
   ./build/ccompiler "$input" >tmp.s
   gcc -o tmp tmp.s build/libfoo.a
   ./tmp >/dev/null
+#  ./tmp
   actual="$?"
 
   printf "▓"
@@ -55,10 +56,54 @@ assert() {
 #END
 #)"
 
+assert 13 "$(
+  cat <<END
+int main() {
+  char a[4];
+  char (*b)[4];
+  b = &a;
+  (*b)[3] = 13;
+  return (*b)[3];
+}
+END
+)"
+
 assert 8 "$(
   cat <<END
 int main() {
-  return hoge(5, 3);
+  char a[2][3];
+  char (*b)[3];
+  b = &a;
+  a[1][2] = 5;
+  return a[1][2] + 3;
+}
+END
+)"
+
+assert 1 "$(
+  cat <<END
+char chaa(char c) {
+  return c + 1;
+}
+int main() {
+  char c;
+  c = sizeof(c);
+  int i;
+  i = chaa(c);
+  return i - c;
+}
+END
+)"
+
+assert 3 "$(
+  cat <<END
+int main() {
+  char x[3];
+  x[0] = -1;
+  x[1] = 2;
+  int y;
+  y = 4;
+  return x[0] + y;
 }
 END
 )"

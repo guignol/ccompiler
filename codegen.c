@@ -24,6 +24,14 @@ static char *registers_32[] = {"edi",
                                "r8d",
                                "r9d"};
 
+
+static char *registers_8[] = {"DIL",
+                              "SIL",
+                              "DL",
+                              "CL",
+                              "R8B",
+                              "R9B"};
+
 void ___COMMENT___(char *format, ...) {
     va_list ap;
     va_start(ap, format);
@@ -40,10 +48,16 @@ void load(Node *node) {
     // アドレスを取り出す
     printf("  pop rax\n");
     // アドレスの値を取り出す
-    if (type_32bit(find_type(node))) {
-        printf("  mov eax, DWORD PTR [rax]\n");
-    } else {
-        printf("  mov rax, [rax]\n");
+    switch (find_type(node)->ty) {
+        case TYPE_CHAR:
+            printf("  movsx eax, BYTE PTR [rax]\n");
+            break;
+        case TYPE_INT:
+            printf("  mov eax, DWORD PTR [rax]\n");
+            break;
+        default:
+            printf("  mov rax, [rax]\n");
+            break;
     }
     printf("  push rax\n");
 }
@@ -246,10 +260,16 @@ void gen(Node *node) {
             printf("  pop rdi\n");
             printf("  pop rax\n");
             // 型ごとのサイズ
-            if (type_32bit(find_type(node))) {
-                printf("  mov DWORD PTR [rax], edi\n");
-            } else {
-                printf("  mov [rax], rdi\n");
+            switch (find_type(node)->ty) {
+                case TYPE_CHAR:
+                    printf("  mov BYTE PTR [rax], dil\n");
+                    break;
+                case TYPE_INT:
+                    printf("  mov DWORD PTR [rax], edi\n");
+                    break;
+                default:
+                    printf("  mov [rax], rdi\n");
+                    break;
             }
             printf("  push rdi\n");
             ___COMMENT___("assign end");
@@ -375,8 +395,7 @@ void generate(Function *func) {
     if (locals) {
         int stack_size = locals->offset;
         while (stack_size % 16 != 0) {
-            // 関数呼び出し直前に4bytesずつの調整してもうまくいかなかったので
-            stack_size += 4;
+            stack_size += 1;
         }
         printf("  sub rsp, %i  # stack size\n", stack_size);
 
@@ -386,20 +405,31 @@ void generate(Function *func) {
             if (0 <= param->index) {
                 printf("  mov rax, rbp\n");
                 printf("  sub rax, %d\n", param->offset);
-                if (type_32bit(param->type)) {
-                    printf("  mov %s[rax], %s  # parameter [%.*s]\n",
-                           "DWORD PTR ",
-                           registers_32[param->index],
-                           param->len,
-                           param->name
-                    );
-                } else {
-                    printf("  mov %s[rax], %s  # parameter [%.*s]\n",
-                           "",
-                           registers[param->index],
-                           param->len,
-                           param->name
-                    );
+                switch (param->type->ty) {
+                    case TYPE_CHAR:
+                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
+                               "BYTE PTR ",
+                               registers_8[param->index],
+                               param->len,
+                               param->name
+                        );
+                        break;
+                    case TYPE_INT:
+                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
+                               "DWORD PTR ",
+                               registers_32[param->index],
+                               param->len,
+                               param->name
+                        );
+                        break;
+                    default:
+                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
+                               "",
+                               registers[param->index],
+                               param->len,
+                               param->name
+                        );
+                        break;
                 }
 
                 count++;

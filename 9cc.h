@@ -48,7 +48,7 @@ typedef enum {
     ND_WHILE,       // while
     ND_FOR,         // for
     ND_BLOCK,       // { }
-    ND_FUNC,        // 関数コール : 今のところintのみ
+    ND_FUNC,        // 関数コール : 今のところintまたはchar
     ND_NUM,         // 整数 : int
     ND_VARIABLE,    // ローカル変数
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
@@ -91,7 +91,7 @@ struct Node {
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
 
-    // 変数の場合のみ
+    // 変数または関数の返り値の型
     Type *type;
     bool is_local;
     char *name; // 変数名、関数名
@@ -109,6 +109,7 @@ struct Node {
 
 struct Type {
     enum {
+        TYPE_CHAR, // 1byte
         TYPE_INT, // 4byte
         TYPE_POINTER, // 8byte
         TYPE_ARRAY, // array_size * sizeof(point_to) byte
@@ -132,6 +133,8 @@ typedef enum {
     AS_INCOMPATIBLE,
 } Assignable;
 
+Type *shared_char_type();
+
 Type *shared_int_type();
 
 Type *create_pointer_type(Type *point_to);
@@ -148,7 +151,7 @@ int get_weight(Node *node);
 
 int get_size(Type *type);
 
-bool type_32bit(Type *type);
+void print_type(FILE *__stream, Type *type);
 
 void warn_incompatible_type(Type *left, Type *right);
 
@@ -173,8 +176,6 @@ typedef struct Declaration Declaration;
 typedef struct Global Global;
 
 struct Function {
-    // 返り値の型
-    // Type *type; // TODO 関数フレーム内で確保した値へのポインタをそのまま返せない
     // 関数名
     char *name;
     // ローカル変数および引数
@@ -187,7 +188,7 @@ struct Function {
 
 struct Declaration {
     // 返り値の型
-    // Type *type;
+    Type *return_type;
     // 関数名
     char *name;
     int len;
@@ -209,6 +210,8 @@ void generate(Function *func);
 /////////////////////////////////////////////////
 
 
+//char c;
+//char c_c[2];
 //int x;
 //int x_x = 2;
 //int *y[20];
@@ -216,6 +219,10 @@ void generate(Function *func);
 //int *yy_yy = &x;
 //char *moji = "moji";
 
+// c:
+//  .zero 1
+// c_c:
+//  .zero 2
 // x:
 //  .zero 4
 // x_x:

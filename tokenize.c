@@ -78,7 +78,8 @@ int reserved(const char *p) {
             "else",
             "while",
             "for",
-            "int"
+            "int",
+            "char",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];

@@ -74,7 +74,7 @@ void add_global_variables(Global *next) {
 // 				| "(" expr ")"
 // index      = "[" primary "]"
 // args       = (expr ("," expr)* )?
-// decl_a     = "int" "*"* (pointed_id | ident)
+// decl_a     = ("int" | "char") "*"* (pointed_id | ident)
 // decl_b     = decl_a ("[" num "]")*
 // pointed_id = "(" "*"* ident ")"
 // ident      =
@@ -82,7 +82,7 @@ void add_global_variables(Global *next) {
 
 Global *global_var(Token *variable_name, Type *type);
 
-Function *function(Token *function_name);
+Function *function(Token *function_name, Type *returnType);
 
 Node *stmt(void);
 
@@ -112,6 +112,16 @@ char *consume(char *op) {
         return NULL;
     token = token->next;
     return location;
+}
+
+Type *consume_base_type() {
+    if (consume("int")) {
+        return shared_int_type();
+    } else if (consume("char")) {
+        return shared_char_type();
+    } else {
+        return NULL;
+    }
 }
 
 Token *consume_ident() {
@@ -245,6 +255,7 @@ Node *new_node_variable_global(char *str, int len) {
 Node *new_node_dereference(Node *operand) {
     Type *type = find_type(operand);
     switch (type->ty) {
+        case TYPE_CHAR:
         case TYPE_INT:
             return NULL;
         case TYPE_POINTER:
@@ -272,6 +283,7 @@ struct Program *program(Token *t) {
         static char *foo[] = {"hoge", "bar", "foo", "alloc_array_4", "printf"};
         for (int i = 0; i < sizeof(foo) / sizeof(*foo); ++i) {
             Declaration *d = calloc(1, sizeof(Declaration));
+            d->return_type = shared_int_type();
             d->name = foo[i];
             d->len = (int) strlen(d->name);
             add_function_declaration(d);
@@ -290,7 +302,11 @@ struct Program *program(Token *t) {
         add_global_variables(g);
     }
     while (!at_eof()) {
-        expect("int");
+        Type *base = consume_base_type();
+        if (!base) {
+            error_at(token->str, "関数の型が正しく定義されていません");
+            exit(1);
+        }
         // TODO グローバル変数で、まずポインタ1つまで
         char *pointer = consume("*");
         Token *identifier = consume_ident();
@@ -310,12 +326,12 @@ struct Program *program(Token *t) {
                 exit(1);
             }
             // 関数
-            tail_f = tail_f->next = function(identifier);
+            tail_f = tail_f->next = function(identifier, base);
         } else {
             // グローバル変数
             Type *const type = pointer
-                               ? create_pointer_type(shared_int_type())
-                               : shared_int_type();
+                               ? create_pointer_type(base)
+                               : base;
             Global *const g = global_var(identifier, type);
             add_global_variables(g);
         }
@@ -343,14 +359,15 @@ Global *global_var(Token *variable_name, Type *type) {
     return g;
 }
 
-Function *function(Token *function_name) {
+Function *function(Token *function_name, Type *returnType) {
     {
         /*
          * int function_name(
          *                   ↑ここから
          */
         int i = 0;
-        while (consume("int")) {
+        Type *param_type;
+        while ((param_type = consume_base_type())) {
             if (consume("*")) {
                 error_at(token->str, "関数の入出力にポインタはまだ使えません");
                 exit(1);
@@ -366,8 +383,7 @@ Function *function(Token *function_name) {
                 exit(1);
             }
 
-            Type *type = shared_int_type();
-            Variable *param = register_variable(t->str, t->len, type);
+            Variable *param = register_variable(t->str, t->len, param_type);
             param->index = i++;
             if (!consume(","))
                 break;
@@ -377,6 +393,7 @@ Function *function(Token *function_name) {
 
     // 再帰呼び出しでの定義チェックがあるため、先に関数定義として追加
     Declaration *d = calloc(1, sizeof(Declaration));
+    d->return_type = returnType;
     d->name = function_name->str;
     d->len = function_name->len;
     add_function_declaration(d);
@@ -405,10 +422,11 @@ Function *function(Token *function_name) {
 
 Node *stmt() {
     Node *node;
-    if (consume("int")) {
+    Type *base = consume_base_type();
+    if (base) {
         // ローカル変数の宣言
         bool backwards = consume("(");
-        Type *type = backwards ? NULL : shared_int_type();
+        Type *type = backwards ? NULL : base;
         while (consume("*")) {
             Type *pointer = create_pointer_type(type);
             type = pointer;
@@ -428,7 +446,7 @@ Node *stmt() {
         if (backwards) {
             expect(")");
             backwards_pointer = type;
-            type = shared_int_type();
+            type = base;
         }
 
         while (consume("[")) {
@@ -534,7 +552,8 @@ Node *assign() {
         Type *const right_type = find_type(rhs);
         switch (are_assignable_type(left_type, right_type)) {
             case AS_INCOMPATIBLE:
-//                error_at(loc, "\nwarning: 代入式の左右の型が異なります。");
+//                error("\n");
+//                error_at(loc, "warning: 代入式の左右の型が異なります。");
 //                warn_incompatible_type(left_type, right_type);
             case AS_SAME:
                 node = new_node(ND_ASSIGN, node, rhs);
@@ -669,13 +688,15 @@ Node *primary() {
     if (tok) {
         if (consume("(")) {
             // 存在チェック
-            if (!find_function(tok->str, tok->len)) {
+            Declaration *declaration = find_function(tok->str, tok->len);
+            if (!declaration) {
                 error_at(tok->str, "関数が定義されていません");
                 exit(1);
             }
             // 関数呼び出し
             Node *node = calloc(1, sizeof(Node));
             node->kind = ND_FUNC;
+            node->type = declaration->return_type;
             if (!consume(")")) {
                 Node *last = node;
                 last->args = expr();
@@ -714,11 +735,13 @@ void assert_indexable(Node *left, Node *right) {
     Type *left_type = find_type(left);
     Type *right_type = find_type(right);
     switch (left_type->ty) {
+        case TYPE_CHAR:
         case TYPE_INT: {
             // 左がint
             switch (right_type->ty) {
+                case TYPE_CHAR:
                 case TYPE_INT:
-                    error("int[int]はできません？\n");
+                    error("整数間で[]は使えません？\n");
                     exit(1);
                 case TYPE_POINTER:
                 case TYPE_ARRAY:
@@ -730,6 +753,7 @@ void assert_indexable(Node *left, Node *right) {
         case TYPE_ARRAY: {
             // 左が配列orポインタ
             switch (right_type->ty) {
+                case TYPE_CHAR:
                 case TYPE_INT:
                     break;
                 case TYPE_POINTER:
