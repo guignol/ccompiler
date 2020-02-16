@@ -55,12 +55,42 @@ assert() {
 #END
 #)"
 
+assert 5 "$(
+  cat <<END
+int *a;
+int *b;
+int main() {
+  int a; // 型の異なるローカル変数
+  a = 3;
+  b =  &a;
+  *b = 2 + a;
+  return a;
+}
+END
+)"
+
+assert 9 "$(
+  cat <<END
+int a;
+int *b;
+int main() {
+  a = 1;
+  b =  &a;
+  *b = 8 + a;
+  return a;
+}
+END
+)"
+
 assert 3 "$(
   cat <<END
 int a;
-int main() {
+int init() {
   a = 6;
+}
+int main() {
   int b;
+  init();
   b = a;
   int a;
   a = 3;

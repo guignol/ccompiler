@@ -38,7 +38,7 @@ Variable *locals;
 // ident      =
 // num        =
 
-Global *global_var(Token *variable_name);
+Global *global_var(Token *variable_name, Type *type);
 
 Function *function(Token *function_name);
 
@@ -62,15 +62,14 @@ Node *primary(void);
 
 //////////////////////////////////////////////////////////////////
 
-// 次のトークンが期待している記号のときには、トークンを読み進めて
-// 真を返す。それ以外の場合には偽を返す。
-bool consume(char *op) {
+char *consume(char *op) {
+    char *const location = token->str;
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
-        memcmp(token->str, op, token->len) != 0)
-        return false;
+        memcmp(location, op, token->len) != 0)
+        return NULL;
     token = token->next;
-    return true;
+    return location;
 }
 
 Token *consume_ident() {
@@ -80,15 +79,6 @@ Token *consume_ident() {
         return t;
     }
     return NULL;
-}
-
-void assert_not_asterisk() {
-    if (token->kind == TK_RESERVED &&
-        strlen("*") == token->len &&
-        memcmp(token->str, "*", token->len) == 0) {
-        error_at(token->str, "関数の入出力にポインタはまだ使えません");
-        exit(1);
-    }
 }
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
@@ -115,18 +105,6 @@ int expect_number() {
     return val;
 }
 
-Token *identifier() {
-    expect("int");
-    assert_not_asterisk();
-
-    Token *identifier = consume_ident();
-    if (!identifier) {
-        error_at(token->str, "関数名または変数名がありません");
-        exit(1);
-    }
-    return identifier;
-}
-
 bool at_eof() {
     return token->kind == TK_EOF;
 }
@@ -140,7 +118,7 @@ char *copy(char *str, int len) {
 }
 
 Variable *find_local_variable(char *name, int len) {
-    // TODO 同名の変数は宣言できない前提なので、型チェックはしない
+    // 同名の変数は宣言できない前提なので、型チェックはしない
     for (Variable *var = locals; var; var = var->next)
         if (var->len == len && !memcmp(name, var->name, var->len))
             return var;
@@ -208,8 +186,7 @@ Node *new_node_variable_global(char *str, int len) {
     }
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_VARIABLE;
-    // TODO まずはintのみ
-    node->type = shared_int_type();
+    node->type = variable->type;
     node->is_local = false;
     node->name = str;
     node->len = len;
@@ -262,14 +239,29 @@ struct Program *program(Token *t) {
         tail_g = tail_g->next;
     }
     while (!at_eof()) {
-        Token *ident = identifier();
+        expect("int");
+        // TODO グローバル変数で、まずポインタ1つまで
+        char *pointer = consume("*");
+        Token *identifier = consume_ident();
+        if (!identifier) {
+            error_at(token->str, "関数名または変数名がありません");
+            exit(1);
+        }
+        // TODO 他のグローバル変数や関数との名前重複チェック
         if (consume("(")) {
+            if (pointer) {
+                error_at(pointer, "関数の入出力にポインタはまだ使えません");
+                exit(1);
+            }
             // 関数
-            tail_f->next = function(ident);
+            tail_f->next = function(identifier);
             tail_f = tail_f->next;
         } else {
             // グローバル変数
-            tail_g->next = global_var(ident);
+            Type *const type = pointer
+                               ? create_pointer_type(shared_int_type())
+                               : shared_int_type();
+            tail_g->next = global_var(identifier, type);
             tail_g = tail_g->next;
         }
     }
@@ -281,24 +273,32 @@ struct Program *program(Token *t) {
     return prog;
 }
 
-Global *global_var(Token *variable_name) {
+Global *global_var(Token *variable_name, Type *type) {
     // TODO まずは宣言のみ
     expect(";");
     Global *g = calloc(1, sizeof(Global));
+    g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
     g->directive = _zero;
     g->target = calloc(1, sizeof(directive_target));
-    // TODO まずはintのみ
-    g->target->value = get_size(shared_int_type());
+    // サイズ分を0で初期化
+    g->target->value = get_size(type);
     return g;
 }
 
 Function *function(Token *function_name) {
     {
+        /*
+         * int function_name(
+         *                   ↑ここから
+         */
         int i = 0;
         while (consume("int")) {
-            assert_not_asterisk();
+            if (consume("*")) {
+                error_at(token->str, "関数の入出力にポインタはまだ使えません");
+                exit(1);
+            }
             Token *t = consume_ident();
             if (t) {
                 if (find_local_variable(t->str, t->len)) {
@@ -356,7 +356,8 @@ Node *stmt() {
             error_at(token->str, "変数名がありません");
             exit(1);
         }
-        //  TODO 同名の変数は宣言できないことにしておく
+        // 同名の変数は宣言できない
+        // グローバル変数との重複は可能
         if (find_local_variable(t->str, t->len)) {
             error_at(token->str, "変数名が重複しています");
             exit(1);

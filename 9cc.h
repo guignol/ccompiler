@@ -240,6 +240,7 @@ typedef struct {
 
 
 struct Global {
+    Type *type;
     char *label;
     int label_length;
 
