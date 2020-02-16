@@ -32,10 +32,10 @@ struct Global_C {
     Global *head;
     Global *tail;
 };
-// グローバル変数
+// グローバル変数その他
 struct Global_C *globals;
 
-void add_global_variables(Global *next) {
+void add_globals(Global *next) {
     if (!globals) {
         globals = calloc(1, sizeof(struct Global_C));
     }
@@ -67,7 +67,8 @@ void add_global_variables(Global *next) {
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "sizeof" unary
 //				| ("+" | "-" | "*"* | "&"*)? primary
-// primary    = num |
+// primary    = num
+// 				| literal_str
 //				| ident
 //				| primary ( "(" index ")" )? index*
 //				| ident "(" args ")"
@@ -78,6 +79,7 @@ void add_global_variables(Global *next) {
 // decl_b     = decl_a ("[" num "]")*
 // pointed_id = "(" "*"* ident ")"
 // ident      =
+// literal_str=
 // num        =
 
 Global *global_var(Token *variable_name, Type *type);
@@ -103,6 +105,13 @@ Node *unary(void);
 Node *primary(void);
 
 //////////////////////////////////////////////////////////////////
+
+char *new_label() {
+    static int cnt = 0;
+    char buf[20];
+    sprintf(buf, ".LC.%d", cnt++);
+    return strndup(buf, 20);
+}
 
 char *consume(char *op) {
     char *const location = token->str;
@@ -291,15 +300,24 @@ struct Program *program(Token *t) {
     }
 
     {
+        char *const label = new_label();
         // デバッグ用のグローバル変数
         Global *g = calloc(1, sizeof(Global));
-        g->label = "debug_moji";
+        g->label = "debug_moji"; // 変数名
+        g->label_length = (int) strlen(g->label);
+        g->directive = _quad;
+        g->target = calloc(1, sizeof(directive_target));
+        g->target->label = label;
+        g->target->label_length = (int) strlen(g->target->label);
+        add_globals(g);
+        g = calloc(1, sizeof(Global));
+        g->label = label;
         g->label_length = (int) strlen(g->label);
         g->directive = _string;
         g->target = calloc(1, sizeof(directive_target));
-        g->target->literal = "moji: %i\\n";
+        g->target->literal = "moji: %i\\n"; // リテラル
         g->target->literal_length = (int) strlen(g->target->literal);
-        add_global_variables(g);
+        add_globals(g);
     }
     while (!at_eof()) {
         Type *base = consume_base_type();
@@ -333,7 +351,7 @@ struct Program *program(Token *t) {
                                ? create_pointer_type(base)
                                : base;
             Global *const g = global_var(identifier, type);
-            add_global_variables(g);
+            add_globals(g);
         }
     }
 
@@ -715,7 +733,27 @@ Node *primary() {
             }
             return with_index(variable);
         }
+    }
 
+    // 文字列リテラル
+    if (token->kind == TK_STR_LITERAL) {
+        // Globalsに追加
+        char *const label = new_label();
+        const int label_length = (int) strlen(label);
+        Global *g = calloc(1, sizeof(Global));
+        g->label = label;
+        g->label_length = label_length;
+        g->directive = _string;
+        g->target = calloc(1, sizeof(directive_target));
+        g->target->literal = token->str;
+        g->target->literal_length = token->len;
+        add_globals(g);
+        // ラベルを指すnodeを作る
+        Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
+        node->label = label;
+        node->label_length = label_length;
+        token = token->next;
+        return node;
     }
 
     // 次のトークンが"("なら、"(" expr ")" または (a[0])[1], (*b)[1]

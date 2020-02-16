@@ -154,6 +154,8 @@ Type *find_type(const Node *node) {
         case ND_LESS_EQL:
         case ND_NUM:
             return shared_int_type();
+        case ND_STR_LITERAL:
+            return create_pointer_type(shared_char_type());
         case ND_ADD:
         case ND_SUB: {
             Type *left = find_type(node->lhs);

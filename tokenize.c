@@ -99,7 +99,7 @@ int reserved(const char *p) {
     }
 
     // Single-letter punctuator
-    if (strchr("+-*/()<>;={},&[]", *p))
+    if (strchr("+-*/()<>;={},&[]\"", *p))
         return 1;
 
     return 0;
@@ -124,6 +124,18 @@ Token *tokenize(char *p) {
             while (!start_with(p, "\n")) {
                 p++;
             }
+            p++;
+            continue;
+        }
+
+        char *const DOUBLE_QUOTE = "\"";
+        if (start_with(p, DOUBLE_QUOTE)) {
+            p++;
+            char *start = p;
+            while (!start_with(p, DOUBLE_QUOTE)) {
+                p++;
+            }
+            cur = new_token(TK_STR_LITERAL, cur, start, p - start);
             p++;
             continue;
         }

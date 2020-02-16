@@ -243,6 +243,10 @@ void gen(Node *node) {
         case ND_NUM:
             printf("  push %d\n", node->val);
             return;
+        case ND_STR_LITERAL:
+            printf("  mov rax, OFFSET FLAT:%.*s\n", node->label_length, node->label);
+            printf("  push rax\n");
+            return;
         case ND_VARIABLE:
             // 変数のアドレスから、そのアドレスにある値を取り出す
             gen_address(node);
@@ -368,6 +372,7 @@ void gen(Node *node) {
         case ND_BLOCK:
         case ND_FUNC:
         case ND_NUM:
+        case ND_STR_LITERAL:
         case ND_VARIABLE:
         case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:

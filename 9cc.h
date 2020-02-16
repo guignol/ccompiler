@@ -11,8 +11,9 @@ void error_at(const char *loc, const char *fmt, ...);
 
 // トークンの種類
 typedef enum {
-    TK_RESERVED, // 記号
-    TK_IDENT,    // 識別子
+    TK_RESERVED,    // 記号
+    TK_IDENT,       // 識別子
+    TK_STR_LITERAL, // 文字列
     TK_NUM,         // 整数トークン
     TK_EOF,         // 入力の終わりを表すトークン
 } TokenKind;
@@ -50,6 +51,7 @@ typedef enum {
     ND_BLOCK,       // { }
     ND_FUNC,        // 関数コール : 今のところintまたはchar
     ND_NUM,         // 整数 : int
+    ND_STR_LITERAL, // 文字列リテラル
     ND_VARIABLE,    // ローカル変数
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
@@ -97,6 +99,10 @@ struct Node {
     char *name; // 変数名、関数名
     int len;
     int offset;    // ローカル変数のRBPからのオフセット
+
+    // 文字列リテラル
+    char *label;
+    int label_length;
 
     Node *condition; // if (condition), while (condition)
     Node *execution; // for (;;) statement

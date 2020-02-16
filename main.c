@@ -10,7 +10,6 @@ int main(int argc, char **argv) {
     Token *token = tokenize(input);
     struct Program *prog = program(token);
 
-    int label_suffix = -1;
     printf(".intel_syntax noprefix\n");
     {
         printf("\n");
@@ -30,9 +29,6 @@ int main(int argc, char **argv) {
                     printf("  .quad %.*s\n", target->label_length, target->label);
                     break;
                 case _string: {
-                    label_suffix++;
-                    printf("  .quad .LC%d\n", label_suffix);
-                    printf(".LC%d:\n", label_suffix);
                     printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
                     break;
                 }

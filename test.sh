@@ -9,7 +9,7 @@ assert() {
   input="$2"
 
   ./build/ccompiler "$input" >tmp.s
-  gcc -o tmp tmp.s build/libfoo.a
+  gcc -o tmp tmp.s build/libfoo.a -no-pie
   ./tmp >/dev/null
 #  ./tmp
   actual="$?"
@@ -55,6 +55,17 @@ assert() {
 #}
 #END
 #)"
+
+assert 3 "$(
+  cat <<END
+int main() {
+  char *moji;
+  moji = "moji-desu-ne";
+  printf(moji);
+  return 3;
+}
+END
+)"
 
 assert 13 "$(
   cat <<END
