@@ -13,7 +13,7 @@ assert() {
   ./tmp >/dev/null
   actual="$?"
 
-  printf  "▓"
+  printf "▓"
 
   if [ "$actual" != "$expected" ]; then
     echo
@@ -51,6 +51,34 @@ assert() {
 #assert 8 "$(
 #  cat <<END
 #int main() {
+#}
+#END
+#)"
+
+assert 8 "$(
+  cat <<END
+int main() {
+  return hoge(5, 3);
+}
+END
+)"
+
+#assert 8 "$(
+#  cat <<END
+#int main() {
+#  return a();
+#}
+#END
+#)"
+
+#assert 7 "$(
+#  cat <<END
+#int deja;
+#int deja() {
+#  return 3;
+#}
+#int main() {
+#  return deja() + 4;
 #}
 #END
 #)"
@@ -468,14 +496,6 @@ try 11 'int a; int b; int c; { a = 3; b = 2; c = 6; return a + b + c; }'
 
 assert 1 "$(
   cat <<END
-int main() {
-  int i;
-	for (i = 0; i < 10; i = i + 1) 	{
-		hoge(i, fibonacci(i));
-	}
-	return 1;
-}
-
 int fibonacci(int n) {
 	if (n == 0)	{
 		return 1;
@@ -484,15 +504,23 @@ int fibonacci(int n) {
 	}
 	return fibonacci(n - 1) + fibonacci(n - 2);
 }
+
+int main() {
+  int i;
+	for (i = 0; i < 10; i = i + 1) 	{
+		hoge(i, fibonacci(i));
+	}
+	return 1;
+}
 END
 )"
 # exit 0
 
 # assert 13 'int main() { return add(1, 12); } add(int a, int b, int a) { hoge(a, b); return a + b; }'
-assert 13 'int main() { return add(1, 12); } int add(int a, int b) { hoge(a, b); return a + b; }'
-assert 13 'int main() { return add(1, 12); } int add(int a, int b) { return a + b; }'
-assert 13 'int main() { return salut(); } int salut() { int a; int b; a = 1; b = 12; return 13; }'
-assert 13 'int main() { return salut(); } int salut() { return 13; }'
+assert 13 'int add(int a, int b) { hoge(a, b); return a + b; }int main() { return add(1, 12); }'
+assert 13 'int add(int a, int b) { return a + b; } int main() { return add(1, 12); }'
+assert 13 'int salut() { int a; int b; a = 1; b = 12; return 13; } int main() { return salut(); } '
+assert 13 'int salut() { return 13; } int main() { return salut(); } '
 assert 13 'int main() { return bar(13); }'
 
 try 13 'printf(); return 13;'

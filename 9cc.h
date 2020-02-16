@@ -169,6 +169,7 @@ struct Variable {
 };
 
 typedef struct Function Function;
+typedef struct FunctionDeclaration FunctionDeclaration;
 typedef struct Global Global;
 
 struct Function {
@@ -182,6 +183,18 @@ struct Function {
     Node **body;
 
     Function *next;
+};
+
+struct FunctionDeclaration {
+    // 返り値の型
+    // Type *type;
+    // 関数名
+    char *name;
+    int len;
+    // 引数
+    // Variable *parameters;
+
+    FunctionDeclaration *next;
 };
 
 struct Program {
