@@ -109,14 +109,6 @@ void gen(Node *node) {
                 for (size_t i = 0; i < count; i++) {
                     printf("  pop %s\n", registers[count - i - 1]);
                 }
-            } else {
-                // デバッグ用: 引数なしのprintf()に固定の文字列を渡す
-                // スタックポインタのアラインなしだとクラッシュする場合があるのでその確認
-                if (memcmp(node->name, "printf", strlen("printf")) == 0) {
-                    count = 2;
-                    printf("  mov rdi, QWORD PTR debug_moji[rip]\n");
-                    printf("  mov rsi, 2\n");
-                }
             }
             static bool doAlign = true;
             // RSPはpushやpopで64bit(=8bytes)ずつ動く

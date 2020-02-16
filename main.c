@@ -12,8 +12,10 @@ int main(int argc, char **argv) {
 
     printf(".intel_syntax noprefix\n");
     {
-        printf("\n");
-        printf(".data\n");
+        if (prog->globals) {
+            printf("\n");
+            printf(".data\n");
+        }
         for (Global *global = prog->globals; global; global = global->next) {
             // ラベル
             printf("%.*s:\n", global->label_length, global->label);

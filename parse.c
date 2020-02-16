@@ -36,9 +36,6 @@ struct Global_C {
 struct Global_C *globals;
 
 void add_globals(Global *next) {
-    if (!globals) {
-        globals = calloc(1, sizeof(struct Global_C));
-    }
     if (!globals->head) {
         globals->head = next;
         globals->tail = next;
@@ -282,6 +279,7 @@ Node *with_index(Node *left);
 
 struct Program *program(Token *t) {
     token = t;
+    globals = calloc(1, sizeof(struct Global_C));
 
     // 関数
     Function head_f;
@@ -300,24 +298,24 @@ struct Program *program(Token *t) {
     }
 
     {
-        char *const label = new_label();
-        // デバッグ用のグローバル変数
-        Global *g = calloc(1, sizeof(Global));
-        g->label = "debug_moji"; // 変数名
-        g->label_length = (int) strlen(g->label);
-        g->directive = _quad;
-        g->target = calloc(1, sizeof(directive_target));
-        g->target->label = label;
-        g->target->label_length = (int) strlen(g->target->label);
-        add_globals(g);
-        g = calloc(1, sizeof(Global));
-        g->label = label;
-        g->label_length = (int) strlen(g->label);
-        g->directive = _string;
-        g->target = calloc(1, sizeof(directive_target));
-        g->target->literal = "moji: %i\\n"; // リテラル
-        g->target->literal_length = (int) strlen(g->target->literal);
-        add_globals(g);
+//        char *const label = new_label();
+//        // デバッグ用のグローバル変数
+//        Global *g = calloc(1, sizeof(Global));
+//        g->label = "debug_moji"; // 変数名
+//        g->label_length = (int) strlen(g->label);
+//        g->directive = _quad;
+//        g->target = calloc(1, sizeof(directive_target));
+//        g->target->label = label;
+//        g->target->label_length = (int) strlen(g->target->label);
+//        add_globals(g);
+//        g = calloc(1, sizeof(Global));
+//        g->label = label;
+//        g->label_length = (int) strlen(g->label);
+//        g->directive = _string;
+//        g->target = calloc(1, sizeof(directive_target));
+//        g->target->literal = "moji: %i\\n"; // リテラル
+//        g->target->literal_length = (int) strlen(g->target->literal);
+//        add_globals(g);
     }
     while (!at_eof()) {
         Type *base = consume_base_type();

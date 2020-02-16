@@ -46,9 +46,6 @@ assert() {
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
-#try 13 'printf(); return 13;'
-#exit 0
-
 #assert 8 "$(
 #  cat <<END
 #int main() {
@@ -579,8 +576,8 @@ assert 13 'int salut() { int a; int b; a = 1; b = 12; return 13; } int main() { 
 assert 13 'int salut() { return 13; } int main() { return salut(); } '
 assert 13 'int main() { return bar(13); }'
 
-try 13 'printf(); return 13;'
-try 13 'int a; a = 13;  printf(); return a;'
+try 13 'printf("moji: %i", 13); return 13;'
+try 13 'int a; a = 13;  printf("moji: %i", 13); return a;'
 # exit 0
 
 try 12 'int b; b = 1; int a; a = foo() + b; return a;'
