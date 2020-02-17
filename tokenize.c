@@ -112,6 +112,7 @@ int reserved(const char *p) {
             "for",
             "int",
             "char",
+            "void",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];

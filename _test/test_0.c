@@ -1,7 +1,7 @@
 
 int printf();
 
-int exit();
+void exit();
 
 int alloc_array_4();
 
@@ -15,7 +15,7 @@ int bar();
 
 int count;
 
-int assert(int expected, int actual, char *name) {
+void assert(int expected, int actual, char *name) {
     count = count + 1;
     printf("%d: %s\n", count, name);
     if (expected != actual) {

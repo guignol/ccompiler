@@ -10,6 +10,7 @@ assert2() {
   ./build/ccompiler "--file" "$(pwd)/_test/test_0.c" >tmp.s
   gcc -static -o tmp tmp.s build/libfoo.a
   ./tmp
+  return "$?"
 }
 
 assert() {
@@ -58,6 +59,9 @@ assert() {
 /usr/bin/cmake --build ./build --target foo -- -j 4
 
 assert2
+if [ $? != 0 ]; then
+    exit 1
+fi
 
 #assert 8 "$(
 #  cat <<END

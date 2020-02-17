@@ -123,6 +123,8 @@ Type *consume_base_type() {
         return shared_int_type();
     } else if (consume("char")) {
         return shared_char_type();
+    } else if (consume("void")) {
+        return shared_char_type();
     } else {
         return NULL;
     }
@@ -259,6 +261,7 @@ Node *new_node_variable_global(char *str, int len) {
 Node *new_node_dereference(Node *operand) {
     Type *type = find_type(operand);
     switch (type->ty) {
+        case TYPE_VOID:
         case TYPE_CHAR:
         case TYPE_INT:
             return NULL;
@@ -806,10 +809,16 @@ void assert_indexable(Node *left, Node *right) {
     Type *left_type = find_type(left);
     Type *right_type = find_type(right);
     switch (left_type->ty) {
+        case TYPE_VOID:
+            error("voidで[]は使えません？\n");
+            exit(1);
         case TYPE_CHAR:
         case TYPE_INT: {
             // 左がint
             switch (right_type->ty) {
+                case TYPE_VOID:
+                    error("voidで[]は使えません？\n");
+                    exit(1);
                 case TYPE_CHAR:
                 case TYPE_INT:
                     error("整数間で[]は使えません？\n");
@@ -824,6 +833,9 @@ void assert_indexable(Node *left, Node *right) {
         case TYPE_ARRAY: {
             // 左が配列orポインタ
             switch (right_type->ty) {
+                case TYPE_VOID:
+                    error("voidで[]は使えません？\n");
+                    exit(1);
                 case TYPE_CHAR:
                 case TYPE_INT:
                     break;

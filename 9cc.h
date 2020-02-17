@@ -116,6 +116,7 @@ struct Node {
 
 struct Type {
     enum {
+        TYPE_VOID,
         TYPE_CHAR, // 1byte
         TYPE_INT, // 4byte
         TYPE_POINTER, // 8byte
@@ -147,8 +148,6 @@ Type *shared_int_type();
 Type *create_pointer_type(Type *point_to);
 
 Type *create_array_type(Type *element_type, int array_size);
-
-bool are_same_type(Type *left, Type *right);
 
 Assignable are_assignable_type(Type *left, Type *right);
 

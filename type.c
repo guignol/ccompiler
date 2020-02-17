@@ -1,5 +1,15 @@
 #include "9cc.h"
 
+Type *shared_void_type() {
+    static Type *void_type;
+    if (!void_type) {
+        void_type = calloc(1, sizeof(Type));
+        void_type->ty = TYPE_VOID;
+        void_type->point_to = NULL;
+    }
+    return void_type;
+}
+
 Type *shared_char_type() {
     static Type *char_type;
     if (!char_type) {
@@ -73,6 +83,8 @@ bool are_same_type(Type *left, Type *right) {
         return false;
     }
     switch (left->ty) {
+        case TYPE_VOID:
+            return false;
         case TYPE_CHAR:
         case TYPE_INT:
             return true;
@@ -165,12 +177,13 @@ Type *find_type(const Node *node) {
                     case TYPE_CHAR:
                     case TYPE_INT:
                         return left;
+                    case TYPE_VOID:
                     case TYPE_POINTER:
                     case TYPE_ARRAY: {
                         if (are_same_type(left, right)) {
                             return left;
                         }
-                        error("異なるポインター型の演算はできません？\n");
+                        error("異なるポインター型またはvoidに対する演算はできません？\n");
                         exit(1);
                     }
                 }
@@ -182,6 +195,8 @@ Type *find_type(const Node *node) {
                     case TYPE_POINTER:
                     case TYPE_ARRAY:
                         return left;
+                    case TYPE_VOID:
+                        error("voidに対する演算はできません？\n");
                 }
             }
             case ND_VARIABLE:
@@ -202,6 +217,7 @@ Type *find_type(const Node *node) {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
                 Type *type = find_type(node->lhs);
                 switch (type->ty) {
+                    case TYPE_VOID:
                     case TYPE_CHAR:
                     case TYPE_INT:
                         error("ポインタ型ではありません\n");
@@ -238,6 +254,9 @@ int get_weight(Node *node) {
         exit(1);
     }
     switch (type->ty) {
+        case TYPE_VOID:
+            error("voidで計算？\n");
+            exit(1);
         case TYPE_CHAR:
         case TYPE_INT:
             return 1;
@@ -255,6 +274,8 @@ int get_size(Type *type) {
         exit(1);
     }
     switch (type->ty) {
+        case TYPE_VOID:
+            error("voidのサイズ？\n");
         case TYPE_CHAR:
             return sizeof(char); // 1
         case TYPE_INT:
@@ -276,6 +297,8 @@ char *base_type_name() {
         type = type->point_to;
     }
     switch (type->ty) {
+        case TYPE_VOID:
+            return "void";
         case TYPE_CHAR:
             return "char";
         case TYPE_INT:
