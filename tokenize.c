@@ -3,7 +3,7 @@
 // 入力プログラム
 char *user_input;
 
-int error_with_front_space(const char *message) {
+int count_front_space(const char *message) {
     int space = 0;
     for (int i = 0; i < strlen(message); ++i) {
         if (isspace(message[i])) {
@@ -12,9 +12,23 @@ int error_with_front_space(const char *message) {
             break;
         }
     }
-    fprintf(stderr, "%*s", space * 4, ""); // pos個の空白を出力
-    fprintf(stderr, "%s\n", message + space);
     return space;
+}
+
+// https://teratail.com/questions/63029#reply-99839
+int number_of_digit(int n) {
+//    assert(INT_MAX == 2147483647);
+//    assert(n >= 0);
+    if (n < 10) return 1;
+    if (n < 100) return 2;
+    if (n < 1000) return 3;
+    if (n < 10000) return 4;
+    if (n < 100000) return 5;
+    if (n < 1000000) return 6;
+    if (n < 10000000) return 7;
+    if (n < 100000000) return 8;
+    if (n < 1000000000) return 9;
+    return 10;
 }
 
 // エラー箇所を報告する
@@ -22,18 +36,36 @@ void error_at(const char *loc, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 
+    fprintf(stderr, "\n");
     char *head = user_input;
     char *tail = strtok(user_input, "\n");
+    int line_number = -1;
     while (tail) {
+        line_number++;
         if (loc < tail) {
-            int pos = (int) (loc - head);
-            int front_space = error_with_front_space(head);
-            fprintf(stderr, "%*s", front_space * 4, "");
+//            line_number = 99;
+            const int pos = (int) (loc - head);
+            const int front_space = count_front_space(head);
+            const int line_number_offset = number_of_digit(line_number) + 2;
+
+            fprintf(stderr, "%i:", line_number);
+            fprintf(stderr, " ");
+            fprintf(stderr, "%s\n", head);
+
+            fprintf(stderr, "%*s", line_number_offset, "");
+            // タブはタブのまま出力しておく
+            fprintf(stderr, "%.*s", front_space, head);
             fprintf(stderr, "%*s", pos - front_space, "");
             fprintf(stderr, "^ ");
             vfprintf(stderr, fmt, ap);
             fprintf(stderr, "\n");
-            error_with_front_space(tail);
+
+            fprintf(stderr, "%i:", line_number + 1);
+            // 桁数が増えたらスペースを追記しない
+            if (line_number_offset -2 == number_of_digit(line_number + 1)) {
+                fprintf(stderr, " ");
+            }
+            fprintf(stderr, "%s\n", tail);
             return;
         }
         head = tail;
