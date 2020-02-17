@@ -2,3 +2,4 @@ tmp
 tmp.s
 *.o
 /build/
+/_test/debug.c

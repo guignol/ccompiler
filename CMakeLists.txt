@@ -18,6 +18,12 @@ add_library(foo STATIC
         _test/foo.c
         )
 
+# TODO IDEに認識させるため
+add_executable(test_0
+        _test/test_0.c
+        _test/debug.c
+)
+
 #enable_testing()
 #
 #find_program(WSL_SHELL bash)

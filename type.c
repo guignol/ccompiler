@@ -211,6 +211,18 @@ Type *find_type(const Node *node) {
                         return type->point_to;
                 }
             }
+            case ND_BLOCK: {
+                Node *last;
+                for (last = node->statement;;) {
+                    if (last->statement) {
+                        last = last->statement;
+                    } else {
+                        break;
+                    }
+                }
+                Type *type = find_type(last);
+                return type;
+            }
             default: {
                 error("値を返さないはずです？\n");
                 exit(1);

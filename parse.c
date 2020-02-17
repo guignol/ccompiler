@@ -15,9 +15,6 @@ struct Declaration_C {
 struct Declaration_C *declarations;
 
 void add_function_declaration(Declaration *next) {
-    if (!declarations) {
-        declarations = calloc(1, sizeof(struct Declaration_C));
-    }
     if (!declarations->head) {
         declarations->head = next;
         declarations->tail = next;
@@ -70,6 +67,7 @@ void add_globals(Global *next) {
 //				| primary ( "(" index ")" )? index*
 //				| ident "(" args ")"
 // 				| "(" expr ")"
+// 				| "({" stmt "})"
 // index      = "[" primary "]"
 // args       = (expr ("," expr)* )?
 // decl_a     = ("int" | "char") "*"* (pointed_id | ident)
@@ -280,6 +278,7 @@ Node *with_index(Node *left);
 struct Program *program(Token *t) {
     token = t;
     globals = calloc(1, sizeof(struct Global_C));
+    declarations = calloc(1, sizeof(struct Declaration_C));
 
     // 関数
     Function head_f;
@@ -287,14 +286,14 @@ struct Program *program(Token *t) {
     Function *tail_f = &head_f;
     {
         // デバッグ用の関数定義
-        static char *foo[] = {"hoge", "bar", "foo", "alloc_array_4", "printf"};
-        for (int i = 0; i < sizeof(foo) / sizeof(*foo); ++i) {
-            Declaration *d = calloc(1, sizeof(Declaration));
-            d->return_type = shared_int_type();
-            d->name = foo[i];
-            d->len = (int) strlen(d->name);
-            add_function_declaration(d);
-        }
+//        static char *foo[] = { "bar"};
+//        for (int i = 0; i < sizeof(foo) / sizeof(*foo); ++i) {
+//            Declaration *d = calloc(1, sizeof(Declaration));
+//            d->return_type = shared_int_type();
+//            d->name = foo[i];
+//            d->len = (int) strlen(d->name);
+//            add_function_declaration(d);
+//        }
     }
 
     {
@@ -341,6 +340,17 @@ struct Program *program(Token *t) {
                 error_at(pointer, "関数の入出力にポインタはまだ使えません");
                 exit(1);
             }
+            // TODO 関数宣言（テストを動かすための仮実装）
+            Token *test = token;
+            if (consume(")") && consume(";")) {
+                Declaration *d = calloc(1, sizeof(Declaration));
+                d->return_type = base;
+                d->name = identifier->str;
+                d->len = identifier->len;
+                add_function_declaration(d);
+                continue;
+            }
+            token = test;
             // 関数
             tail_f = tail_f->next = function(identifier, base);
         } else {
@@ -384,9 +394,11 @@ Function *function(Token *function_name, Type *returnType) {
         int i = 0;
         Type *param_type;
         while ((param_type = consume_base_type())) {
+            // TODO
             if (consume("*")) {
-                error_at(token->str, "関数の入出力にポインタはまだ使えません");
-                exit(1);
+                param_type = create_pointer_type(param_type);
+//                error_at(token->str, "関数の入出力にポインタはまだ使えません");
+//                exit(1);
             }
             Token *t = consume_ident();
             if (t) {
@@ -436,7 +448,19 @@ Function *function(Token *function_name, Type *returnType) {
     return function;
 }
 
-Node *stmt() {
+Node *block_statement(void) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_BLOCK;
+    Node *last = node;
+    while (!consume("}")) {
+        Node *next = stmt();
+        last->statement = next;
+        last = next;
+    }
+    return node;
+}
+
+Node *stmt(void) {
     Node *node;
     Type *base = consume_base_type();
     if (base) {
@@ -497,15 +521,7 @@ Node *stmt() {
         register_variable(t->str, t->len, type);
         node = new_node(ND_NOTHING, NULL, NULL);
     } else if (consume("{")) {
-        node = calloc(1, sizeof(Node));
-        node->kind = ND_BLOCK;
-        Node *last = node;
-        while (!consume("}")) {
-            Node *next = stmt();
-            last->statement = next;
-            last = next;
-        }
-        return node;
+        return block_statement();
     } else if (consume("if")) {
         node = calloc(1, sizeof(Node));
         node->kind = ND_IF;
@@ -754,8 +770,27 @@ Node *primary() {
         return node;
     }
 
-    // 次のトークンが"("なら、"(" expr ")" または (a[0])[1], (*b)[1]
+    // 次のトークンが"("なら、"(" expr ")" または "({" stmt "})" または (a[0])[1], (*b)[1]
     if (consume("(")) {
+        if (consume("{")) {
+            Node *node = block_statement();
+            Node *last;
+            Node *last_before = node;
+            for (last = node->statement;;) {
+                if (last->statement) {
+                    last_before = last;
+                    last = last->statement;
+                } else {
+                    break;
+                }
+            }
+            if (last->kind == ND_EXPR_STMT) {
+                // 式文扱いを取り消して、値がスタックに積まれるようにする
+                last_before->statement = last->lhs;
+            }
+            expect(")");
+            return node;
+        }
         Node *node = expr();
         expect(")");
         return with_index(node);

@@ -4,8 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
-void error(char *message);
+void error(const char *fmt, ...);
 
 void error_at(const char *loc, const char *fmt, ...);
 
