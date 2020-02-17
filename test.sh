@@ -1,5 +1,7 @@
 #!/bin/bash
 
+COUNT=$#
+
 try() {
   assert "$1" "int main() { $2 }"
 }
@@ -10,8 +12,11 @@ assert() {
 
   ./build/ccompiler "$input" >tmp.s
   gcc -o tmp tmp.s build/libfoo.a -no-pie
-  ./tmp >/dev/null
-#  ./tmp
+  if [ "$COUNT" == 0 ]; then
+    ./tmp >/dev/null
+  else
+    ./tmp
+  fi
   actual="$?"
 
   printf "▓"
@@ -29,7 +34,7 @@ assert() {
 # mov [rbp-8], raxは足りない分がゼロクリアされる
 # mov DWORD PTR [rbp-4], 5で即値を32bit枠に入れられる
 # TODO アセンブリのビルドと実行と確認
-# $ gcc -o tmp tmp.s; ./tmp; echo $?
+# $ gcc -o tmp tmp.s -no-pie; ./tmp; echo $?
 # TODO gdb入門
 # $ gdb ./tmp
 # (gdb) display /4i $pc
@@ -53,11 +58,20 @@ assert() {
 #END
 #)"
 
+assert 9 "$(
+  cat <<END
+int main() {
+  printf("日本語ですね\n");
+  return 9;
+}
+END
+)"
+
 assert 3 "$(
   cat <<END
 int main() {
   char *moji;
-  moji = "moji-desu-ne";
+  moji = "moji\ndesu\nne\n";
   printf(moji);
   return 3;
 }
