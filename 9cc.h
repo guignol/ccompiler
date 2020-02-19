@@ -213,7 +213,7 @@ struct Program {
     Global *globals;
 };
 
-struct Program *program(Token *tok);
+struct Program *parse(Token *tok);
 
 void generate(struct Program *program);
 

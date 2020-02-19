@@ -294,8 +294,8 @@ Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
 
-struct Program *program(Token *t) {
-    token = t;
+struct Program *parse(Token *tok) {
+    token = tok;
     globals = calloc(1, sizeof(struct Global_C));
     declarations = calloc(1, sizeof(struct Declaration_C));
 
@@ -399,47 +399,51 @@ Global *global_var(Token *variable_name, Type *type) {
     return g;
 }
 
+void function_args() {
+    /*
+     * int function_name(
+     *                   ↑ここから
+     */
+    int i = 0;
+    Type *param_type;
+    while ((param_type = consume_base_type())) {
+        if (param_type->ty == TYPE_VOID) {
+            error_at(token->str, "引数にvoidは使えません");
+            exit(1);
+        }
+        // TODO
+        if (consume("*")) {
+            param_type = create_pointer_type(param_type);
+//                error_at(token->str, "関数の入出力にポインタはまだ使えません");
+//                exit(1);
+        }
+        Token *t = consume_ident();
+        if (t) {
+            if (find_local_variable(current_scope, t->str, t->len)) {
+                error_at(t->str, "引数名が重複しています");
+                exit(1);
+            }
+        } else {
+            error_at(token->str, "引数名がありません");
+            exit(1);
+        }
+
+        Variable *param = register_variable(t->str, t->len, param_type);
+        param->index = i++;
+        if (!consume(","))
+            break;
+    }
+
+    expect(")");
+}
+
 Function *function(Token *function_name, Type *returnType) {
     // 関数スコープ
     current_scope = calloc(1, sizeof(Scope));
     current_scope->variables = NULL;
     current_scope->parent = NULL;
-    {
-        /*
-         * int function_name(
-         *                   ↑ここから
-         */
-        int i = 0;
-        Type *param_type;
-        while ((param_type = consume_base_type())) {
-            if (param_type->ty == TYPE_VOID) {
-                error_at(token->str, "引数にvoidは使えません");
-                exit(1);
-            }
-            // TODO
-            if (consume("*")) {
-                param_type = create_pointer_type(param_type);
-//                error_at(token->str, "関数の入出力にポインタはまだ使えません");
-//                exit(1);
-            }
-            Token *t = consume_ident();
-            if (t) {
-                if (find_local_variable(current_scope, t->str, t->len)) {
-                    error_at(t->str, "引数名が重複しています");
-                    exit(1);
-                }
-            } else {
-                error_at(token->str, "引数名がありません");
-                exit(1);
-            }
 
-            Variable *param = register_variable(t->str, t->len, param_type);
-            param->index = i++;
-            if (!consume(","))
-                break;
-        }
-    }
-    expect(")");
+    function_args();
 
     // 再帰呼び出しでの定義チェックがあるため、先に関数定義として追加
     Declaration *d = calloc(1, sizeof(Declaration));

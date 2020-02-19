@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
     }
 
     Token *token = tokenize(input);
-    struct Program *prog = program(token);
+    struct Program *prog = parse(token);
     generate(prog);
 
     return 0;
