@@ -435,7 +435,10 @@ int sizeof_6() {
 
 // 4
 int sizeof_7() {
-    // sizeofの結果は現在int型なのでsizeof(int)と同じ
+    // このコンパイラでは
+    // sizeofの結果はint型なのでsizeof(int)と同じ
+    // 実際のCでは
+    // sizeofの結果はsize_t型（8バイト）になる
     return sizeof(sizeof(1));
 }
 
@@ -914,11 +917,11 @@ int main() {
     assert(8, sizeof_4(), "sizeof_4");
     assert(4, sizeof_5(), "sizeof_5");
     assert(4, sizeof_6(), "sizeof_6");
-    assert(4, sizeof_7(), "sizeof_7");
+    assert(4, sizeof_7(), "sizeof_7"); // ★
 
     assert(3, pointer_and_calculate_1(), "pointer_and_calculate_1");
     assert(2, pointer_and_calculate_2(), "pointer_and_calculate_2");
-    assert(3, pointer_and_calculate_3(), "pointer_and_calculate_3");
+    assert(3, pointer_and_calculate_3(), "pointer_and_calculate_3"); // ★
     assert(4, pointer_and_calculate_4(), "pointer_and_calculate_4");
     assert(3, pointer_and_calculate_5(), "pointer_and_calculate_5");
 

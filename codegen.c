@@ -276,29 +276,11 @@ void gen(Node *node) {
             return;
         case ND_DEREF:
         case ND_INDEX:
-            /*
-                int var = 3;
-                int *p = &var;
-                &p; // => 3
-             */
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
-            load(node);
+            load(node); // それをロードする
             return;
         case ND_DEREF_ARRAY_POINTER:
-            /*
-             * int (*b)[2];
-             * (*b)[1] = 1;
-             *   ↑
-             */
-            gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
-            return;
         case ND_INDEX_CONTINUE:
-            /*
-             * int a[2][3];
-             * a[1][2] = 1;
-             *   ↑
-             *   here
-             */
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             return;
         case ND_ADD:
@@ -380,6 +362,48 @@ void gen(Node *node) {
     printf("  push rax\n");
 }
 
+void arguments_to_stack(Variable *param) {
+    // 関数の引数
+    printf("  lea rax, [rbp - %d]\n", param->offset);
+    int len = param->len;
+    char *name = param->name;
+    switch (param->type->ty) {
+        case TYPE_CHAR: {
+            char *const reg = registers_8[param->index];
+            printf("  mov BYTE PTR [rax], %s  # parameter [%.*s]\n", reg, len, name);
+            break;
+        }
+        case TYPE_INT: {
+            char *const reg = registers_32[param->index];
+            printf("  mov DWORD PTR [rax], %s  # parameter [%.*s]\n", reg, len, name);
+            break;
+        }
+        default: {
+            char *const reg = registers[param->index];
+            printf("  mov [rax], %s  # parameter [%.*s]\n", reg, len, name);
+            break;
+        }
+    }
+}
+
+void prepare_stack(int stack_size, Variable *const parameters) {
+    if (stack_size) {
+        while (stack_size % 16 != 0) {
+            stack_size += 1;
+        }
+        // スタックに領域を確保
+        printf("  sub rsp, %i  # stack size\n", stack_size);
+
+        int count = 0;
+        for (Variable *param = parameters; param; param = param->next) {
+            // レジスタで受け取った引数の値をスタックに積む
+            arguments_to_stack(param);
+            count++;
+        }
+        printf("  # %i %s\n", count, "arguments prepared");
+    }
+}
+
 void generate_function(Function *func) {
     function_name = func->name;
     printf(".global %s\n", function_name);
@@ -388,48 +412,7 @@ void generate_function(Function *func) {
     // プロローグ
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    int stack_size = func->stack_size;
-    if (stack_size) {
-        while (stack_size % 16 != 0) {
-            stack_size += 1;
-        }
-        printf("  sub rsp, %i  # stack size\n", stack_size);
-
-        int count = 0;
-        for (Variable *param = func->parameters; param; param = param->next) {
-            // 関数の引数
-            if (0 <= param->index) {
-                printf("  lea rax, [rbp - %d]\n", param->offset);
-                // レジスタで受け取った引数の値をスタックに積む
-                switch (param->type->ty) {
-                    case TYPE_CHAR:
-                        printf("  mov BYTE PTR [rax], %s  # parameter [%.*s]\n",
-                               registers_8[param->index],
-                               param->len,
-                               param->name
-                        );
-                        break;
-                    case TYPE_INT:
-                        printf("  mov DWORD PTR [rax], %s  # parameter [%.*s]\n",
-                               registers_32[param->index],
-                               param->len,
-                               param->name
-                        );
-                        break;
-                    default:
-                        printf("  mov [rax], %s  # parameter [%.*s]\n",
-                               registers[param->index],
-                               param->len,
-                               param->name
-                        );
-                        break;
-                }
-
-                count++;
-            }
-        }
-        printf("  # %i %s\n", count, "arguments prepared");
-    }
+    prepare_stack(func->stack_size, func->parameters);
 
     for (size_t i = 0; i < 100; i++) {
         Node *node = func->body[i];
