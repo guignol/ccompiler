@@ -53,6 +53,29 @@ int scoped_1() {
 
 /////////////////////////////////////////////////
 
+char *moji_direct_return() {
+    return "文字を返す関数\n";
+}
+
+int string_return() {
+    printf(moji_direct_return());
+    return 8;
+}
+
+/////////////////////////////////////////////////
+
+char *moji_global;
+
+void init_global() {
+    moji_global = "moji_global";
+}
+
+int string_global() {
+    init_global();
+    printf(moji_global);
+    return 4;
+}
+
 int string_literal_japanese() {
     printf("日本語ですね\n");
     return 9;
@@ -795,6 +818,10 @@ int main() {
 //    assert(9, for_init_scope_1(), "scope_for_1");
     assert(1, scoped_1(), "scoped_1");
 
+    // TODO ポインタを返す関数のテストを追加
+    assert(8, string_return(), "string_return");
+
+    assert(4, string_global(), "string_global");
     assert(9, string_literal_japanese(), "string_literal_japanese");
     assert(3, string_literal_ascii(), "string_literal_ascii");
     assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");

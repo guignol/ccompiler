@@ -380,7 +380,7 @@ void gen(Node *node) {
     printf("  push rax\n");
 }
 
-void generate(Function *func) {
+void generate_function(Function *func) {
     function_name = func->name;
     printf(".global %s\n", function_name);
     printf("%s:\n", function_name);
@@ -449,6 +449,40 @@ void generate(Function *func) {
 
     function_name = NULL;
 
-    if (func->next)
-        generate(func->next);
+    if (func->next) generate_function(func->next);
+}
+
+void generate_global(Global *globals) {
+    for (Global *global = globals; global; global = global->next) {
+        // ラベル
+        printf("%.*s:\n", global->label_length, global->label);
+        directive_target *target = global->target;
+        switch (global->directive) {
+            case _zero:
+                printf("  .zero %d\n", target->value);
+                break;
+            case _long:
+                printf("  .long %d\n", target->value);
+                break;
+            case _quad:
+                printf("  .quad %.*s\n", target->label_length, target->label);
+                break;
+            case _string: {
+                printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
+                break;
+            }
+        }
+    }
+}
+
+void generate(struct Program *program) {
+    printf(".intel_syntax noprefix\n");
+    if (program->globals) {
+        printf("\n");
+        printf(".data\n");
+        generate_global(program->globals);
+    }
+    printf("\n");
+    printf(".text\n");
+    generate_function(program->functions);
 }

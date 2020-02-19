@@ -186,7 +186,7 @@ typedef struct Global Global;
 struct Function {
     // 関数名
     char *name;
-    // ローカル変数および引数
+    // 引数
     Variable *locals;
     // スタックのサイズ
     int stack_size;
@@ -215,7 +215,7 @@ struct Program {
 
 struct Program *program(Token *tok);
 
-void generate(Function *func);
+void generate(struct Program *program);
 
 /////////////////////////////////////////////////
 

@@ -45,37 +45,7 @@ int main(int argc, char **argv) {
 
     Token *token = tokenize(input);
     struct Program *prog = program(token);
-
-    printf(".intel_syntax noprefix\n");
-    {
-        if (prog->globals) {
-            printf("\n");
-            printf(".data\n");
-        }
-        for (Global *global = prog->globals; global; global = global->next) {
-            // ラベル
-            printf("%.*s:\n", global->label_length, global->label);
-            directive_target *target = global->target;
-            switch (global->directive) {
-                case _zero:
-                    printf("  .zero %d\n", target->value);
-                    break;
-                case _long:
-                    printf("  .long %d\n", target->value);
-                    break;
-                case _quad:
-                    printf("  .quad %.*s\n", target->label_length, target->label);
-                    break;
-                case _string: {
-                    printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
-                    break;
-                }
-            }
-        }
-    }
-    printf("\n");
-    printf(".text\n");
-    generate(prog->functions);
+    generate(prog);
 
     return 0;
 }

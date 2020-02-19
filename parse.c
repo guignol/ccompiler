@@ -341,8 +341,10 @@ struct Program *program(Token *t) {
             error_at(token->str, "関数の型が正しく定義されていません");
             exit(1);
         }
-        // TODO グローバル変数で、まずポインタ1つまで
-        char *pointer = consume("*");
+        // TODO まずポインタ1つまで
+        Type *const type = consume("*")
+                           ? create_pointer_type(base)
+                           : base;
         Token *identifier = consume_ident();
         if (!identifier) {
             error_at(token->str, "関数名または変数名がありません");
@@ -355,10 +357,6 @@ struct Program *program(Token *t) {
             exit(1);
         }
         if (consume("(")) {
-            if (pointer) {
-                error_at(pointer, "関数の入出力にポインタはまだ使えません");
-                exit(1);
-            }
             // TODO 関数宣言（テストを動かすための仮実装）
             Token *test = token;
             if (consume(")") && consume(";")) {
@@ -371,12 +369,9 @@ struct Program *program(Token *t) {
             }
             token = test;
             // 関数
-            tail_f = tail_f->next = function(identifier, base);
+            tail_f = tail_f->next = function(identifier, type);
         } else {
             // グローバル変数
-            Type *const type = pointer
-                               ? create_pointer_type(base)
-                               : base;
             Global *const g = global_var(identifier, type);
             add_globals(g);
         }
