@@ -93,26 +93,6 @@ fi
 #END
 #)"
 
-try 99 'int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; return 99;'
-try 10 'int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;'
-try 10 'int a; a = 0; while (a < 10) a = a + 1; return a;'
-
-try 37 'int a; int b; a = 1983; b = 2020; if ((b - a) == 37) return 37; else return 36;'
-try 12 'int a; a = 13; if (a == 0) return 3; else return 12;'
-try 12 'if (0) return 3; else return 12;'
-
-try 25 'int a_3; int _loc; a_3 = 12; _loc = 3; return a_3 * _loc - 11;'
-try 25 'int a_3; int _loc; a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;'
-
-try 5 'int aaa; aaa = 3; aaa + 2;'
-try 5 'int b29; int aaa; aaa = 3; b29 = 2; b29 + aaa;'
-try 5 'int O0; O0 = 3; O0 = 2; O0 + 3;'
-
-try 5 'int a; a = 3; a + 2;'
-try 3 'int a; a = 3; a;'
-try 3 'return 3;'
-try 5 'int a; int z; a = 3; z = 2; return a + z;'
-
 try 0 "return 0;"
 try "42" "return 42;"
 try 42 "40+2;"

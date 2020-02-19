@@ -11,8 +11,6 @@ int hoge();
 
 int bar();
 
-/////////////////////////////////////////////////
-
 int count;
 
 void assert(int expected, int actual, char *name) {
@@ -23,6 +21,37 @@ void assert(int expected, int actual, char *name) {
         exit(1);
     }
 }
+
+/////////////////////////////////////////////////
+
+//int scope_for_1() {
+//    int a;
+//    a = 1;
+//    for (int i; a < 10; a++) {
+//        i = 1;
+//        a = i + a;
+//    }
+//    return a;
+//}
+
+// 1
+int scoped_1() {
+    int a_0; // 4
+    int a_1; // 8
+    int a_2; // 12
+    int a_3; // 16
+    a_0 = 33;
+    {
+        int a_0;
+        a_0 = 5; // 20
+        if (a_0 == 5) {
+            return 1;
+        }
+    }
+    return a_0;
+}
+
+/////////////////////////////////////////////////
 
 int string_literal_japanese() {
     printf("日本語ですね\n");
@@ -444,17 +473,6 @@ int fibonacci(int n) {
     return fibonacci(n - 1) + fibonacci(n - 2);
 }
 
-// 1
-int fibonacci_1() {
-    int i;
-    for (i = 0; i < 10; i = i + 1) {
-        hoge(i, fibonacci(i));
-    }
-    return 1;
-}
-
-/////////////////////////////////////////////////
-
 int add_1(int a, int b) {
     hoge(a, b);
     return a + b;
@@ -486,6 +504,34 @@ int function_4() { return salut_2(); }
 
 // 13
 int function_5() { return bar(13); }
+
+// 37
+int function_6() {
+    int a;
+    int b;
+    a = 1983;
+    b = 2020;
+    if ((b - a) == 37) return 37; else return 36;
+}
+
+// 12
+int function_7() {
+    int a;
+    a = 13;
+    if (a == 0) return 3; else return 12;
+}
+
+// 12
+int function_8() { if (0) return 3; else return 12; }
+
+// 1
+int function_9() {
+    int i;
+    for (i = 0; i < 10; i = i + 1) {
+        hoge(i, fibonacci(i));
+    }
+    return 1;
+}
 
 /////////////////////////////////////////////////
 
@@ -604,6 +650,7 @@ int block_4() {
         int aa;
         int b;
         aa = 3;
+        printf("%d", aa);
         { b = 2; }
         return aa;
     }
@@ -674,30 +721,80 @@ int block_9() {
 /////////////////////////////////////////////////
 
 int assert_others() {
-    // TODO 変数のblockスコープが必要
-    assert(99, ({int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; 99;}),"");
-//    assert(10, ({int a; a = 0; int i; for (i = 0; i < 10; i = i + 1) a = a + 1; a;}),"");
-//    assert(10, ({int a; a = 0; while (a < 10) a = a + 1; a;}),"");
+    assert(99, ({
+        int a;
+        a = 0;
+        int i;
+        for (i = 0; i < 10; i = i + 1) a = a + 1;
+        99;
+    }), "");
+    assert(10, ({
+        int a;
+        a = 0;
+        int i;
+        for (i = 0; i < 10; i = i + 1) a = a + 1;
+        a;
+    }), "");
+    assert(10, ({
+        int a;
+        a = 0;
+        while (a < 10) a = a + 1;
+        a;
+    }), "");
 
-//    assert(37, ({int a; int b; a = 1983; b = 2020; if ((b - a) == 37) 37; else 36;}),"");
-//    assert(12, ({int a; a = 13; if (a == 0) 3; else 12;}),"");
-//    assert(12, ({if (0) 3; else 12;}),"");
+    assert(25, ({
+        int a_3;
+        int _loc;
+        a_3 = 12;
+        _loc = 3;
+        a_3 * _loc - 11;
+    }), "");
+    assert(5, ({
+        int aaa;
+        aaa = 3;
+        aaa + 2;
+    }), "");
+    assert(5, ({
+        int b29;
+        int aaa;
+        aaa = 3;
+        b29 = 2;
+        b29 + aaa;
+    }), "");
+    assert(5, ({
+        int O0;
+        O0 = 3;
+        O0 = 2;
+        O0 + 3;
+    }), "");
 
-    assert(25, ({int a_3; int _loc; a_3 = 12; _loc = 3; a_3 * _loc - 11;}),"");
-//    assert(25, ({int a_3; int _loc; a_3 = 12; _loc = 3; return a_3 * _loc - 11; 24;}),"");
-
-    assert(5, ({int aaa; aaa = 3; aaa + 2;}),"");
-//    assert(5, ({int b29; int aaa; aaa = 3; b29 = 2; b29 + aaa;}),"");
-    assert(5, ({int O0; O0 = 3; O0 = 2; O0 + 3;}),"");
-
-//    assert(5, ({int a; a = 3; a + 2;}),"");
-//    assert(3, ({int a; a = 3; a;}),"");
-//    assert(5, ({int a; int z; a = 3; z = 2; a + z;}),"");
+    assert(5, ({
+        int a;
+        a = 3;
+        a + 2;
+    }), "");
+    assert(3, ({
+        int a;
+        a = 3;
+        a;
+    }), "");
+    assert(5, ({
+        int a;
+        int z;
+        a = 3;
+        z = 2;
+        a + z;
+    }), "");
 }
 
 /////////////////////////////////////////////////
 
 int main() {
+
+    // TODO
+//    assert(9, for_init_scope_1(), "scope_for_1");
+    assert(1, scoped_1(), "scoped_1");
+
     assert(9, string_literal_japanese(), "string_literal_japanese");
     assert(3, string_literal_ascii(), "string_literal_ascii");
     assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");
@@ -745,13 +842,15 @@ int main() {
     assert(4, pointer_and_calculate_4(), "pointer_and_calculate_4");
     assert(3, pointer_and_calculate_5(), "pointer_and_calculate_5");
 
-    assert(1, fibonacci_1(), "fibonacci_1");
-
     assert(13, function_1(), "function_1");
     assert(13, function_2(), "function_2");
     assert(13, function_3(), "function_3");
     assert(13, function_4(), "function_4");
     assert(13, function_5(), "function_5");
+    assert(37, function_6(), "function_6");
+    assert(12, function_7(), "function_7");
+    assert(12, function_8(), "function_8");
+    assert(1, function_9(), "function_9");
 
     assert(13, function_10(), "function_10");
     assert(13, function_11(), "function_11");

@@ -2,8 +2,20 @@
 
 // 現在着目しているトークン
 Token *token;
-// ローカル変数
-Variable *locals;
+
+/////////////////////////
+
+int stack_size = 0;
+
+typedef struct Scope Scope;
+
+struct Scope {
+    Variable *variables;
+    Scope *parent;
+};
+
+// 現在のスコープ
+Scope *current_scope;
 
 /////////////////////////
 
@@ -124,7 +136,7 @@ Type *consume_base_type() {
     } else if (consume("char")) {
         return shared_char_type();
     } else if (consume("void")) {
-        return shared_char_type();
+        return shared_void_type();
     } else {
         return NULL;
     }
@@ -175,12 +187,16 @@ char *copy(char *str, int len) {
     return copied;
 }
 
-Variable *find_local_variable(char *name, int len) {
-    // 同名の変数は宣言できないので、型チェックはしない
-    for (Variable *var = locals; var; var = var->next)
-        if (var->len == len && !memcmp(name, var->name, var->len))
+Variable *find_local_variable(Scope *const scope, char *name, int len) {
+    if (!scope) {
+        return NULL;
+    }
+    for (Variable *var = scope->variables; var; var = var->next) {
+        if (var->len == len && !memcmp(name, var->name, var->len)) {
             return var;
-    return NULL;
+        }
+    }
+    return find_local_variable(scope->parent, name, len);
 }
 
 Global *find_global_variable(char *name, int len) {
@@ -202,10 +218,10 @@ Variable *register_variable(char *str, int len, Type *type) {
     variable->type = type;
     variable->name = str;
     variable->len = len;
-    variable->offset = (locals ? locals->offset : 0) + get_size(type);
+    variable->offset = stack_size = stack_size + get_size(type);
     variable->index = -1;
-    variable->next = locals;
-    locals = variable;
+    variable->next = current_scope->variables;
+    current_scope->variables = variable;
     return variable;
 }
 
@@ -227,7 +243,7 @@ Node *new_node_num(int val) {
 }
 
 Node *new_node_variable(char *str, int len) {
-    Variable *variable = find_local_variable(str, len);
+    Variable *variable = find_local_variable(current_scope, str, len);
     if (!variable) {
         // ローカル変数が無い場合はグローバル変数を探す
         return NULL;
@@ -389,6 +405,10 @@ Global *global_var(Token *variable_name, Type *type) {
 }
 
 Function *function(Token *function_name, Type *returnType) {
+    // 関数スコープ
+    current_scope = calloc(1, sizeof(Scope));
+    current_scope->variables = NULL;
+    current_scope->parent = NULL;
     {
         /*
          * int function_name(
@@ -397,6 +417,10 @@ Function *function(Token *function_name, Type *returnType) {
         int i = 0;
         Type *param_type;
         while ((param_type = consume_base_type())) {
+            if (param_type->ty == TYPE_VOID) {
+                error_at(token->str, "引数にvoidは使えません");
+                exit(1);
+            }
             // TODO
             if (consume("*")) {
                 param_type = create_pointer_type(param_type);
@@ -405,7 +429,7 @@ Function *function(Token *function_name, Type *returnType) {
             }
             Token *t = consume_ident();
             if (t) {
-                if (find_local_variable(t->str, t->len)) {
+                if (find_local_variable(current_scope, t->str, t->len)) {
                     error_at(t->str, "引数名が重複しています");
                     exit(1);
                 }
@@ -443,23 +467,37 @@ Function *function(Token *function_name, Type *returnType) {
 
     Function *function = calloc(1, sizeof(Function));
     function->name = copy(function_name->str, function_name->len);
-    function->locals = locals;
+    function->locals = current_scope->variables;
+    function->stack_size = stack_size;
     function->body = body;
 
-    locals = NULL;
+    current_scope = NULL;
+    stack_size = 0;
 
     return function;
 }
 
 Node *block_statement(void) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_BLOCK;
-    Node *last = node;
-    while (!consume("}")) {
-        Node *next = stmt();
-        last->statement = next;
-        last = next;
+    // 使い捨てるのでallocしない
+    Scope disposable;
+    // blockスコープ
+    disposable.variables = NULL;
+    disposable.parent = current_scope;
+    current_scope = &disposable;
+
+    Node *node;
+    {
+        node = calloc(1, sizeof(Node));
+        node->kind = ND_BLOCK;
+        Node *last = node;
+        while (!consume("}")) {
+            Node *next = stmt();
+            last->statement = next;
+            last = next;
+        }
     }
+
+    current_scope = disposable.parent;
     return node;
 }
 
@@ -467,6 +505,10 @@ Node *stmt(void) {
     Node *node;
     Type *base = consume_base_type();
     if (base) {
+        if (base->ty == TYPE_VOID) {
+            error_at(token->str, "変数にvoidは使えません");
+            exit(1);
+        }
         // ローカル変数の宣言
         bool backwards = consume("(");
         Type *type = backwards ? NULL : base;
@@ -479,11 +521,16 @@ Node *stmt(void) {
             error_at(token->str, "変数名がありません");
             exit(1);
         }
-        // 同名の変数は宣言できない
-        // グローバル変数との重複は可能
-        if (find_local_variable(t->str, t->len)) {
-            error_at(token->str, "変数名が重複しています");
-            exit(1);
+        {
+            // 同じスコープ内で同名の変数は宣言できない
+            // グローバル変数との重複は可能
+            Scope *parent = current_scope->parent;
+            current_scope->parent = NULL; // 現在のスコープのみ
+            if (find_local_variable(current_scope, t->str, t->len)) {
+                error_at(token->str, "変数名が重複しています");
+                exit(1);
+            }
+            current_scope->parent = parent;
         }
         Type *backwards_pointer = NULL;
         if (backwards) {
@@ -548,6 +595,7 @@ Node *stmt(void) {
         expect("(");
         // init
         if (!consume(";")) {
+            // TODO 変数宣言とそのスコープ、初期化
             node->lhs = new_node(ND_EXPR_STMT, expr(), NULL);
             expect(";");
         }

@@ -388,40 +388,36 @@ void generate(Function *func) {
     // プロローグ
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    Variable *locals = func->locals;
-    if (locals) {
-        int stack_size = locals->offset;
+    int stack_size = func->stack_size;
+    if (stack_size) {
         while (stack_size % 16 != 0) {
             stack_size += 1;
         }
         printf("  sub rsp, %i  # stack size\n", stack_size);
 
         int count = 0;
-        for (Variable *param = locals; param; param = param->next) {
+        for (Variable *param = func->locals; param; param = param->next) {
             // 関数の引数
             if (0 <= param->index) {
-                printf("  mov rax, rbp\n");
-                printf("  sub rax, %d\n", param->offset);
+                printf("  lea rax, [rbp - %d]\n", param->offset);
+                // レジスタで受け取った引数の値をスタックに積む
                 switch (param->type->ty) {
                     case TYPE_CHAR:
-                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
-                               "BYTE PTR ",
+                        printf("  mov BYTE PTR [rax], %s  # parameter [%.*s]\n",
                                registers_8[param->index],
                                param->len,
                                param->name
                         );
                         break;
                     case TYPE_INT:
-                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
-                               "DWORD PTR ",
+                        printf("  mov DWORD PTR [rax], %s  # parameter [%.*s]\n",
                                registers_32[param->index],
                                param->len,
                                param->name
                         );
                         break;
                     default:
-                        printf("  mov %s[rax], %s  # parameter [%.*s]\n",
-                               "",
+                        printf("  mov [rax], %s  # parameter [%.*s]\n",
                                registers[param->index],
                                param->len,
                                param->name

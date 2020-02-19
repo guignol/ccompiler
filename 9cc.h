@@ -63,7 +63,7 @@ typedef enum {
      *   ↑
      *   ここの話
      */
-            ND_DEREF_ARRAY_POINTER, // *a
+    ND_DEREF_ARRAY_POINTER, // *a
     ND_INDEX, // a[0][1]
     /*
      * 配列の配列の場合
@@ -79,7 +79,7 @@ typedef enum {
      * ただし、型チェックのためASTにはデリファレンスであることを示す必要がある
      *
      */
-            ND_INDEX_CONTINUE, // a[0][1]
+    ND_INDEX_CONTINUE, // a[0][1]
     ND_ASSIGN,      // =
     ND_NOTHING      // 変数宣言
 } NodeKind;
@@ -141,6 +141,8 @@ typedef enum {
     AS_INCOMPATIBLE,
 } Assignable;
 
+Type *shared_void_type();
+
 Type *shared_char_type();
 
 Type *shared_int_type();
@@ -186,6 +188,8 @@ struct Function {
     char *name;
     // ローカル変数および引数
     Variable *locals;
+    // スタックのサイズ
+    int stack_size;
     // 関数本体
     Node **body;
 
