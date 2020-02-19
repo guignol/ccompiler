@@ -14,10 +14,6 @@ add_executable(ccompiler
         type.c
         )
 
-add_library(foo STATIC
-        _test/foo.c
-        )
-
 # TODO IDEに認識させるため
 add_executable(test_0
         _test/test_0.c

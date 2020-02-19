@@ -19,11 +19,25 @@ Scope *current_scope;
 
 /////////////////////////
 
+typedef struct Declaration Declaration;
+
+struct Declaration {
+    // 返り値の型
+    Type *return_type;
+    // 関数名
+    char *name;
+    int len;
+    // 引数
+    // Variable *parameters;
+
+    Declaration *next;
+};
+
 struct Declaration_C {
     Declaration *head;
     Declaration *tail;
 };
-// 関数定義
+// 関数宣言
 struct Declaration_C *declarations;
 
 void add_function_declaration(Declaration *next) {
@@ -304,18 +318,6 @@ struct Program *parse(Token *tok) {
     head_f.next = NULL;
     Function *tail_f = &head_f;
     {
-        // デバッグ用の関数定義
-//        static char *foo[] = { "bar"};
-//        for (int i = 0; i < sizeof(foo) / sizeof(*foo); ++i) {
-//            Declaration *d = calloc(1, sizeof(Declaration));
-//            d->return_type = shared_int_type();
-//            d->name = foo[i];
-//            d->len = (int) strlen(d->name);
-//            add_function_declaration(d);
-//        }
-    }
-
-    {
 //        char *const label = new_label();
 //        // デバッグ用のグローバル変数
 //        Global *g = calloc(1, sizeof(Global));
@@ -358,7 +360,7 @@ struct Program *parse(Token *tok) {
         }
         if (consume("(")) {
             // TODO 関数宣言（テストを動かすための仮実装）
-            Token *test = token;
+            Token *saved = token;
             if (consume(")") && consume(";")) {
                 Declaration *d = calloc(1, sizeof(Declaration));
                 d->return_type = base;
@@ -367,7 +369,7 @@ struct Program *parse(Token *tok) {
                 add_function_declaration(d);
                 continue;
             }
-            token = test;
+            token = saved;
             // 関数
             tail_f = tail_f->next = function(identifier, type);
         } else {
@@ -399,7 +401,7 @@ Global *global_var(Token *variable_name, Type *type) {
     return g;
 }
 
-void function_args() {
+void function_parameter() {
     /*
      * int function_name(
      *                   ↑ここから
@@ -411,11 +413,9 @@ void function_args() {
             error_at(token->str, "引数にvoidは使えません");
             exit(1);
         }
-        // TODO
+        // TODO 複数
         if (consume("*")) {
             param_type = create_pointer_type(param_type);
-//                error_at(token->str, "関数の入出力にポインタはまだ使えません");
-//                exit(1);
         }
         Token *t = consume_ident();
         if (t) {
@@ -437,21 +437,7 @@ void function_args() {
     expect(")");
 }
 
-Function *function(Token *function_name, Type *returnType) {
-    // 関数スコープ
-    current_scope = calloc(1, sizeof(Scope));
-    current_scope->variables = NULL;
-    current_scope->parent = NULL;
-
-    function_args();
-
-    // 再帰呼び出しでの定義チェックがあるため、先に関数定義として追加
-    Declaration *d = calloc(1, sizeof(Declaration));
-    d->return_type = returnType;
-    d->name = function_name->str;
-    d->len = function_name->len;
-    add_function_declaration(d);
-
+Node **function_body() {
     expect("{");
     // Node *code[100];
     Node **body = (Node **) malloc(sizeof(Node *) * 100);
@@ -463,12 +449,33 @@ Function *function(Token *function_name, Type *returnType) {
 
         body[i] = NULL;
     }
+    return body;
+}
+
+Function *function(Token *function_name, Type *returnType) {
+    Scope *parameter = current_scope = calloc(1, sizeof(Scope));
+    function_parameter();
+
+    // 仮引数以外は不要、かつblockスコープのものは捨てるので、他のローカル変数も捨てることにする
+    Scope func_body;
+    func_body.variables = NULL;
+    func_body.parent = parameter;
+    // 関数スコープ
+    current_scope = &func_body;
+
+    // 再帰呼び出しでの定義チェックがあるため、先に関数宣言として追加
+    Declaration *d = calloc(1, sizeof(Declaration));
+    d->return_type = returnType;
+    d->name = function_name->str;
+    d->len = function_name->len;
+    add_function_declaration(d);
 
     Function *function = calloc(1, sizeof(Function));
     function->name = copy(function_name->str, function_name->len);
-    function->locals = current_scope->variables;
+    function->parameters = parameter->variables;
+    function->body = function_body();
+    // 関数本体を読んでからスタックサイズを決定する
     function->stack_size = stack_size;
-    function->body = body;
 
     current_scope = NULL;
     stack_size = 0;

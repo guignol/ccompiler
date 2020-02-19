@@ -396,7 +396,7 @@ void generate_function(Function *func) {
         printf("  sub rsp, %i  # stack size\n", stack_size);
 
         int count = 0;
-        for (Variable *param = func->locals; param; param = param->next) {
+        for (Variable *param = func->parameters; param; param = param->next) {
             // 関数の引数
             if (0 <= param->index) {
                 printf("  lea rax, [rbp - %d]\n", param->offset);

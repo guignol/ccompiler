@@ -3,13 +3,19 @@ int printf();
 
 void exit();
 
-int alloc_array_4();
+int hoge(int x, int y) {
+    printf("--------------hoge: %i, %i\n", x, y);
+    return x + y;
+}
 
-int foo();
+int bar(int v) {
+    printf("--------------bar: %i\n", v);
+    return v;
+}
 
-int hoge();
-
-int bar();
+int foo() {
+    return bar(11);
+}
 
 int count;
 
@@ -17,7 +23,7 @@ void assert(int expected, int actual, char *name) {
     count = count + 1;
     printf("%d: %s\n", count, name);
     if (expected != actual) {
-        printf("=> %d expected but got %d\n", name, expected, actual);
+        printf("=> %d expected but got %d\n", expected, actual);
         exit(1);
     }
 }
@@ -437,9 +443,16 @@ int sizeof_7() {
 
 // 3
 int pointer_and_calculate_1() {
+    int array_4[4];
+    array_4[0] = 0;
+    array_4[1] = 1;
+    array_4[2] = 2;
+    array_4[3] = 3;
+
     int *p;
     int *q;
-    alloc_array_4(&p, 0, 1, 2, 3);
+    p = array_4;
+
     // foo(*p);
     q = p + 3;
     return q - p;
@@ -447,8 +460,15 @@ int pointer_and_calculate_1() {
 
 // 2
 int pointer_and_calculate_2() {
+    int array_4[4];
+    array_4[0] = 0;
+    array_4[1] = 1;
+    array_4[2] = 2;
+    array_4[3] = 3;
+
     int *p;
-    alloc_array_4(&p, 0, 1, 2, 3);
+    p = array_4;
+
     foo(*p);
     p = p + 1;
     p = 1 + p;
@@ -935,6 +955,5 @@ int main() {
 
     assert_others();
 
-    printf("OK\n");
     return 0;
 }

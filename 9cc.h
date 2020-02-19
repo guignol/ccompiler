@@ -180,32 +180,19 @@ struct Variable {
 };
 
 typedef struct Function Function;
-typedef struct Declaration Declaration;
 typedef struct Global Global;
 
 struct Function {
     // 関数名
     char *name;
     // 引数
-    Variable *locals;
-    // スタックのサイズ
-    int stack_size;
+    Variable *parameters;
     // 関数本体
     Node **body;
+    // スタックのサイズ
+    int stack_size;
 
     Function *next;
-};
-
-struct Declaration {
-    // 返り値の型
-    Type *return_type;
-    // 関数名
-    char *name;
-    int len;
-    // 引数
-    // Variable *parameters;
-
-    Declaration *next;
 };
 
 struct Program {
