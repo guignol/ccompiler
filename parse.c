@@ -404,6 +404,65 @@ Node *new_node_array_index(Node *const left, Node *const right, const bool conti
     return new_node(continued ? ND_INDEX_CONTINUE : ND_INDEX, pointer, NULL);
 }
 
+Node *new_node_array_initializer(Node *const array, Type *const type) {
+    /*
+      TODO 配列の初期化時のみ可能な式がいくつか
+      int array[4] = {0, 1, 2, 3};
+      int array[4] = {0, 1, 2};
+      int array[] = {0, 1, 2, 3};
+      char msg[4] = {'f', 'o', 'o', '\0'};
+      char msg[] = "foo";
+      char msg[10] = "foo";
+      char msg[3] = "message"; => initializer-string for array of chars is too long
+     */
+    if (consume("{")) {
+        /*
+          int x[] = {1, 2, foo()};
+          ↓ ↓　↓　↓
+          ブロックでまとめる
+          ↓ ↓　↓　↓
+          int x[3];
+          {
+            x[0] = 1;
+            x[1] = 2;
+            x[2] = foo();
+          }
+         */
+        Node *node = calloc(1, sizeof(Node));
+        node->kind = ND_BLOCK;
+        Node *last = node;
+        // TODO サイズ不定の場合
+        int index = 0;
+        do {
+            // 配列に代入
+            // TODO 配列変数のnodeを使いまわしてるけど問題無いはず
+            Node *left = new_node_array_index(array, new_node_num(index++), false);
+            if (type->array_size < index) {
+                error_at(token->str, "変数のサイズより大きい配列を入れようとしています。");
+                exit(1);
+            }
+            Node *next = new_node_assign(token->str, left, expr());
+            last->statement = next;
+            last = next;
+            consume(","); // 末尾に残ってもOK
+        } while (!consume("}"));
+        if (index < type->array_size) {
+            // TODO ポインタの場合は？
+            // 0で埋める。
+            do {
+                Node *left = new_node_array_index(array, new_node_num(index++), false);
+                Node *next = new_node_assign(token->str, left, new_node_num(0));
+                last->statement = next;
+                last = next;
+            } while (index < type->array_size);
+        }
+        return node;
+    } else {
+        // TODO 文字列リテラルのみ？
+        return new_node_assign(token->str, array, assign());
+    }
+}
+
 Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
@@ -683,48 +742,7 @@ Node *stmt(void) {
             // 配列もある
             node = new_node_variable(t->str, t->len);
             if (type->ty == TYPE_ARRAY) {
-                Node *array = node;
-                /*
-                  TODO 配列の初期化時のみ可能な式がいくつか
-                  int array[4] = {0, 1, 2, 3};
-                  int array[4] = {0, 1, 2};
-                  int array[] = {0, 1, 2, 3};
-                  char msg[4] = {'f', 'o', 'o', '\0'};
-                  char msg[] = "foo";
-                  char msg[10] = "foo";
-                  char msg[3] = "message"; => initializer-string for array of chars is too long
-                 */
-                if (consume("{")) {
-                    /*
-                      int x[] = {1, 2, foo()};
-                      ↓ ↓　↓　↓
-                      ブロックでまとめる
-                      ↓ ↓　↓　↓
-                      int x[3];
-                      {
-                        x[0] = 1;
-                        x[1] = 2;
-                        x[2] = foo();
-                      }
-                     */
-                    node = calloc(1, sizeof(Node));
-                    node->kind = ND_BLOCK;
-                    Node *last = node;
-                    // TODO サイズ確認
-                    int index = 0;
-                    do {
-                        // 配列に代入
-                        // TODO 配列変数のnodeを使いまわしてるけど問題無いはず
-                        Node *left = new_node_array_index(array, new_node_num(index++), false);
-                        Node *next = new_node_assign(token->str, left, expr());
-                        last->statement = next;
-                        last = next;
-                        consume(","); // 末尾に残ってもOK
-                    } while (!consume("}"));
-                } else {
-                    // TODO 文字列リテラルのみ？
-                    node = new_node_assign(token->str, node, assign());
-                }
+                node = new_node_array_initializer(node, type);
             } else {
                 node = new_node_assign(token->str, node, assign());
             }
