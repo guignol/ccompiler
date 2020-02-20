@@ -29,5 +29,5 @@ fi
 if [ $? == 0 ]; then
   echo "OK"
 else
-  echo "NG"
+  echo "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNG"
 fi

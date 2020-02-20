@@ -50,7 +50,7 @@ typedef enum {
     ND_WHILE,       // while
     ND_FOR,         // for
     ND_BLOCK,       // { }
-    ND_FUNC,        // 関数コール : 今のところintまたはchar
+    ND_FUNC,        // 関数コール
     ND_NUM,         // 整数 : int
     ND_STR_LITERAL, // 文字列リテラル
     ND_VARIABLE,    // ローカル変数
@@ -61,7 +61,6 @@ typedef enum {
      * int (*b)[2];
      * (*b)[1] = 1;
      *   ↑
-     *   ここの話
      */
     ND_DEREF_ARRAY_POINTER, // *a
     ND_INDEX, // a[0][1]
@@ -71,7 +70,6 @@ typedef enum {
      * int a[2][3];
      * a[1][2] = 1;
      *   ↑
-     *   ここの話
      *
      * *(( *(a          + 1     ) ) + 2    ) = 1;
      * *((  ([PBP - 24] + 1 * 12) ) + 2 * 4) = 1;
@@ -81,7 +79,7 @@ typedef enum {
      */
     ND_INDEX_CONTINUE, // a[0][1]
     ND_ASSIGN,      // =
-    ND_NOTHING      // 変数宣言
+    ND_NOTHING,      // 変数宣言（初期化なし）
 } NodeKind;
 
 typedef struct Node Node;

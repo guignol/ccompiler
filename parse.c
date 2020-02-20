@@ -74,6 +74,7 @@ void add_globals(Global *next) {
 // function   = decl_a "(" decl_a? ("," decl_a)* ")" { stmt* }
 // stmt       = expr ";"
 //              | decl_b ";"
+//              | decl_c ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -91,13 +92,15 @@ void add_globals(Global *next) {
 // 				| literal_str
 //				| ident
 //				| primary ( "(" index ")" )? index*
-//				| ident "(" args ")"
+//				| ident "(" args? ")"
 // 				| "(" expr ")"
 // 				| "({" stmt "})"
 // index      = "[" primary "]"
-// args       = (expr ("," expr)* )?
+// args       = expr ("," expr)*
 // decl_a     = ("int" | "char") "*"* (pointed_id | ident)
 // decl_b     = decl_a ("[" num "]")*
+// decl_c     = decl_a ("[" num? "]")* "=" (array_init | expr)
+// array_init = "{" args "}"
 // pointed_id = "(" "*"* ident ")"
 // ident      =
 // literal_str=
@@ -239,6 +242,51 @@ Variable *register_variable(char *str, int len, Type *type) {
     return variable;
 }
 
+void assert_indexable(Node *left, Node *right) {
+    // 片方がintで、もう片方が配列orポインタ
+    Type *left_type = find_type(left);
+    Type *right_type = find_type(right);
+    switch (left_type->ty) {
+        case TYPE_VOID:
+            error("voidで[]は使えません？\n");
+            exit(1);
+        case TYPE_CHAR:
+        case TYPE_INT: {
+            // 左がint
+            switch (right_type->ty) {
+                case TYPE_VOID:
+                    error("voidで[]は使えません？\n");
+                    exit(1);
+                case TYPE_CHAR:
+                case TYPE_INT:
+                    error("整数間で[]は使えません？\n");
+                    exit(1);
+                case TYPE_POINTER:
+                case TYPE_ARRAY:
+                    break;
+            }
+            break;
+        }
+        case TYPE_POINTER:
+        case TYPE_ARRAY: {
+            // 左が配列orポインタ
+            switch (right_type->ty) {
+                case TYPE_VOID:
+                    error("voidで[]は使えません？\n");
+                    exit(1);
+                case TYPE_CHAR:
+                case TYPE_INT:
+                    break;
+                case TYPE_POINTER:
+                case TYPE_ARRAY:
+                    error("not_int[not_int]はできません？");
+                    exit(1);
+            }
+            break;
+        }
+    }
+}
+
 //////////////////////////////////////////////////////////////////
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -304,6 +352,58 @@ Node *new_node_dereference(Node *operand) {
     }
 }
 
+Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
+    const int weight_l = get_weight(left);
+    const int weight_r = get_weight(right);
+    if (weight_l == weight_r) {
+        if (kind == ND_SUB) {
+            // ポインタ同士の引き算
+            Node *node = new_node(kind, left, right);
+            return new_node(ND_DIV, node, new_node_num(weight_l));
+        } else {
+            // TODO 足し算はどうなるべきか
+            return new_node(kind, left, right);
+        }
+    } else if (weight_l == 1) {
+        left = new_node(ND_MUL, new_node_num(weight_r), left);
+        return new_node(kind, left, right);
+    } else if (weight_r == 1) {
+        right = new_node(ND_MUL, new_node_num(weight_l), right);
+        return new_node(kind, left, right);
+    } else {
+        // TODO
+        error("異なるポインター型の演算はできません？\n");
+        exit(1);
+    }
+}
+
+Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
+    Type *const left_type = find_type(lhs); // TODO 初期化
+    Type *const right_type = find_type(rhs);
+    switch (are_assignable_type(left_type, right_type)) {
+        case AS_INCOMPATIBLE:
+//                error("\n");
+//                error_at(loc, "warning: 代入式の左右の型が異なります。");
+//                warn_incompatible_type(left_type, right_type);
+        case AS_SAME:
+            return new_node(ND_ASSIGN, lhs, rhs);
+        case CANNOT_ASSIGN:
+            error_at(loc, "error: 代入式の左右の型が異なります。");
+            exit(1);
+    }
+}
+
+Node *new_node_array_index(Node *const left, Node *const right, const bool continued) {
+    // int a[2];
+    // a[1] = 3;
+    // は
+    // *(a + 1) = 3;
+    // の省略表現
+    assert_indexable(left, right);
+    Node *pointer = pointer_calc(ND_ADD, left, right);
+    return new_node(continued ? ND_INDEX_CONTINUE : ND_INDEX, pointer, NULL);
+}
+
 Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
@@ -363,7 +463,7 @@ struct Program *parse(Token *tok) {
             Token *saved = token;
             if (consume(")") && consume(";")) {
                 Declaration *d = calloc(1, sizeof(Declaration));
-                d->return_type = base;
+                d->return_type = type;
                 d->name = identifier->str;
                 d->len = identifier->len;
                 add_function_declaration(d);
@@ -444,8 +544,11 @@ Node **function_body() {
     {
         int i = 0;
         while (!consume("}")) {
+            // この数が100まで、なので、Node自体は100を超えても大丈夫
             body[i++] = stmt();
         }
+        // ただし、これが75になる関数がテストコード内にある
+//        printf("# FUNCTION TOP LEVEL Node: %d\n", i + 1);
 
         body[i] = NULL;
     }
@@ -546,6 +649,7 @@ Node *stmt(void) {
         }
 
         while (consume("[")) {
+            // TODO 初期化式では不要な場合がある
             int array_size = expect_number();
             /**
              * intの配列
@@ -575,7 +679,62 @@ Node *stmt(void) {
             type = edge;
         }
         register_variable(t->str, t->len, type);
-        node = new_node(ND_NOTHING, NULL, NULL);
+        if (consume("=")) {
+            // 配列もある
+            node = new_node_variable(t->str, t->len);
+            if (type->ty == TYPE_ARRAY) {
+                Node *array = node;
+                /*
+                  TODO 配列の初期化時のみ可能な式がいくつか
+                  int array[4] = {0, 1, 2, 3};
+                  int array[4] = {0, 1, 2};
+                  int array[] = {0, 1, 2, 3};
+                  char msg[4] = {'f', 'o', 'o', '\0'};
+                  char msg[] = "foo";
+                  char msg[10] = "foo";
+                  char msg[3] = "message"; => initializer-string for array of chars is too long
+                 */
+                if (consume("{")) {
+                    /*
+                      int x[] = {1, 2, foo()};
+                      ↓ ↓　↓　↓
+                      ブロックでまとめる
+                      ↓ ↓　↓　↓
+                      int x[3];
+                      {
+                        x[0] = 1;
+                        x[1] = 2;
+                        x[2] = foo();
+                      }
+                     */
+                    node = calloc(1, sizeof(Node));
+                    node->kind = ND_BLOCK;
+                    Node *last = node;
+                    // TODO サイズ確認
+                    int index = 0;
+                    do {
+                        // 配列に代入
+                        // TODO 配列変数のnodeを使いまわしてるけど問題無いはず
+                        Node *left = new_node_array_index(array, new_node_num(index++), false);
+                        Node *next = new_node_assign(token->str, left, expr());
+                        last->statement = next;
+                        last = next;
+                        consume(","); // 末尾に残ってもOK
+                    } while (!consume("}"));
+                } else {
+                    // TODO 文字列リテラルのみ？
+                    node = new_node_assign(token->str, node, assign());
+                }
+            } else {
+                node = new_node_assign(token->str, node, assign());
+            }
+            expect(";");
+            return node;
+        } else {
+            node = new_node(ND_NOTHING, NULL, NULL);
+            expect(";");
+            return node;
+        }
     } else if (consume("{")) {
         return block_statement();
     } else if (consume("if")) {
@@ -621,11 +780,13 @@ Node *stmt(void) {
         node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+        expect(";");
+        return node;
     } else {
         node = new_node(ND_EXPR_STMT, expr(), NULL); // 式文
+        expect(";");
+        return node;
     }
-    expect(";");
-    return node;
 }
 
 Node *expr() {
@@ -635,22 +796,7 @@ Node *expr() {
 Node *assign() {
     Node *node = equality();
     if (consume("=")) {
-        char *loc = token->str;
-        Node *rhs = assign();
-        Type *const left_type = find_type(node);
-        Type *const right_type = find_type(rhs);
-        switch (are_assignable_type(left_type, right_type)) {
-            case AS_INCOMPATIBLE:
-//                error("\n");
-//                error_at(loc, "warning: 代入式の左右の型が異なります。");
-//                warn_incompatible_type(left_type, right_type);
-            case AS_SAME:
-                node = new_node(ND_ASSIGN, node, rhs);
-                break;
-            case CANNOT_ASSIGN:
-                error_at(loc, "error: 代入式の左右の型が異なります。");
-                exit(1);
-        }
+        node = new_node_assign(token->str, node, assign());
     }
     return node;
 }
@@ -682,31 +828,6 @@ Node *relational() {
             node = new_node(ND_LESS_EQL, add(), node);
         else
             return node;
-    }
-}
-
-Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
-    const int weight_l = get_weight(left);
-    const int weight_r = get_weight(right);
-    if (weight_l == weight_r) {
-        if (kind == ND_SUB) {
-            // ポインタ同士の引き算
-            Node *node = new_node(kind, left, right);
-            return new_node(ND_DIV, node, new_node_num(weight_l));
-        } else {
-            // TODO 足し算はどうなるべきか
-            return new_node(kind, left, right);
-        }
-    } else if (weight_l == 1) {
-        left = new_node(ND_MUL, new_node_num(weight_r), left);
-        return new_node(kind, left, right);
-    } else if (weight_r == 1) {
-        right = new_node(ND_MUL, new_node_num(weight_l), right);
-        return new_node(kind, left, right);
-    } else {
-        // TODO
-        error("異なるポインター型の演算はできません？\n");
-        exit(1);
     }
 }
 
@@ -858,66 +979,13 @@ Node *primary() {
     return with_index(number);
 }
 
-void assert_indexable(Node *left, Node *right) {
-    // 片方がintで、もう片方が配列orポインタ
-    Type *left_type = find_type(left);
-    Type *right_type = find_type(right);
-    switch (left_type->ty) {
-        case TYPE_VOID:
-            error("voidで[]は使えません？\n");
-            exit(1);
-        case TYPE_CHAR:
-        case TYPE_INT: {
-            // 左がint
-            switch (right_type->ty) {
-                case TYPE_VOID:
-                    error("voidで[]は使えません？\n");
-                    exit(1);
-                case TYPE_CHAR:
-                case TYPE_INT:
-                    error("整数間で[]は使えません？\n");
-                    exit(1);
-                case TYPE_POINTER:
-                case TYPE_ARRAY:
-                    break;
-            }
-            break;
-        }
-        case TYPE_POINTER:
-        case TYPE_ARRAY: {
-            // 左が配列orポインタ
-            switch (right_type->ty) {
-                case TYPE_VOID:
-                    error("voidで[]は使えません？\n");
-                    exit(1);
-                case TYPE_CHAR:
-                case TYPE_INT:
-                    break;
-                case TYPE_POINTER:
-                case TYPE_ARRAY:
-                    error("not_int[not_int]はできません？");
-                    exit(1);
-            }
-            break;
-        }
-    }
-}
-
 Node *with_index(Node *left) {
     if (left->kind == ND_INDEX) {
         left->kind = ND_INDEX_CONTINUE;
     }
     while (consume("[")) {
-        Node *right = expr();
+        left = new_node_array_index(left, expr(), true);
         expect("]");
-        // int a[2];
-        // a[1] = 3;
-        // は
-        // *(a + 1) = 3;
-        // の省略表現
-        assert_indexable(left, right);
-        Node *pointer = pointer_calc(ND_ADD, left, right);
-        left = new_node(ND_INDEX_CONTINUE, pointer, NULL);
     }
     if (left->kind == ND_INDEX_CONTINUE) {
         /*

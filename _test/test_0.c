@@ -40,6 +40,21 @@ void assert(int expected, int actual, char *name) {
 //    return a;
 //}
 
+// 3
+int scoped_2() {
+    int a = 3;
+    int b = a;
+    {
+        bar(a);
+        int a = b - 2;
+        bar(a);
+        if (a == b) {
+            return a;
+        }
+    }
+    return a;
+}
+
 // 1
 int scoped_1() {
     int a_0; // 4
@@ -342,14 +357,10 @@ int array_and_pointer_14() {
 
 // 3
 int array_and_pointer_15() {
-    int a[5];
-    a[0] = 1;
-    a[1] = 2;
-    a[2] = 3;
-    a[3] = 4;
-    a[4] = 5;
+    // TODO array_4もやってみる
+    int a[5] = {1, 2, 3, 4, 5};
     int maji;
-    maji = a[1 + 3]; // ポインタにも[]使える
+    maji = a[1 + 3];
     return maji - a[1];  // 3
 }
 
@@ -872,6 +883,7 @@ int main() {
 
     // TODO
 //    assert(9, for_init_scope_1(), "scope_for_1");
+    assert(3, scoped_2(), "scoped_2");
     assert(1, scoped_1(), "scoped_1");
 
     // TODO ポインタを返す関数のテストを追加
