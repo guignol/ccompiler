@@ -168,6 +168,15 @@ Token *consume_ident() {
     return NULL;
 }
 
+Token *consume_number() {
+    if (token->kind == TK_NUM) {
+        Token *t = token;
+        token = token->next;
+        return t;
+    }
+    return NULL;
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -407,13 +416,13 @@ Node *new_node_array_index(Node *const left, Node *const right, const bool conti
 Node *new_node_array_initializer(Node *const array, Type *const type) {
     /*
       TODO 配列の初期化時のみ可能な式がいくつか
+     * char msg[4] = {'f', 'o', 'o', '\0'};
+     * char msg[] = "foo";
+     * char msg[10] = "foo";
+     * char msg[3] = "message"; => initializer-string for array of chars is too long
       int array[4] = {0, 1, 2, 3};
       int array[4] = {0, 1, 2};
       int array[] = {0, 1, 2, 3};
-      char msg[4] = {'f', 'o', 'o', '\0'};
-      char msg[] = "foo";
-      char msg[10] = "foo";
-      char msg[3] = "message"; => initializer-string for array of chars is too long
      */
     if (consume("{")) {
         /*
@@ -428,33 +437,38 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
             x[2] = foo();
           }
          */
-        Node *node = calloc(1, sizeof(Node));
+        Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_BLOCK;
         Node *last = node;
-        // TODO サイズ不定の場合
-        int index = 0;
+        const bool undefined_size = type->array_size == 0;
+        int element_count = 0;
         do {
-            // 配列に代入
-            // TODO 配列変数のnodeを使いまわしてるけど問題無いはず
-            Node *left = new_node_array_index(array, new_node_num(index++), false);
-            if (type->array_size < index) {
+            // 配列に各要素を代入
+            Node *const index = new_node_num(element_count++);
+            if (!undefined_size && type->array_size < index->val) {
                 error_at(token->str, "変数のサイズより大きい配列を入れようとしています。");
                 exit(1);
             }
-            Node *next = new_node_assign(token->str, left, expr());
+            Node *const indexed_array = new_node_array_index(array, index, false);
+            Node *const next = new_node_assign(token->str, indexed_array, expr());
             last->statement = next;
             last = next;
             consume(","); // 末尾に残ってもOK
         } while (!consume("}"));
-        if (index < type->array_size) {
+        if (undefined_size) {
+            // サイズを明示していない配列のサイズを決定する
+            array->type->array_size = element_count;
+        } else {
             // TODO ポインタの場合は？
-            // 0で埋める。
-            do {
-                Node *left = new_node_array_index(array, new_node_num(index++), false);
-                Node *next = new_node_assign(token->str, left, new_node_num(0));
+            // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
+            Node *const zero = new_node_num(0);
+            while (element_count < type->array_size) {
+                Node *const index = new_node_num(element_count++);
+                Node *const left = new_node_array_index(array, index, false);
+                Node *const next = new_node_assign(token->str, left, zero);
                 last->statement = next;
                 last = next;
-            } while (index < type->array_size);
+            }
         }
         return node;
     } else {
@@ -707,9 +721,18 @@ Node *stmt(void) {
             type = base;
         }
 
+        bool undefined_size_array = false;
         while (consume("[")) {
-            // TODO 初期化式では不要な場合がある
-            int array_size = expect_number();
+            Token *size_token = consume_number();
+            if (!size_token) {
+                // 初期化式では右辺からサイズを決定できる
+                // 配列の配列ではできないはずなのでここでbreakする
+                undefined_size_array = true;
+                type = create_array_type(type, 0);
+                expect("]");
+                break;
+            }
+            int array_size = size_token->val;
             /**
              * intの配列
              * int p[2]
@@ -737,14 +760,26 @@ Node *stmt(void) {
             edge->point_to = type;
             type = edge;
         }
-        register_variable(t->str, t->len, type);
+        // 変数の登録（RBPへのオフセットが決定しない場合がある）
+        Variable *const variable = register_variable(t->str, t->len, type);
         if (consume("=")) {
-            // 配列もある
-            node = new_node_variable(t->str, t->len);
+            Node *const variable_node = new_node_variable(t->str, t->len);
             if (type->ty == TYPE_ARRAY) {
-                node = new_node_array_initializer(node, type);
+                // 配列の初期化
+                node = new_node_array_initializer(variable_node, type);
+                if (undefined_size_array) {
+                    // 配列のサイズが決まってからオフセットを再設定する
+                    variable->offset = stack_size = stack_size + get_size(type);
+                    variable_node->offset = variable->offset;
+                }
             } else {
-                node = new_node_assign(token->str, node, assign());
+                if (backwards_pointer && undefined_size_array) {
+                    // TODO
+                    // 配列へのポインタはサイズ不定でもOK
+                    // ただし、サイズを指定して不一致の場合はwarningを出す
+                    // int (*pointer)[] = &array;
+                }
+                node = new_node_assign(token->str, variable_node, assign());
             }
             expect(";");
             return node;

@@ -199,6 +199,31 @@ int global_variable_4() {
 
 /////////////////////////////////////////////////
 
+int write_stack_4() {
+    int x[4] = {0, 1, 2, 3};
+    return x[3];
+}
+
+int zero_stack_4() {
+    // 4つめはゼロ埋めされる
+    int x[4] = {0, 1, 2, };
+    return x[3];
+}
+
+// 0
+int array_initialize_1() {
+    write_stack_4();
+    return zero_stack_4();
+}
+
+// 2
+int array_initialize_2() {
+    int array[] = {0, 1, 2, 3};
+    return array[2];
+}
+
+/////////////////////////////////////////////////
+
 // 8
 int array_and_pointer_1() {
     int a[2][3];
@@ -513,23 +538,6 @@ int pointer_and_calculate_5() {
     int x;
     x = 3;
     return *(&x);
-}
-
-int write_stack_4() {
-    int x[4] = {0, 1, 2, 3};
-    return x[3];
-}
-
-int prepare_array_4() {
-    // 4つめはゼロ埋めされる
-    int x[4] = {0, 1, 2, };
-    return x[3];
-}
-
-// 0
-int pointer_and_calculate_6() {
-    write_stack_4();
-    return prepare_array_4();
 }
 
 /////////////////////////////////////////////////
@@ -915,6 +923,9 @@ int main() {
     assert(3, global_variable_3(), "global_variable_3");
     assert(3, global_variable_4(), "global_variable_4");
 
+    assert(0, array_initialize_1(), "array_initialize_1");
+    assert(2, array_initialize_2(), "array_initialize_2");
+
     assert(8, array_and_pointer_1(), "array_and_pointer_1");
     assert(8, array_and_pointer_2(), "array_and_pointer_2");
     assert(8, array_and_pointer_3(), "array_and_pointer_3");
@@ -949,7 +960,6 @@ int main() {
     assert(3, pointer_and_calculate_3(), "pointer_and_calculate_3"); // ★
     assert(4, pointer_and_calculate_4(), "pointer_and_calculate_4");
     assert(3, pointer_and_calculate_5(), "pointer_and_calculate_5");
-    assert(0, pointer_and_calculate_6(), "pointer_and_calculate_6");
 
     assert(13, function_1(), "function_1");
     assert(13, function_2(), "function_2");
