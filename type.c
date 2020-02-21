@@ -99,7 +99,7 @@ bool are_same_type(Type *left, Type *right) {
     }
 }
 
-Assignable are_assignable_type(Type *left, Type *right) {
+Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
     if (left->ty == TYPE_ARRAY) {
         // 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
         return CANNOT_ASSIGN;
@@ -145,6 +145,17 @@ Assignable are_assignable_type(Type *left, Type *right) {
          * b = a;  => 右辺の型はint *で、gccではwarning
          * ただし、前者は型が完全一致して何も考慮すべきことはないのでこの例外処理は不要
          */
+        return AS_INCOMPATIBLE;
+    }
+
+    // ポインタ型にはあらゆる整数型が入るっぽいので通す
+    if (left->ty == TYPE_POINTER &&
+        (right->ty == TYPE_INT ||
+         right->ty == TYPE_CHAR)) {
+        if (r_zero) {
+            // 0の場合は型は一致していると見なせる
+            return AS_SAME;
+        }
         return AS_INCOMPATIBLE;
     }
     return CANNOT_ASSIGN;
@@ -370,9 +381,9 @@ void print_type(FILE *__stream, Type *type) {
 void warn_incompatible_type(Type *left, Type *right) {
     // TODO GCCの結果と比べる
     // warning: assignment to '左辺の型' from incompatible pointer type '右辺の型'
-    fprintf(stderr, "【");
+    fprintf(stderr, "@@@ ");
     print_type(stderr, left);
     fprintf(stderr, " <= ");
     print_type(stderr, right);
-    fprintf(stderr, " 】\n");
+    fprintf(stderr, "\n");
 }

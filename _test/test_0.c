@@ -222,6 +222,14 @@ int array_initialize_2() {
     return array[2];
 }
 
+// 4
+int array_initialize_3() {
+    int a = 3;
+    int b = 1;
+    int *array[5] = {0, a, &a, &b};
+    return *array[2] + *array[3];
+}
+
 /////////////////////////////////////////////////
 
 // 8
@@ -925,6 +933,7 @@ int main() {
 
     assert(0, array_initialize_1(), "array_initialize_1");
     assert(2, array_initialize_2(), "array_initialize_2");
+    assert(4, array_initialize_3(), "array_initialize_3");
 
     assert(8, array_and_pointer_1(), "array_and_pointer_1");
     assert(8, array_and_pointer_2(), "array_and_pointer_2");

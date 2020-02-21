@@ -3,80 +3,46 @@
 // 入力プログラム
 char *user_input;
 
-int count_front_space(const char *message) {
-    int space = 0;
-    for (int i = 0; i < strlen(message); ++i) {
-        if (isspace(message[i])) {
-            space++;
-        } else {
-            break;
+int print_with_line_number(const char *loc) {
+    // locが含まれている行の開始地点と終了地点を取得
+    const char *line_begin = loc;
+    while (user_input < line_begin && line_begin[-1] != '\n') {
+        line_begin--;
+    }
+    const char *line_end = loc;
+    while (*line_end != '\n') {
+        line_end++;
+    }
+
+    // 見つかった行が全体の何行目なのかを調べる
+    int line_num = 1;
+    for (char *p = user_input; p < line_begin; p++) {
+        if (*p == '\n') {
+            line_num++;
         }
     }
-    return space;
+
+    int indent = fprintf(stderr, "%d: ", line_num);
+    fprintf(stderr, "%.*s\n", (int) (line_end - line_begin), line_begin);
+    int pos = (int) (loc - line_begin) + indent;
+    return pos;
 }
 
-// https://teratail.com/questions/63029#reply-99839
-int number_of_digit(int n) {
-//    assert(INT_MAX == 2147483647);
-//    assert(n >= 0);
-    if (n < 10) return 1;
-    if (n < 100) return 2;
-    if (n < 1000) return 3;
-    if (n < 10000) return 4;
-    if (n < 100000) return 5;
-    if (n < 1000000) return 6;
-    if (n < 10000000) return 7;
-    if (n < 100000000) return 8;
-    if (n < 1000000000) return 9;
-    return 10;
-}
-
-// エラー箇所を報告する
+/*
+ * エラー箇所を報告する
+ * https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
+ */
 void error_at(const char *loc, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 
-    fprintf(stderr, "\n");
-    char *head = user_input;
-    char *tail = strtok(user_input, "\n");
-    int line_number = -1;
-    while (tail) {
-        line_number++;
-        if (loc < tail) {
-//            line_number = 99;
-            const int pos = (int) (loc - head);
-            const int front_space = count_front_space(head);
-            const int line_number_offset = number_of_digit(line_number) + 2;
-
-            fprintf(stderr, "%i:", line_number);
-            fprintf(stderr, " ");
-            fprintf(stderr, "%s\n", head);
-
-            fprintf(stderr, "%*s", line_number_offset, "");
-            // タブはタブのまま出力しておく
-            fprintf(stderr, "%.*s", front_space, head);
-            fprintf(stderr, "%*s", pos - front_space, "");
-            fprintf(stderr, "^ ");
-            vfprintf(stderr, fmt, ap);
-            fprintf(stderr, "\n");
-
-            fprintf(stderr, "%i:", line_number + 1);
-            // 桁数が増えたらスペースを追記しない
-            if (line_number_offset -2 == number_of_digit(line_number + 1)) {
-                fprintf(stderr, " ");
-            }
-            fprintf(stderr, "%s\n", tail);
-            return;
-        }
-        head = tail;
-        tail = strtok(NULL, "\n");
-    }
-
-    fprintf(stderr, "%s\n", head);
-    fprintf(stderr, "%*s", (int) (loc - user_input), "");
+    // エラー箇所を"^"で指し示して、エラーメッセージを表示
+    int pos = print_with_line_number(loc);
+    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");
+    va_end(ap);
 }
 
 bool start_with(const char *p, const char *str) {

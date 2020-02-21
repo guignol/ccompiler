@@ -387,13 +387,19 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
 }
 
 Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
-    Type *const left_type = find_type(lhs); // TODO 初期化
+    Type *const left_type = find_type(lhs);
     Type *const right_type = find_type(rhs);
-    switch (are_assignable_type(left_type, right_type)) {
+    static const bool warning = false;
+    // コンパイラで生成しているnew_node_num(0)もあるはずだが、
+    // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
+    // （0リテラル、配列の0パディング）
+    bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
+    switch (are_assignable_type(left_type, right_type, rZero)) {
         case AS_INCOMPATIBLE:
-//                error("\n");
-//                error_at(loc, "warning: 代入式の左右の型が異なります。");
-//                warn_incompatible_type(left_type, right_type);
+            if (warning) {
+                error_at(loc, "warning: 代入式の左右の型が異なります。");
+                warn_incompatible_type(left_type, right_type);
+            }
         case AS_SAME:
             return new_node(ND_ASSIGN, lhs, rhs);
         case CANNOT_ASSIGN:
@@ -450,7 +456,8 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
                 exit(1);
             }
             Node *const indexed_array = new_node_array_index(array, index, false);
-            Node *const next = new_node_assign(token->str, indexed_array, expr());
+            char *loc = token->str;
+            Node *const next = new_node_assign(loc, indexed_array, expr());
             last->statement = next;
             last = next;
             consume(","); // 末尾に残ってもOK
@@ -459,13 +466,13 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
             // サイズを明示していない配列のサイズを決定する
             array->type->array_size = element_count;
         } else {
-            // TODO ポインタの場合は？
             // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
             Node *const zero = new_node_num(0);
             while (element_count < type->array_size) {
                 Node *const index = new_node_num(element_count++);
                 Node *const left = new_node_array_index(array, index, false);
-                Node *const next = new_node_assign(token->str, left, zero);
+                char *loc = token->str;
+                Node *const next = new_node_assign(loc, left, zero);
                 last->statement = next;
                 last = next;
             }
@@ -473,7 +480,8 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
         return node;
     } else {
         // TODO 文字列リテラルのみ？
-        return new_node_assign(token->str, array, assign());
+        char *loc = token->str;
+        return new_node_assign(loc, array, assign());
     }
 }
 
@@ -779,7 +787,8 @@ Node *stmt(void) {
                     // ただし、サイズを指定して不一致の場合はwarningを出す
                     // int (*pointer)[] = &array;
                 }
-                node = new_node_assign(token->str, variable_node, assign());
+                char *loc = token->str;
+                node = new_node_assign(loc, variable_node, assign());
             }
             expect(";");
             return node;
@@ -849,7 +858,8 @@ Node *expr() {
 Node *assign() {
     Node *node = equality();
     if (consume("=")) {
-        node = new_node_assign(token->str, node, assign());
+        char *loc = token->str;
+        node = new_node_assign(loc, node, assign());
     }
     return node;
 }
