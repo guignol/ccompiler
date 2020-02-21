@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "common.h"
 
 // 現在着目しているトークン
 Token *token;
@@ -225,9 +225,23 @@ Variable *find_local_variable(Scope *const scope, char *name, int len) {
     return find_local_variable(scope->parent, name, len);
 }
 
+Global *find_string_literal(char *name, int len) {
+    for (Global *g = globals->head; g; g = g->next) {
+        if (g->directive != _string) {
+            continue;
+        }
+        directive_target *target = g->target;
+        if (target->literal_length == len &&
+            !strncmp(name, target->literal, target->literal_length)) {
+            return g;
+        }
+    }
+    return NULL;
+}
+
 Global *find_global_variable(char *name, int len) {
     for (Global *g = globals->head; g; g = g->next)
-        if (g->label_length == len && !memcmp(name, g->label, g->label_length))
+        if (g->label_length == len && !strncmp(name, g->label, g->label_length))
             return g;
     return NULL;
 }
@@ -420,6 +434,8 @@ Node *new_node_array_index(Node *const left, Node *const right, const bool conti
 }
 
 Node *new_node_array_initializer(Node *const array, Type *const type) {
+    // 配列サイズが明示されていない場合
+    const bool undefined_size = type->array_size == 0;
     /*
       TODO 配列の初期化時のみ可能な式がいくつか
      * char msg[4] = {'f', 'o', 'o', '\0'};
@@ -446,36 +462,31 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_BLOCK;
         Node *last = node;
-        const bool undefined_size = type->array_size == 0;
         int element_count = 0;
         do {
             // 配列に各要素を代入
-            Node *const index = new_node_num(element_count++);
-            if (!undefined_size && type->array_size < index->val) {
+            const int index = element_count++;
+            if (!undefined_size && type->array_size < index) {
                 error_at(token->str, "変数のサイズより大きい配列を入れようとしています。");
                 exit(1);
             }
-            Node *const indexed_array = new_node_array_index(array, index, false);
+            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
             char *loc = token->str;
-            Node *const next = new_node_assign(loc, indexed_array, expr());
-            last->statement = next;
-            last = next;
+            last = last->statement = new_node_assign(loc, indexed, expr());
             consume(","); // 末尾に残ってもOK
         } while (!consume("}"));
         if (undefined_size) {
             // サイズを明示していない配列のサイズを決定する
             array->type->array_size = element_count;
-        } else {
-            // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
-            Node *const zero = new_node_num(0);
-            while (element_count < type->array_size) {
-                Node *const index = new_node_num(element_count++);
-                Node *const left = new_node_array_index(array, index, false);
-                char *loc = token->str;
-                Node *const next = new_node_assign(loc, left, zero);
-                last->statement = next;
-                last = next;
-            }
+            return node;
+        }
+        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
+        Node *const zero = new_node_num(0);
+        while (element_count < type->array_size) {
+            const int index = element_count++;
+            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
+            char *loc = token->str;
+            last = last->statement = new_node_assign(loc, indexed, zero);
         }
         return node;
     } else {
@@ -993,20 +1004,24 @@ Node *primary() {
     // 文字列リテラル
     if (token->kind == TK_STR_LITERAL) {
         // Globalsに追加
-        char *const label = new_label();
-        const int label_length = (int) strlen(label);
-        Global *g = calloc(1, sizeof(Global));
-        g->label = label;
-        g->label_length = label_length;
-        g->directive = _string;
-        g->target = calloc(1, sizeof(directive_target));
-        g->target->literal = token->str;
-        g->target->literal_length = token->len;
-        add_globals(g);
+        Global *g = find_string_literal(token->str, token->len);
+        if (!g) {
+            char *const label = new_label();
+            const int label_length = (int) strlen(label);
+            g = calloc(1, sizeof(Global));
+            g->label = label;
+            g->label_length = label_length;
+            g->directive = _string;
+            g->target = calloc(1, sizeof(directive_target));
+            g->target->literal = token->str;
+            g->target->literal_length = token->len;
+            add_globals(g);
+        }
+
         // ラベルを指すnodeを作る
         Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
-        node->label = label;
-        node->label_length = label_length;
+        node->label = g->label;
+        node->label_length = g->label_length;
         token = token->next;
         return node;
     }

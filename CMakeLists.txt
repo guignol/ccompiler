@@ -6,7 +6,7 @@ set(CMAKE_C_STANDARD 11)
 include_directories(.)
 
 add_executable(ccompiler
-        9cc.h
+        common.h
         codegen.c
         main.c
         parse.c

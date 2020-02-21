@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "common.h"
 
 Type *shared_void_type() {
     static Type *void_type;

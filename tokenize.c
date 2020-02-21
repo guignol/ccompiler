@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "common.h"
 
 // 入力プログラム
 char *user_input;

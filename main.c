@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "common.h"
 
 // https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
 

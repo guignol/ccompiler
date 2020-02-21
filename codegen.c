@@ -1,4 +1,4 @@
-#include "9cc.h"
+#include "common.h"
 
 // RAX	返り値 / 引数の数	✔
 // RDI	第1引数	✔
