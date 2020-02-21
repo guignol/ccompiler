@@ -359,6 +359,31 @@ Node *new_node_variable_global(char *str, int len) {
     return node;
 }
 
+Node *new_node_string_literal() {
+    // Globalsから検索
+    Global *g = find_string_literal(token->str, token->len);
+    if (!g) {
+        char *const label = new_label();
+        const int label_length = (int) strlen(label);
+        g = calloc(1, sizeof(Global));
+        g->label = label;
+        g->label_length = label_length;
+        g->directive = _string;
+        g->target = calloc(1, sizeof(directive_target));
+        g->target->literal = token->str;
+        g->target->literal_length = token->len;
+        // Globalsに追加
+        add_globals(g);
+    }
+
+    // ラベルを指すnodeを作る
+    Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
+    node->label = g->label;
+    node->label_length = g->label_length;
+    token = token->next;
+    return node;
+}
+
 Node *new_node_dereference(Node *operand) {
     Type *type = find_type(operand);
     switch (type->ty) {
@@ -373,6 +398,30 @@ Node *new_node_dereference(Node *operand) {
         case TYPE_ARRAY:
             return new_node(ND_DEREF, operand, NULL);
     }
+}
+
+Node *new_node_function_call(const Token *tok) {
+    // 存在チェック
+    Declaration *declaration = find_function(tok->str, tok->len);
+    if (!declaration) {
+        error_at(tok->str, "関数が定義されていません");
+        exit(1);
+    }
+    // 関数呼び出し
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_FUNC;
+    node->type = declaration->return_type;
+    if (!consume(")")) {
+        Node *last = node;
+        last->args = expr();
+        while (consume(",") && (last = last->args)) {
+            last->args = expr();
+        }
+        expect(")");
+    }
+    node->name = tok->str;
+    node->len = tok->len;
+    return node;
 }
 
 Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
@@ -431,6 +480,29 @@ Node *new_node_array_index(Node *const left, Node *const right, const bool conti
     assert_indexable(left, right);
     Node *pointer = pointer_calc(ND_ADD, left, right);
     return new_node(continued ? ND_INDEX_CONTINUE : ND_INDEX, pointer, NULL);
+}
+
+Node *with_index(Node *left) {
+    if (left->kind == ND_INDEX) {
+        left->kind = ND_INDEX_CONTINUE;
+    }
+    while (consume("[")) {
+        left = new_node_array_index(left, expr(), true);
+        expect("]");
+    }
+    if (left->kind == ND_INDEX_CONTINUE) {
+        /*
+         * 配列は代入できないので、[]でのアクセスは連続していて、
+         * なので、ここで終端判定ができるはず
+         * （ポインタ変数には代入できるけど忘れていいはず）
+         *
+         * ただし、括弧は書けるので、括弧の中をパースした後にもう一度ここを通る場合がある
+         * (a[0])[1];
+         * その判定のために ND_DEREF ではなく ND_INDEX という別の種別を導入した
+         */
+        left->kind = ND_INDEX;
+    }
+    return left;
 }
 
 Node *new_node_array_initializer(Node *const array, Type *const type) {
@@ -495,8 +567,6 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
         return new_node_assign(loc, array, assign());
     }
 }
-
-Node *with_index(Node *left);
 
 //////////////////////////////////////////////////////////////////
 
@@ -639,7 +709,7 @@ Node **function_body() {
             // この数が100まで、なので、Node自体は100を超えても大丈夫
             body[i++] = stmt();
         }
-        // ただし、これが75になる関数がテストコード内にある
+        // ただし、これが79になる関数がテストコード内にある
 //        printf("# FUNCTION TOP LEVEL Node: %d\n", i + 1);
 
         body[i] = NULL;
@@ -702,116 +772,121 @@ Node *block_statement(void) {
     return node;
 }
 
-Node *stmt(void) {
+Node *variable_declaration(Type *base) {
+    if (base->ty == TYPE_VOID) {
+        error_at(token->str, "変数にvoidは使えません");
+        exit(1);
+    }
+    // ローカル変数の宣言
+    bool backwards = consume("(");
+    Type *type = backwards ? NULL : base;
+    while (consume("*")) {
+        Type *pointer = create_pointer_type(type);
+        type = pointer;
+    }
+    Token *t = consume_ident();
+    if (!t) {
+        error_at(token->str, "変数名がありません");
+        exit(1);
+    }
+    {
+        // 同じスコープ内で同名の変数は宣言できない
+        // グローバル変数との重複は可能
+        Scope *parent = current_scope->parent;
+        current_scope->parent = NULL; // 現在のスコープのみ
+        if (find_local_variable(current_scope, t->str, t->len)) {
+            error_at(token->str, "変数名が重複しています");
+            exit(1);
+        }
+        current_scope->parent = parent;
+    }
+    Type *backwards_pointer = NULL;
+    if (backwards) {
+        expect(")");
+        backwards_pointer = type;
+        type = base;
+    }
+
+    /**
+     * intの配列
+     * int p[2]
+     *
+     * ポインタの配列
+     * int *p[3];
+     *
+     * ポインタへのポインタの配列
+     * int **p[4];
+     *
+     * intの配列の配列
+     * int p[5][6];
+     *
+     * 配列へのポインタ
+     * int (*p)[];
+     */
+    bool undefined_size_array = false;
+    while (consume("[")) {
+        Token *size_token = consume_number();
+        if (!size_token) {
+            // 初期化式では右辺からサイズを決定できる
+            // 配列の配列ではできないはずなのでここでbreakする
+            undefined_size_array = true;
+            type = create_array_type(type, 0);
+            expect("]");
+            break;
+        }
+        int array_size = size_token->val;
+        type = create_array_type(type, array_size);
+        expect("]");
+    }
+    if (backwards_pointer) {
+        Type *edge = backwards_pointer;
+        while (edge->point_to) {
+            edge = edge->point_to;
+        }
+        edge->point_to = type;
+        type = edge;
+    }
+    // 変数の登録（RBPへのオフセットが決定しない場合がある）
+    Variable *const variable = register_variable(t->str, t->len, type);
     Node *node;
+    if (consume("=")) {
+        Node *const variable_node = new_node_variable(t->str, t->len);
+        if (type->ty == TYPE_ARRAY) {
+            // 配列の初期化
+            node = new_node_array_initializer(variable_node, type);
+            if (undefined_size_array) {
+                // 配列のサイズが決まってからオフセットを再設定する
+                variable->offset = stack_size = stack_size + get_size(type);
+                variable_node->offset = variable->offset;
+            }
+        } else {
+            if (backwards_pointer && undefined_size_array) {
+                // TODO
+                // 配列へのポインタはサイズ不定でもOK
+                // ただし、サイズを指定して不一致の場合はwarningを出す
+                // int (*pointer)[] = &array;
+            }
+            char *loc = token->str;
+            node = new_node_assign(loc, variable_node, assign());
+        }
+        expect(";");
+        return node;
+    } else {
+        node = new_node(ND_NOTHING, NULL, NULL);
+        expect(";");
+        return node;
+    }
+}
+
+Node *stmt(void) {
     Type *base = consume_base_type();
     if (base) {
-        if (base->ty == TYPE_VOID) {
-            error_at(token->str, "変数にvoidは使えません");
-            exit(1);
-        }
-        // ローカル変数の宣言
-        bool backwards = consume("(");
-        Type *type = backwards ? NULL : base;
-        while (consume("*")) {
-            Type *pointer = create_pointer_type(type);
-            type = pointer;
-        }
-        Token *t = consume_ident();
-        if (!t) {
-            error_at(token->str, "変数名がありません");
-            exit(1);
-        }
-        {
-            // 同じスコープ内で同名の変数は宣言できない
-            // グローバル変数との重複は可能
-            Scope *parent = current_scope->parent;
-            current_scope->parent = NULL; // 現在のスコープのみ
-            if (find_local_variable(current_scope, t->str, t->len)) {
-                error_at(token->str, "変数名が重複しています");
-                exit(1);
-            }
-            current_scope->parent = parent;
-        }
-        Type *backwards_pointer = NULL;
-        if (backwards) {
-            expect(")");
-            backwards_pointer = type;
-            type = base;
-        }
-
-        bool undefined_size_array = false;
-        while (consume("[")) {
-            Token *size_token = consume_number();
-            if (!size_token) {
-                // 初期化式では右辺からサイズを決定できる
-                // 配列の配列ではできないはずなのでここでbreakする
-                undefined_size_array = true;
-                type = create_array_type(type, 0);
-                expect("]");
-                break;
-            }
-            int array_size = size_token->val;
-            /**
-             * intの配列
-             * int p[2]
-             *
-             * ポインタの配列
-             * int *p[3];
-             *
-             * ポインタへのポインタの配列
-             * int **p[4];
-             *
-             * intの配列の配列
-             * int p[5][6];
-             *
-             * 配列へのポインタ
-             * int (*p)[];
-             */
-            type = create_array_type(type, array_size);
-            expect("]");
-        }
-        if (backwards_pointer) {
-            Type *edge = backwards_pointer;
-            while (edge->point_to) {
-                edge = edge->point_to;
-            }
-            edge->point_to = type;
-            type = edge;
-        }
-        // 変数の登録（RBPへのオフセットが決定しない場合がある）
-        Variable *const variable = register_variable(t->str, t->len, type);
-        if (consume("=")) {
-            Node *const variable_node = new_node_variable(t->str, t->len);
-            if (type->ty == TYPE_ARRAY) {
-                // 配列の初期化
-                node = new_node_array_initializer(variable_node, type);
-                if (undefined_size_array) {
-                    // 配列のサイズが決まってからオフセットを再設定する
-                    variable->offset = stack_size = stack_size + get_size(type);
-                    variable_node->offset = variable->offset;
-                }
-            } else {
-                if (backwards_pointer && undefined_size_array) {
-                    // TODO
-                    // 配列へのポインタはサイズ不定でもOK
-                    // ただし、サイズを指定して不一致の場合はwarningを出す
-                    // int (*pointer)[] = &array;
-                }
-                char *loc = token->str;
-                node = new_node_assign(loc, variable_node, assign());
-            }
-            expect(";");
-            return node;
-        } else {
-            node = new_node(ND_NOTHING, NULL, NULL);
-            expect(";");
-            return node;
-        }
+        // 変数宣言および初期化
+        return variable_declaration(base);
     } else if (consume("{")) {
         return block_statement();
     } else if (consume("if")) {
-        node = calloc(1, sizeof(Node));
+        Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_IF;
         expect("(");
         node->condition = expr();
@@ -820,7 +895,7 @@ Node *stmt(void) {
         node->rhs = consume("else") ? stmt() : NULL;
         return node;
     } else if (consume("while")) {
-        node = calloc(1, sizeof(Node));
+        Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_WHILE;
         expect("(");
         node->condition = expr();
@@ -828,7 +903,7 @@ Node *stmt(void) {
         node->lhs = stmt();
         return node;
     } else if (consume("for")) {
-        node = calloc(1, sizeof(Node));
+        Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_FOR;
         expect("(");
         // init
@@ -850,13 +925,13 @@ Node *stmt(void) {
         node->execution = stmt();
         return node;
     } else if (consume("return")) {
-        node = calloc(1, sizeof(Node));
+        Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
         expect(";");
         return node;
     } else {
-        node = new_node(ND_EXPR_STMT, expr(), NULL); // 式文
+        Node *const node = new_node(ND_EXPR_STMT, expr(), NULL); // 式文
         expect(";");
         return node;
     }
@@ -890,7 +965,6 @@ Node *equality() {
 
 Node *relational() {
     Node *node = add();
-
     for (;;) {
         if (consume("<"))
             node = new_node(ND_LESS, node, add());
@@ -907,7 +981,6 @@ Node *relational() {
 
 Node *add() {
     Node *node = mul();
-
     for (;;) {
         if (consume("+")) {
             node = pointer_calc(ND_ADD, node, mul());
@@ -921,7 +994,6 @@ Node *add() {
 
 Node *mul() {
     Node *node = unary();
-
     for (;;) {
         if (consume("*"))
             node = new_node(ND_MUL, node, unary());
@@ -938,13 +1010,11 @@ Node *unary() {
         Type *type = find_type(operand);
         int size = get_size(type);
         return new_node_num(size);
-    }
-
-    if (consume("+"))
+    } else if (consume("+")) {
         return primary();
-    if (consume("-"))
+    } else if (consume("-")) {
         return new_node(ND_SUB, new_node_num(0), primary());
-    if (consume("*")) {
+    } else if (consume("*")) {
         int dereference_count = 1;
         while (consume("*")) {
             dereference_count++;
@@ -959,40 +1029,22 @@ Node *unary() {
             }
         }
         return operand;
-    }
-    if (consume("&")) {
+    } else if (consume("&")) {
         Node *operand = primary();
         return new_node(ND_ADDRESS, operand, NULL);
+    } else {
+        return primary();
     }
-    return primary();
 }
 
 Node *primary() {
     Token *tok = consume_ident();
     if (tok) {
         if (consume("(")) {
-            // 存在チェック
-            Declaration *declaration = find_function(tok->str, tok->len);
-            if (!declaration) {
-                error_at(tok->str, "関数が定義されていません");
-                exit(1);
-            }
             // 関数呼び出し
-            Node *node = calloc(1, sizeof(Node));
-            node->kind = ND_FUNC;
-            node->type = declaration->return_type;
-            if (!consume(")")) {
-                Node *last = node;
-                last->args = expr();
-                while (consume(",") && (last = last->args)) {
-                    last->args = expr();
-                }
-                expect(")");
-            }
-            node->name = tok->str;
-            node->len = tok->len;
-            return node;
+            return new_node_function_call(tok);
         } else {
+            // 変数
             Node *variable = new_node_variable(tok->str, tok->len);
             if (!variable) {
                 variable = new_node_variable_global(tok->str, tok->len);
@@ -1003,27 +1055,7 @@ Node *primary() {
 
     // 文字列リテラル
     if (token->kind == TK_STR_LITERAL) {
-        // Globalsに追加
-        Global *g = find_string_literal(token->str, token->len);
-        if (!g) {
-            char *const label = new_label();
-            const int label_length = (int) strlen(label);
-            g = calloc(1, sizeof(Global));
-            g->label = label;
-            g->label_length = label_length;
-            g->directive = _string;
-            g->target = calloc(1, sizeof(directive_target));
-            g->target->literal = token->str;
-            g->target->literal_length = token->len;
-            add_globals(g);
-        }
-
-        // ラベルを指すnodeを作る
-        Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
-        node->label = g->label;
-        node->label_length = g->label_length;
-        token = token->next;
-        return node;
+        return new_node_string_literal();
     }
 
     // 次のトークンが"("なら、"(" expr ")" または "({" stmt "})" または (a[0])[1], (*b)[1]
@@ -1055,27 +1087,4 @@ Node *primary() {
     // そうでなければ数値のはず
     Node *number = new_node_num(expect_number());
     return with_index(number);
-}
-
-Node *with_index(Node *left) {
-    if (left->kind == ND_INDEX) {
-        left->kind = ND_INDEX_CONTINUE;
-    }
-    while (consume("[")) {
-        left = new_node_array_index(left, expr(), true);
-        expect("]");
-    }
-    if (left->kind == ND_INDEX_CONTINUE) {
-        /*
-         * 配列は代入できないので、[]でのアクセスは連続していて、
-         * なので、ここで終端判定ができるはず
-         * （ポインタ変数には代入できるけど忘れていいはず）
-         *
-         * ただし、括弧は書けるので、括弧の中をパースした後にもう一度ここを通る場合がある
-         * (a[0])[1];
-         * その判定のために ND_DEREF ではなく ND_INDEX という別の種別を導入した
-         */
-        left->kind = ND_INDEX;
-    }
-    return left;
 }
