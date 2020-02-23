@@ -172,6 +172,14 @@ Token *tokenize(char *p) {
             p++;
             continue;
         }
+        if (start_with(p, "/*")) {
+            p += 2;
+            while (!start_with(p, "*/")) {
+                p++;
+            }
+            p += 2;
+            continue;
+        }
 
         static char *const SINGLE_QUOTE = "'";
         if (start_with(p, SINGLE_QUOTE)) {

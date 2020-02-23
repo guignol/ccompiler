@@ -147,7 +147,7 @@ int char_literal_4() {
 /////////////////////////////////////////////////
 
 // 13
-int char_pointer_of_array_1() {
+int char_array_and_pointer_1() {
     char a[4];
     char (*b)[4];
     b = &a;
@@ -156,7 +156,7 @@ int char_pointer_of_array_1() {
 }
 
 // 8
-int char_pointer_of_array_2() {
+int char_array_and_pointer_2() {
     char a[2][3];
     char (*b)[3];
     b = &a;
@@ -164,17 +164,20 @@ int char_pointer_of_array_2() {
     return a[1][2] + 3;
 }
 
-char chaa(char c) {
-    return c + 1;
+// 24
+int char_array_and_pointer_3() {
+    char *chapos[2] = {"abc", "def"};
+    printf("%s%s\n", chapos[0], chapos[1]);
+    return sizeof(chapos) /* 16 = 2(array size) * 8(pointer size) */
+           + sizeof(chapos[0]) /* 8(pointer size) */;
 }
 
-// 1
-int char_calculate_size() {
-    char c;
-    c = sizeof(c);
-    int i;
-    i = chaa(c);
-    return i - c;
+// 4
+int char_array_and_pointer_4() {
+    char *chapos[] = {"ab", "cd", "ef", "gh"};
+    int array_size = sizeof(chapos) /* 32 = 4(array size) * 8(pointer size) */
+                     / sizeof(*chapos);  /* 先頭要素 8(pointer size) */
+    return array_size;
 }
 
 // 3
@@ -518,6 +521,19 @@ int sizeof_7() {
     // 実際のCでは
     // sizeofの結果はsize_t型（8バイト）になる
     return sizeof(sizeof(1));
+}
+
+char chaa(char c) {
+    return c + 1;
+}
+
+// 1
+int sizeof_8() {
+    char c;
+    c = sizeof(c);
+    int i;
+    i = chaa(c);
+    return i - c;
 }
 
 /////////////////////////////////////////////////
@@ -961,9 +977,10 @@ int main() {
     assert(7, char_literal_3(), "char_literal_3");
     assert(9, char_literal_4(), "char_literal_4");
 
-    assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");
-    assert(8, char_pointer_of_array_2(), "char_pointer_of_array_2");
-    assert(1, char_calculate_size(), "char_calculate_size");
+    assert(13, char_array_and_pointer_1(), "char_array_and_pointer_1");
+    assert(8, char_array_and_pointer_2(), "char_array_and_pointer_2");
+    assert(24, char_array_and_pointer_3(), "char_array_and_pointer_3");
+    assert(4, char_array_and_pointer_4(), "char_array_and_pointer_4");
     assert(3, char_calculate_array(), "char_calculate_array");
 
     assert(5, global_variable_1(), "global_variable_1");
@@ -1003,6 +1020,7 @@ int main() {
     assert(4, sizeof_5(), "sizeof_5");
     assert(4, sizeof_6(), "sizeof_6");
     assert(4, sizeof_7(), "sizeof_7"); // ★
+    assert(1, sizeof_8(), "sizeof_8");
 
     assert(3, pointer_and_calculate_1(), "pointer_and_calculate_1");
     assert(2, pointer_and_calculate_2(), "pointer_and_calculate_2");

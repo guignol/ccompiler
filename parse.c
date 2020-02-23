@@ -208,8 +208,9 @@ bool at_eof() {
 //////////////////////////////////////////////////////////////////
 
 char *copy(char *str, int len) {
-    char *copied = malloc(sizeof(char *));
+    char *copied = malloc(sizeof(char) * len + 1);
     strncpy(copied, str, len);
+    copied[len] = '\0';
     return copied;
 }
 
@@ -510,8 +511,6 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
      * char msg[] = "foo";
      * char msg[10] = "foo";
      * char msg[3] = "message"; => initializer-string for array of chars is too long
-     * char *s1[2] = {"abc", "def"};
-     * char *s1[] = {"abc", "def"};
      * char s1[2][3] = {"abc", "def"};
      * char s1[][3] = {"abc", "def"};
      * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
@@ -521,6 +520,8 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
       char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
       char msg[4] = {'f', 'o', 'o', '\0'};
       char msg[] = {'f', 'o', 'o', '\0'};
+      char *s1[2] = {"abc", "def"};
+      char *s1[] = {"abc", "def"};
       TODO C99にはさらに色々ある
        https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
      */
@@ -715,7 +716,7 @@ Node **function_body() {
             // この数が100まで、なので、Node自体は100を超えても大丈夫
             body[i++] = stmt();
         }
-        // ただし、これが79になる関数がテストコード内にある
+        // ただし、これが83になる関数がテストコード内にある
 //        printf("# FUNCTION TOP LEVEL Node: %d\n", i + 1);
 
         body[i] = NULL;
