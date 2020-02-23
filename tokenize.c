@@ -45,6 +45,25 @@ void error_at(const char *loc, const char *fmt, ...) {
     va_end(ap);
 }
 
+bool warning = false;
+
+void warn_at(const char *loc, const char *fmt, ...) {
+    if (!warning) {
+        return;
+    }
+
+    va_list ap;
+    va_start(ap, fmt);
+
+    // エラー箇所を"^"で指し示して、エラーメッセージを表示
+    int pos = print_with_line_number(loc);
+    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+    fprintf(stderr, "^ ");
+    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
+    va_end(ap);
+}
+
 bool start_with(const char *p, const char *str) {
     return strncmp(p, str, strlen(str)) == 0;
 }
@@ -104,6 +123,33 @@ int reserved(const char *p) {
     return 0;
 }
 
+char escaped(char *p) {
+    char c = *p;
+    switch (c) {
+        case 'a':
+            return '\a';
+        case 'b':
+            return '\b';
+        case 't':
+            return '\t';
+        case 'n':
+            return '\n';
+        case 'v':
+            return '\v';
+        case 'f':
+            return '\f';
+        case 'r':
+            return '\r';
+        case 'e':
+            return 27;
+        case '0':
+            return '\0';
+        default:
+            warn_at(p, "Unknown escape sequence: \\%c", c);
+            return c;
+    }
+}
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p) {
     user_input = p;
@@ -129,19 +175,28 @@ Token *tokenize(char *p) {
 
         static char *const SINGLE_QUOTE = "'";
         if (start_with(p, SINGLE_QUOTE)) {
-            p++;
-            // TODO とりあえず英数字（とアンダースコア）
-            if (is_alnum(*p)) {
-                while (!start_with(p + 1, SINGLE_QUOTE)) {
-                    // TODO パーサでwarning
-                    p++;
-                }
-                cur = new_token(TK_CHAR_LITERAL, cur, p, 1);
+            char *const start = ++p;
+            while (!start_with(p + 1, SINGLE_QUOTE)) {
+                p++;
+            }
+            const int length = (int) (p - start) + 1;
+            cur = new_token(TK_CHAR_LITERAL, cur, start, length);
+            if (1 < length && *(p - 1) == '\\') {
+                cur->val = escaped(p);
                 p++; // 文字の分
                 p++; // クオートの分
                 continue;
             }
-            error_at(p, "現在charとして使えるのは英数字と'_'のみです");
+            if (is_alnum(*p)) {
+                if (1 < length) {
+                    // TODO warning
+                }
+                cur->val = *p;
+                p++; // 文字の分
+                p++; // クオートの分
+                continue;
+            }
+            error_at(p, "charとして使えない文字です？");
             exit(1);
         }
 

@@ -102,6 +102,7 @@ int string_literal_japanese() {
     return 9;
 }
 
+// 3
 int string_literal_ascii() {
     char *moji;
     moji = "moji\ndesu\nne\n";
@@ -122,8 +123,25 @@ int char_literal_1() {
 // 6
 int char_literal_2() {
     char msg[4] = {'f', 'o', 'o', '_'};
+    // foo_ == foo_
     printf("foo_ == %.*s\n", 4, msg);
     return sizeof(msg) + 2;
+}
+
+// 7
+int char_literal_3() {
+    char msg[4] = {'f', 'qo', '\o', 'qwe\0'};
+    // foo == foo
+    printf("foo == %s\n", msg);
+    return sizeof(msg) + 3;
+}
+
+// 9
+int char_literal_4() {
+    char msg[] = {'b', 'o', 'o', '\0'};
+    // boo == boo
+    printf("boo == %s\n", msg);
+    return sizeof(msg) + 5;
 }
 
 /////////////////////////////////////////////////
@@ -940,6 +958,8 @@ int main() {
     assert(3, string_literal_ascii(), "string_literal_ascii");
     assert(5, char_literal_1(), "char_literal_1");
     assert(6, char_literal_2(), "char_literal_2");
+    assert(7, char_literal_3(), "char_literal_3");
+    assert(9, char_literal_4(), "char_literal_4");
 
     assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");
     assert(8, char_pointer_of_array_2(), "char_pointer_of_array_2");

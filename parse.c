@@ -452,17 +452,14 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
 Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     Type *const left_type = find_type(lhs);
     Type *const right_type = find_type(rhs);
-    static const bool warning = false;
     // コンパイラで生成しているnew_node_num(0)もあるはずだが、
     // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
     // （0リテラル、配列の0パディング）
     bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
     switch (are_assignable_type(left_type, right_type, rZero)) {
         case AS_INCOMPATIBLE:
-            if (warning) {
-                error_at(loc, "warning: 代入式の左右の型が異なります。");
-                warn_incompatible_type(left_type, right_type);
-            }
+            warn_at(loc, "warning: 代入式の左右の型が異なります。");
+            warn_incompatible_type(left_type, right_type);
         case AS_SAME:
             return new_node(ND_ASSIGN, lhs, rhs);
         case CANNOT_ASSIGN:
@@ -513,8 +510,6 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
      * char msg[] = "foo";
      * char msg[10] = "foo";
      * char msg[3] = "message"; => initializer-string for array of chars is too long
-     * char msg[4] = {'f', 'o', 'o', '\0'};
-     * char msg[] = {'f', 'o', 'o', '\0'};
      * char *s1[2] = {"abc", "def"};
      * char *s1[] = {"abc", "def"};
      * char s1[2][3] = {"abc", "def"};
@@ -524,6 +519,8 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
       int array[4] = {0, 1, 2};
       int array[] = {0, 1, 2, 3};
       char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
+      char msg[4] = {'f', 'o', 'o', '\0'};
+      char msg[] = {'f', 'o', 'o', '\0'};
       TODO C99にはさらに色々ある
        https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
      */
@@ -1068,7 +1065,7 @@ Node *primary() {
     }
     // 文字リテラル
     if (token->kind == TK_CHAR_LITERAL) {
-        const char c = *token->str;
+        const int c = token->val;
         token = token->next;
         return new_node_num(c);
     }

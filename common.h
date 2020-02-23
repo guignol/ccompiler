@@ -10,6 +10,10 @@ void error(const char *fmt, ...);
 
 void error_at(const char *loc, const char *fmt, ...);
 
+void warn_at(const char *loc, const char *fmt, ...);
+
+extern bool warning;
+
 // トークンの種類
 typedef enum {
     TK_RESERVED,    // 記号

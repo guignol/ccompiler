@@ -379,6 +379,10 @@ void print_type(FILE *__stream, Type *type) {
 }
 
 void warn_incompatible_type(Type *left, Type *right) {
+    if (!warning) {
+        return;
+    }
+
     // TODO GCCの結果と比べる
     // warning: assignment to '左辺の型' from incompatible pointer type '右辺の型'
     fprintf(stderr, "@@@ ");
