@@ -120,7 +120,7 @@ void gen(Node *node) {
                 // RAX is set to 0 for variadic function.
                 int seq = labelseq++;
                 printf("  mov rax, rsp\n");
-                printf("  and rax, 15\n");
+                printf("  and rax, 0xF\n");
                 printf("  jnz .Lcall%d\n", seq);
                 printf("  mov rax, 0\n");
                 printf("  call %.*s\n", node->len, node->name);

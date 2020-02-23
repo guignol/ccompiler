@@ -119,6 +119,13 @@ int char_literal_1() {
     return 'F' - a;
 }
 
+// 6
+int char_literal_2() {
+    char msg[4] = {'f', 'o', 'o', '_'};
+    printf("foo_ == %.*s\n", 4, msg);
+    return sizeof(msg) + 2;
+}
+
 /////////////////////////////////////////////////
 
 // 13
@@ -932,6 +939,7 @@ int main() {
     assert(9, string_literal_japanese(), "string_literal_japanese");
     assert(3, string_literal_ascii(), "string_literal_ascii");
     assert(5, char_literal_1(), "char_literal_1");
+    assert(6, char_literal_2(), "char_literal_2");
 
     assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");
     assert(8, char_pointer_of_array_2(), "char_pointer_of_array_2");
