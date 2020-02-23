@@ -109,6 +109,16 @@ int string_literal_ascii() {
     return 3;
 }
 
+// 5
+int char_literal_1() {
+    char a = 65;
+    char b = 'B';
+    char c = 'ac';
+    // A, B, C
+    printf("%c, %c, %c\n", a, b, c - 32);
+    return 'F' - a;
+}
+
 /////////////////////////////////////////////////
 
 // 13
@@ -206,7 +216,7 @@ int write_stack_4() {
 
 int zero_stack_4() {
     // 4つめはゼロ埋めされる
-    int x[4] = {0, 1, 2, };
+    int x[4] = {0, 1, 2,};
     return x[3];
 }
 
@@ -921,6 +931,8 @@ int main() {
     assert(4, string_global(), "string_global");
     assert(9, string_literal_japanese(), "string_literal_japanese");
     assert(3, string_literal_ascii(), "string_literal_ascii");
+    assert(5, char_literal_1(), "char_literal_1");
+
     assert(13, char_pointer_of_array_1(), "char_pointer_of_array_1");
     assert(8, char_pointer_of_array_2(), "char_pointer_of_array_2");
     assert(1, char_calculate_size(), "char_calculate_size");

@@ -1057,6 +1057,12 @@ Node *primary() {
     if (token->kind == TK_STR_LITERAL) {
         return new_node_string_literal();
     }
+    // 文字リテラル
+    if (token->kind == TK_CHAR_LITERAL) {
+        const char c = *token->str;
+        token = token->next;
+        return new_node_num(c);
+    }
 
     // 次のトークンが"("なら、"(" expr ")" または "({" stmt "})" または (a[0])[1], (*b)[1]
     if (consume("(")) {

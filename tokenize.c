@@ -127,7 +127,25 @@ Token *tokenize(char *p) {
             continue;
         }
 
-        char *const DOUBLE_QUOTE = "\"";
+        static char *const SINGLE_QUOTE = "'";
+        if (start_with(p, SINGLE_QUOTE)) {
+            p++;
+            // TODO とりあえず英数字（とアンダースコア）
+            if (is_alnum(*p)) {
+                while (!start_with(p + 1, SINGLE_QUOTE)) {
+                    // TODO パーサでwarning
+                    p++;
+                }
+                cur = new_token(TK_CHAR_LITERAL, cur, p, 1);
+                p++; // 文字の分
+                p++; // クオートの分
+                continue;
+            }
+            error_at(p, "現在charとして使えるのは英数字と'_'のみです");
+            exit(1);
+        }
+
+        static char *const DOUBLE_QUOTE = "\"";
         if (start_with(p, DOUBLE_QUOTE)) {
             p++;
             char *start = p;

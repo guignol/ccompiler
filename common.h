@@ -14,6 +14,7 @@ void error_at(const char *loc, const char *fmt, ...);
 typedef enum {
     TK_RESERVED,    // 記号
     TK_IDENT,       // 識別子
+    TK_CHAR_LITERAL, // 文字
     TK_STR_LITERAL, // 文字列
     TK_NUM,         // 整数トークン
     TK_EOF,         // 入力の終わりを表すトークン
