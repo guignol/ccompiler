@@ -8,6 +8,7 @@ include_directories(.)
 add_executable(ccompiler
         common.h
         codegen.c
+        container.c
         main.c
         parse.c
         tokenize.c

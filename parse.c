@@ -508,11 +508,9 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
     const bool undefined_size = type->array_size == 0;
     /*
       TODO 配列の初期化時のみ可能な式がいくつか
-     * char msg[] = "foo";
-     * char msg[10] = "foo";
-     * char msg[3] = "message"; => initializer-string for array of chars is too long
      * char s1[2][3] = {"abc", "def"};
      * char s1[][3] = {"abc", "def"};
+     * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
      * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
       int array[4] = {0, 1, 2, 3};
       int array[4] = {0, 1, 2};
@@ -522,9 +520,16 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
       char msg[] = {'f', 'o', 'o', '\0'};
       char *s1[2] = {"abc", "def"};
       char *s1[] = {"abc", "def"};
+      char msg[] = "foo";
+      char msg[10] = "foo";
+     * char msg[3] = "message"; => initializer-string for array of chars is too long
       TODO C99にはさらに色々ある
        https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
      */
+    Node *const node = calloc(1, sizeof(Node));
+    node->kind = ND_BLOCK;
+    Node *last = node;
+    int element_count = 0;
     if (consume("{")) {
         /*
           int x[] = {1, 2, foo()};
@@ -538,24 +543,20 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
             x[2] = foo();
           }
          */
-        Node *const node = calloc(1, sizeof(Node));
-        node->kind = ND_BLOCK;
-        Node *last = node;
-        int element_count = 0;
         do {
             // 配列に各要素を代入
             const int index = element_count++;
-            if (!undefined_size && type->array_size < index) {
-                error_at(token->str, "変数のサイズより大きい配列を入れようとしています。");
-                exit(1);
+            if (!undefined_size && type->array_size <= index) {
+                warn_at(token->str, "excess elements in array initializer");
+                break;
             }
             Node *const indexed = new_node_array_index(array, new_node_num(index), false);
             char *loc = token->str;
             last = last->statement = new_node_assign(loc, indexed, expr());
             consume(","); // 末尾に残ってもOK
         } while (!consume("}"));
+        // サイズを明示していない配列のサイズを決定する
         if (undefined_size) {
-            // サイズを明示していない配列のサイズを決定する
             array->type->array_size = element_count;
             return node;
         }
@@ -567,12 +568,40 @@ Node *new_node_array_initializer(Node *const array, Type *const type) {
             char *loc = token->str;
             last = last->statement = new_node_assign(loc, indexed, zero);
         }
-        return node;
+    } else if (token->kind == TK_STR_LITERAL) {
+        // 文字列リテラル
+        do {
+            // 配列に各要素を代入
+            const int index = element_count++;
+            if (!undefined_size && type->array_size <= index) {
+                warn_at(token->str, "initializer-string for array of chars is too long");
+                break;
+            }
+            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
+            char *loc = token->str; // 実際にはTokenを消費しない
+            Node *const char_node = new_node_num(token->str[index]);
+            last = last->statement = new_node_assign(loc, indexed, char_node);
+        } while (element_count < token->len);
+        // サイズを明示していない配列のサイズを決定する
+        if (undefined_size) {
+            array->type->array_size = element_count;
+            token = token->next;
+            return node;
+        }
+        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
+        Node *const zero = new_node_num(0);
+        while (element_count < type->array_size) {
+            const int index = element_count++;
+            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
+            char *loc = token->str;
+            last = last->statement = new_node_assign(loc, indexed, zero);
+        }
+        token = token->next;
     } else {
-        // TODO 文字列リテラルのみ？
-        char *loc = token->str;
-        return new_node_assign(loc, array, assign());
+        error_at(token->str, "初期化式の右辺が不正です？");
+        exit(1);
     }
+    return node;
 }
 
 //////////////////////////////////////////////////////////////////
@@ -836,6 +865,8 @@ Node *variable_declaration(Type *base) {
         if (!size_token) {
             // 初期化式では右辺からサイズを決定できる
             // 配列の配列ではできないはずなのでここでbreakする
+            // TODO 配列の配列も初期化可能
+            //  https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96
             undefined_size_array = true;
             type = create_array_type(type, 0);
             expect("]");

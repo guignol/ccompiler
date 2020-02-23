@@ -45,6 +45,7 @@ void error_at(const char *loc, const char *fmt, ...) {
     va_end(ap);
 }
 
+// TODO
 bool warning = false;
 
 void warn_at(const char *loc, const char *fmt, ...) {

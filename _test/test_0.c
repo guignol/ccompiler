@@ -110,6 +110,30 @@ int string_literal_ascii() {
     return 3;
 }
 
+// 110
+int string_literal_char_array_1() {
+    char moji[4] = "moji"; // => 警告なし
+    return sizeof(moji) / sizeof(*moji) + moji[2];
+}
+
+// 0
+int string_literal_char_array_2() {
+    char moji[10] = "moji"; // => 0終端
+    return moji[4];
+}
+
+// 106
+int string_literal_char_array_3() {
+    char moji[3] = "moji"; // => 警告あり
+    return moji[2];
+}
+
+// 4
+int string_literal_char_array_4() {
+    char moji[] = "moji"; // => 0終端
+    return sizeof(moji) / sizeof(*moji);
+}
+
 // 5
 int char_literal_1() {
     char a = 65;
@@ -178,6 +202,65 @@ int char_array_and_pointer_4() {
     int array_size = sizeof(chapos) /* 32 = 4(array size) * 8(pointer size) */
                      / sizeof(*chapos);  /* 先頭要素 8(pointer size) */
     return array_size;
+}
+
+// 3
+int char_array_and_pointer_5() {
+//    char charata[2][3][4] = {
+//            {
+//                    {1, 2, 3, 4},
+//                    {1, 2},
+//                    {1, 2},
+//            },
+//            {
+//                    {1, 2},
+//                    {1, 2},
+//                    {1, 2},
+//            },
+//    };
+    // TODO [2][3]だとprintfが変になるはず
+//    char charara[2][4] = {"abc", "def"};
+    /*
+     * 0: pointer  (1 * 8 byte)
+     * 1: pointer
+     *
+     * ↑ではなく
+     * ↓型と現実
+     *
+     * 0: char char char (3 * 1 byte)
+     * 1: char char char
+     *     *
+     * ↓ x86-64 gcc 9.1以降（これに近い方式を採用する）
+     *
+     *   sub rsp, 16
+     *   mov WORD PTR [rbp-6], 25185
+     *   mov BYTE PTR [rbp-4], 99
+     *   mov WORD PTR [rbp-3], 25956
+     *   mov BYTE PTR [rbp-1], 102
+     *
+     * ↓ x86-64 gcc 4.7.4以前
+     *
+     *   sub rsp, 16
+     *   mov WORD PTR [rbp-16], 25185
+     *   mov BYTE PTR [rbp-14], 99
+     *   mov WORD PTR [rbp-13], 25956
+     *   mov BYTE PTR [rbp-11], 102
+     *
+     * ↓ その他のgcc
+     *
+     * .LC0:
+     *   .ascii "abc"
+     *   .ascii "def"
+     * ---------------
+     *   sub rsp, 16
+     *   mov eax, DWORD PTR .LC0[rip]
+     *   mov DWORD PTR [rbp-6], eax
+     *   movzx eax, WORD PTR .LC0[rip+4]
+     *   mov WORD PTR [rbp-2], ax
+     *
+     */
+//    printf("%s%s\n", charara[0], charara[1]);
+    return 3;
 }
 
 // 3
@@ -266,6 +349,14 @@ int array_initialize_3() {
     int b = 1;
     int *array[5] = {0, a, &a, &b};
     return *array[2] + *array[3];
+}
+
+//
+int array_initialize_4() {
+    // TODO
+//    int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
+
+    return 1;
 }
 
 /////////////////////////////////////////////////
@@ -972,6 +1063,11 @@ int main() {
     assert(4, string_global(), "string_global");
     assert(9, string_literal_japanese(), "string_literal_japanese");
     assert(3, string_literal_ascii(), "string_literal_ascii");
+    assert(110, string_literal_char_array_1(), "string_literal_char_array_1");
+    assert(0, string_literal_char_array_2(), "string_literal_char_array_2");
+    assert(106, string_literal_char_array_3(), "string_literal_char_array_3");
+    assert(4, string_literal_char_array_4(), "string_literal_char_array_4");
+
     assert(5, char_literal_1(), "char_literal_1");
     assert(6, char_literal_2(), "char_literal_2");
     assert(7, char_literal_3(), "char_literal_3");
@@ -981,6 +1077,7 @@ int main() {
     assert(8, char_array_and_pointer_2(), "char_array_and_pointer_2");
     assert(24, char_array_and_pointer_3(), "char_array_and_pointer_3");
     assert(4, char_array_and_pointer_4(), "char_array_and_pointer_4");
+//    assert(3, char_array_and_pointer_5(), "char_array_and_pointer_5");
     assert(3, char_calculate_array(), "char_calculate_array");
 
     assert(5, global_variable_1(), "global_variable_1");
@@ -1060,6 +1157,8 @@ int main() {
     assert(6, block_9(), "block_9");
 
     assert_others();
+
+    printf("=========== ============= ============\n");
 
     return 0;
 }

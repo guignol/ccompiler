@@ -269,3 +269,11 @@ struct Global {
 
     Global *next;
 };
+
+/////////////////////////////////////////////////
+
+typedef struct Container Container;
+
+int push_int(Container *c, int element);
+
+int push_char(Container *c, char element);
