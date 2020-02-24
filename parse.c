@@ -69,6 +69,36 @@ void add_globals(Global *next) {
 
 /////////////////////////
 
+typedef struct NodeArray NodeArray;
+struct NodeArray {
+    Node **memory;
+    int count;
+    int capacity;
+};
+
+NodeArray *create_node_array(int capacity) {
+    if (capacity < 1) {
+        capacity = 10;
+    }
+    NodeArray *array = malloc(sizeof(NodeArray));
+    array->memory = malloc(sizeof(Node *) * capacity);
+    array->count = 0;
+    array->capacity = capacity;
+    return array;
+}
+
+NodeArray *push_node(NodeArray *array, Node *node) {
+    if (array->count == array->capacity) {
+        array->memory = realloc(array->memory, sizeof(Node *) * array->capacity * 2);
+        array->capacity *= 2;
+    }
+    array->memory[array->count] = node;
+    array->count++;
+    return array;
+}
+
+/////////////////////////
+
 // program    = (function | global_var)*
 // global_var = decl_b ";"
 // function   = decl_a "(" decl_a? ("," decl_a)* ")" { stmt* }
@@ -503,107 +533,6 @@ Node *with_index(Node *left) {
     return left;
 }
 
-Node *new_node_array_initializer(Node *const array, Type *const type) {
-    // 配列サイズが明示されていない場合
-    const bool undefined_size = type->array_size == 0;
-    /*
-      TODO 配列の初期化時のみ可能な式がいくつか
-     * char s1[2][3] = {"abc", "def"};
-     * char s1[][3] = {"abc", "def"};
-     * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
-     * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
-      int array[4] = {0, 1, 2, 3};
-      int array[4] = {0, 1, 2};
-      int array[] = {0, 1, 2, 3};
-      char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
-      char msg[4] = {'f', 'o', 'o', '\0'};
-      char msg[] = {'f', 'o', 'o', '\0'};
-      char *s1[2] = {"abc", "def"};
-      char *s1[] = {"abc", "def"};
-      char msg[] = "foo";
-      char msg[10] = "foo";
-     * char msg[3] = "message"; => initializer-string for array of chars is too long
-      TODO C99にはさらに色々ある
-       https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
-     */
-    Node *const node = calloc(1, sizeof(Node));
-    node->kind = ND_BLOCK;
-    Node *last = node;
-    int element_count = 0;
-    if (consume("{")) {
-        /*
-          int x[] = {1, 2, foo()};
-          ↓ ↓　↓　↓
-          ブロックでまとめる
-          ↓ ↓　↓　↓
-          int x[3];
-          {
-            x[0] = 1;
-            x[1] = 2;
-            x[2] = foo();
-          }
-         */
-        do {
-            // 配列に各要素を代入
-            const int index = element_count++;
-            if (!undefined_size && type->array_size <= index) {
-                warn_at(token->str, "excess elements in array initializer");
-                break;
-            }
-            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
-            char *loc = token->str;
-            last = last->statement = new_node_assign(loc, indexed, expr());
-            consume(","); // 末尾に残ってもOK
-        } while (!consume("}"));
-        // サイズを明示していない配列のサイズを決定する
-        if (undefined_size) {
-            array->type->array_size = element_count;
-            return node;
-        }
-        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
-        Node *const zero = new_node_num(0);
-        while (element_count < type->array_size) {
-            const int index = element_count++;
-            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
-            char *loc = token->str;
-            last = last->statement = new_node_assign(loc, indexed, zero);
-        }
-    } else if (token->kind == TK_STR_LITERAL) {
-        // 文字列リテラル
-        do {
-            // 配列に各要素を代入
-            const int index = element_count++;
-            if (!undefined_size && type->array_size <= index) {
-                warn_at(token->str, "initializer-string for array of chars is too long");
-                break;
-            }
-            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
-            char *loc = token->str; // 実際にはTokenを消費しない
-            Node *const char_node = new_node_num(token->str[index]);
-            last = last->statement = new_node_assign(loc, indexed, char_node);
-        } while (element_count < token->len);
-        // サイズを明示していない配列のサイズを決定する
-        if (undefined_size) {
-            array->type->array_size = element_count;
-            token = token->next;
-            return node;
-        }
-        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
-        Node *const zero = new_node_num(0);
-        while (element_count < type->array_size) {
-            const int index = element_count++;
-            Node *const indexed = new_node_array_index(array, new_node_num(index), false);
-            char *loc = token->str;
-            last = last->statement = new_node_assign(loc, indexed, zero);
-        }
-        token = token->next;
-    } else {
-        error_at(token->str, "初期化式の右辺が不正です？");
-        exit(1);
-    }
-    return node;
-}
-
 //////////////////////////////////////////////////////////////////
 
 struct Program *parse(Token *tok) {
@@ -808,6 +737,120 @@ Node *block_statement(void) {
     return node;
 }
 
+void visit_array_initializer(NodeArray *array, Type *type) {
+    /*
+      TODO 配列の初期化時のみ可能な式がいくつか
+     * char s1[2][3] = {"abc", "def"};
+     * char s1[][3] = {"abc", "def"};
+     * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
+     * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
+      int array[4] = {0, 1, 2, 3};
+      int array[4] = {0, 1, 2};
+      int array[] = {0, 1, 2, 3};
+      char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
+      char msg[4] = {'f', 'o', 'o', '\0'};
+      char msg[] = {'f', 'o', 'o', '\0'};
+      char *s1[2] = {"abc", "def"};
+      char *s1[] = {"abc", "def"};
+      char msg[] = "foo";
+      char msg[10] = "foo";
+     * char msg[3] = "message"; => initializer-string for array of chars is too long
+      TODO C99にはさらに色々ある
+       https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
+     */
+    // TODO 明示されてなくて良いのは最初のみ。再帰するので、最初の呼び出し元でチェックしておく
+    // 配列サイズが明示されていない場合
+    const bool undefined_size = type->array_size == 0;
+    if (consume("{")) {
+        if (type->ty != TYPE_ARRAY) {
+            error_at(token->str, "配列の初期化式ではありません？");
+            exit(1);
+        }
+        int index = 0;
+        do {
+            if (!undefined_size && type->array_size <= index) {
+                warn_at(token->str, "excess elements in array initializer");
+                break;
+            }
+            visit_array_initializer(array, type->point_to);
+            consume(","); // 末尾に残ってもOK
+            index++;
+        } while (!consume("}"));
+        if (undefined_size) {
+            // サイズを明示していない配列のサイズを決定する
+            type->array_size = index;
+        }
+        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
+        while (index < type->array_size) {
+            push_node(array, new_node_num(0));
+            index++;
+        }
+    } else if (token->kind == TK_STR_LITERAL && type->ty == TYPE_ARRAY) {
+        int index = 0;
+        for (; index < token->len; index++) {
+            if (!undefined_size && type->array_size <= index) {
+                warn_at(token->str, "initializer-string for array of chars is too long");
+                break;
+            }
+            char c = token->str[index];
+            Node *const node = new_node_num(c);
+            push_node(array, node);
+        }
+        if (undefined_size) {
+            // サイズを明示していない配列のサイズを決定する
+            type->array_size = index;
+        }
+        // 初期化式の要素数が配列のサイズより小さい場合、0で埋める。
+        while (index < type->array_size) {
+            push_node(array, new_node_num(0));
+            index++;
+        }
+        token = token->next;
+    } else {
+        Node *const node = expr();
+        push_node(array, node);
+    }
+}
+
+Node *array_initializer(Node *const array_variable, Type *const type) {
+    int capacity = get_element_count(type);
+    NodeArray *nodeArray = create_node_array(capacity);
+    visit_array_initializer(nodeArray, type);
+
+    // ポインター型への変換 TODO コピーを作る？
+    Type *base = type->point_to;
+    while (base->ty == TYPE_ARRAY) {
+        base = base->point_to;
+    }
+    array_variable->type = create_pointer_type(base);
+    Node *pointer = array_variable;
+
+    /*
+      int x[] = {1, 2, foo()};
+      ↓ ↓　↓　↓
+      ブロックでまとめる
+      ↓ ↓　↓　↓
+      int x[3];
+      {
+        x[0] = 1;
+        x[1] = 2;
+        x[2] = foo();
+      }
+     */
+    Node *const block = calloc(1, sizeof(Node));
+    block->kind = ND_BLOCK;
+    Node *last = block;
+    for (int i = 0; i < nodeArray->count; ++i) {
+        Node *n = nodeArray->memory[i];
+        Node *const indexed = new_node_array_index(pointer, new_node_num(i), false);
+        char *loc = token->str; // TODO
+        last = last->statement = new_node_assign(loc, indexed, n);
+    }
+    // 型を戻す
+    array_variable->type = type;
+    return block;
+}
+
 Node *variable_declaration(Type *base) {
     if (base->ty == TYPE_VOID) {
         error_at(token->str, "変数にvoidは使えません");
@@ -886,17 +929,18 @@ Node *variable_declaration(Type *base) {
     }
     // 変数の登録（RBPへのオフセットが決定しない場合がある）
     Variable *const variable = register_variable(t->str, t->len, type);
-    Node *node;
     if (consume("=")) {
         Node *const variable_node = new_node_variable(t->str, t->len);
         if (type->ty == TYPE_ARRAY) {
             // 配列の初期化
-            node = new_node_array_initializer(variable_node, type);
+            Node *node = array_initializer(variable_node, type);
             if (undefined_size_array) {
                 // 配列のサイズが決まってからオフセットを再設定する
                 variable->offset = stack_size = stack_size + get_size(type);
                 variable_node->offset = variable->offset;
             }
+            expect(";");
+            return node;
         } else {
             if (backwards_pointer && undefined_size_array) {
                 // TODO
@@ -905,12 +949,12 @@ Node *variable_declaration(Type *base) {
                 // int (*pointer)[] = &array;
             }
             char *loc = token->str;
-            node = new_node_assign(loc, variable_node, assign());
+            Node *node = new_node_assign(loc, variable_node, assign());
+            expect(";");
+            return node;
         }
-        expect(";");
-        return node;
     } else {
-        node = new_node(ND_NOTHING, NULL, NULL);
+        Node *node = new_node(ND_NOTHING, NULL, NULL);
         expect(";");
         return node;
     }

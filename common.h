@@ -162,6 +162,8 @@ int get_weight(Node *node);
 
 int get_size(Type *type);
 
+int get_element_count(Type *type);
+
 void print_type(FILE *__stream, Type *type);
 
 void warn_incompatible_type(Type *left, Type *right);
@@ -269,11 +271,3 @@ struct Global {
 
     Global *next;
 };
-
-/////////////////////////////////////////////////
-
-typedef struct Container Container;
-
-int push_int(Container *c, int element);
-
-int push_char(Container *c, char element);

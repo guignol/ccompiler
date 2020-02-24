@@ -298,6 +298,22 @@ int get_size(Type *type) {
     }
 }
 
+int get_element_count(Type *type) {
+    if (!type) {
+        error("型が分かりません？\n");
+        exit(1);
+    }
+    switch (type->ty) {
+        case TYPE_VOID:
+        case TYPE_CHAR:
+        case TYPE_INT:
+        case TYPE_POINTER:
+            return 1;
+        case TYPE_ARRAY:
+            return (int) type->array_size * get_element_count(type->point_to);
+    }
+}
+
 /////////////////////////////////////////////////
 
 Type *printing = NULL;
