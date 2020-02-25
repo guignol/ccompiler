@@ -826,9 +826,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
 }
 
 /*
-  TODO 配列の初期化時のみ可能な式がいくつか
- * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
- * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
+  配列の初期化時のみ可能な式がいくつか
   int array[4] = {0, 1, 2, 3};
   int array[4] = {0, 1, 2};
   int array[] = {0, 1, 2, 3};
@@ -842,6 +840,8 @@ void visit_array_initializer(NodeArray *array, Type *type) {
   char msg[3] = "message"; => initializer-string for array of chars is too long
   char s1[2][3] = {"abc", "def"};
   char s1[][3] = {"abc", "def"};
+  int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
+  int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
   TODO C99にはさらに色々ある
    https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
  */

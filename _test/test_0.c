@@ -243,6 +243,7 @@ int char_array_and_pointer_7() {
     return sizeof(charara);
 }
 
+// 33
 int char_array_and_pointer_8() {
     int charata[2][3][4] = {
             {
@@ -267,6 +268,16 @@ int char_array_and_pointer_8() {
         }
     }
     return 33;
+}
+
+// 21
+int char_array_and_pointer_9() {
+    int a = 0;
+    int array[][2] = {{1, 2}, {3, 4}, {5, 6}};
+    for (int i = 0; i < sizeof(array) / sizeof(a); i = i + 1) {
+        a = a + array[0][i];
+    }
+    return a;
 }
 
 // 3
@@ -1087,6 +1098,7 @@ int main() {
     assert("char_array_and_pointer_6", 5, char_array_and_pointer_6());
     assert("char_array_and_pointer_7", 8, char_array_and_pointer_7());
     assert("char_array_and_pointer_8", 33, char_array_and_pointer_8());
+    assert("char_array_and_pointer_9", 21, char_array_and_pointer_9());
     assert("char_calculate_array", 3, char_calculate_array());
 
     assert("global_variable_1", 5, global_variable_1());
