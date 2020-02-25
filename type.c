@@ -222,9 +222,7 @@ Type *find_type(const Node *node) {
                 return create_pointer_type(operand_type);
             }
             case ND_DEREF:
-            case ND_DEREF_ARRAY_POINTER:
-            case ND_INDEX:
-            case ND_INDEX_CONTINUE: {
+            case ND_DEREF_ARRAY_POINTER: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提
                 Type *type = find_type(node->lhs);
                 switch (type->ty) {

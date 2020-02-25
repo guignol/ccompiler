@@ -61,16 +61,19 @@ typedef enum {
     ND_VARIABLE,    // ローカル変数
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
-    ND_DEREF,       // *a
+    /*
+     * int a;
+     * *a;
+     *
+     * int a[1][2];
+     * a[0][1]
+     *      ↑
+     */
+    ND_DEREF,
     /*
      * int (*b)[2];
      * (*b)[1] = 1;
      *   ↑
-     */
-    ND_DEREF_ARRAY_POINTER, // *a
-    ND_INDEX, // a[0][1]
-    /*
-     * 配列の配列の場合
      *
      * int a[2][3];
      * a[1][2] = 1;
@@ -79,10 +82,8 @@ typedef enum {
      * *(( *(a          + 1     ) ) + 2    ) = 1;
      * *((  ([RBP - 24] + 1 * 12) ) + 2 * 4) = 1;
      * 途中はデリファレンスせずにそのままポインタの足し算になる
-     * ただし、型チェックのためASTにはデリファレンスであることを示す必要がある
-     *
      */
-    ND_INDEX_CONTINUE, // a[0][1]
+    ND_DEREF_ARRAY_POINTER, // *a
     ND_ASSIGN,      // =
     ND_NOTHING,      // 変数宣言（初期化なし）
 } NodeKind;

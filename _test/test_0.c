@@ -218,8 +218,6 @@ int char_array_and_pointer_5() {
 //                    {1, 2},
 //            },
 //    };
-    // TODO [2][3]だとprintfが変になるはず
-//    char charara[2][4] = {"abc", "def"};
     /*
      * 0: pointer  (1 * 8 byte)
      * 1: pointer
@@ -259,7 +257,11 @@ int char_array_and_pointer_5() {
      *   mov WORD PTR [rbp-2], ax
      *
      */
-//    printf("%s%s\n", charara[0], charara[1]);
+    // TODO [2][3]だとprintfが変になるはず
+    char charara[2][4] = {"abc", "def"};
+    char *s1 = charara[0];
+    char *s2 = charara[1];
+    printf("%s%s\n", s1, s2);
     return 3;
 }
 
@@ -1077,7 +1079,7 @@ int main() {
     assert(8, char_array_and_pointer_2(), "char_array_and_pointer_2");
     assert(24, char_array_and_pointer_3(), "char_array_and_pointer_3");
     assert(4, char_array_and_pointer_4(), "char_array_and_pointer_4");
-//    assert(3, char_array_and_pointer_5(), "char_array_and_pointer_5");
+    assert(3, char_array_and_pointer_5(), "char_array_and_pointer_5");
     assert(3, char_calculate_array(), "char_calculate_array");
 
     assert(5, global_variable_1(), "global_variable_1");

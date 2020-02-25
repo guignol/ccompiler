@@ -499,7 +499,7 @@ Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     }
 }
 
-Node *new_node_array_index(Node *const left, Node *const right, const bool continued) {
+Node *new_node_array_index(Node *const left, Node *const right, const NodeKind kind) {
     // int a[2];
     // a[1] = 3;
     // は
@@ -507,28 +507,20 @@ Node *new_node_array_index(Node *const left, Node *const right, const bool conti
     // の省略表現
     assert_indexable(left, right);
     Node *pointer = pointer_calc(ND_ADD, left, right);
-    return new_node(continued ? ND_INDEX_CONTINUE : ND_INDEX, pointer, NULL);
+    return new_node(kind, pointer, NULL);
 }
 
 Node *with_index(Node *left) {
-    if (left->kind == ND_INDEX) {
-        left->kind = ND_INDEX_CONTINUE;
-    }
+    bool consumed = false;
     while (consume("[")) {
-        left = new_node_array_index(left, expr(), true);
+        consumed = true;
+        left = new_node_array_index(left, expr(), ND_DEREF_ARRAY_POINTER);
         expect("]");
     }
-    if (left->kind == ND_INDEX_CONTINUE) {
-        /*
-         * 配列は代入できないので、[]でのアクセスは連続していて、
-         * なので、ここで終端判定ができるはず
-         * （ポインタ変数には代入できるけど忘れていいはず）
-         *
-         * ただし、括弧は書けるので、括弧の中をパースした後にもう一度ここを通る場合がある
-         * (a[0])[1];
-         * その判定のために ND_DEREF ではなく ND_INDEX という別の種別を導入した
-         */
-        left->kind = ND_INDEX;
+    Type *type = find_type(left);
+    if (consumed && type->ty != TYPE_ARRAY) {
+        // 配列の指すところまでアクセスしたらポインタの値をデリファレンスする
+        left->kind = ND_DEREF;
     }
     return left;
 }
@@ -740,7 +732,6 @@ Node *block_statement(void) {
 void visit_array_initializer(NodeArray *array, Type *type) {
     /*
       TODO 配列の初期化時のみ可能な式がいくつか
-     * char s1[2][3] = {"abc", "def"};
      * char s1[][3] = {"abc", "def"};
      * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
      * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
@@ -754,7 +745,8 @@ void visit_array_initializer(NodeArray *array, Type *type) {
       char *s1[] = {"abc", "def"};
       char msg[] = "foo";
       char msg[10] = "foo";
-     * char msg[3] = "message"; => initializer-string for array of chars is too long
+      char msg[3] = "message"; => initializer-string for array of chars is too long
+      char s1[2][3] = {"abc", "def"};
       TODO C99にはさらに色々ある
        https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
      */
@@ -842,12 +834,10 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
     Node *last = block;
     for (int i = 0; i < nodeArray->count; ++i) {
         Node *n = nodeArray->memory[i];
-        Node *const indexed = new_node_array_index(pointer, new_node_num(i), false);
+        Node *const indexed = new_node_array_index(pointer, new_node_num(i), ND_DEREF);
         char *loc = token->str; // TODO
         last = last->statement = new_node_assign(loc, indexed, n);
     }
-    // 型を戻す
-    array_variable->type = type;
     return block;
 }
 

@@ -75,7 +75,6 @@ void gen_address(Node *node) {
             }
             break;
         case ND_DEREF:
-        case ND_INDEX:
             /*
                 int x = 3;
                 int *y = &x;
@@ -275,12 +274,10 @@ void gen(Node *node) {
             gen_address(node->lhs);
             return;
         case ND_DEREF:
-        case ND_INDEX:
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             load(node); // それをロードする
             return;
         case ND_DEREF_ARRAY_POINTER:
-        case ND_INDEX_CONTINUE:
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             return;
         case ND_ADD:
@@ -352,8 +349,6 @@ void gen(Node *node) {
         case ND_ADDRESS:
         case ND_DEREF:
         case ND_DEREF_ARRAY_POINTER:
-        case ND_INDEX:
-        case ND_INDEX_CONTINUE:
         case ND_ASSIGN:
         case ND_NOTHING:
             break;
