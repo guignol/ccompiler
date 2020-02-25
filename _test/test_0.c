@@ -206,63 +206,46 @@ int char_array_and_pointer_4() {
 
 // 3
 int char_array_and_pointer_5() {
-//    char charata[2][3][4] = {
-//            {
-//                    {1, 2, 3, 4},
-//                    {1, 2},
-//                    {1, 2},
-//            },
-//            {
-//                    {1, 2},
-//                    {1, 2},
-//                    {1, 2},
-//            },
-//    };
-    /*
-     * 0: pointer  (1 * 8 byte)
-     * 1: pointer
-     *
-     * ↑ではなく
-     * ↓型と現実
-     *
-     * 0: char char char (3 * 1 byte)
-     * 1: char char char
-     *     *
-     * ↓ x86-64 gcc 9.1以降（これに近い方式を採用する）
-     *
-     *   sub rsp, 16
-     *   mov WORD PTR [rbp-6], 25185
-     *   mov BYTE PTR [rbp-4], 99
-     *   mov WORD PTR [rbp-3], 25956
-     *   mov BYTE PTR [rbp-1], 102
-     *
-     * ↓ x86-64 gcc 4.7.4以前
-     *
-     *   sub rsp, 16
-     *   mov WORD PTR [rbp-16], 25185
-     *   mov BYTE PTR [rbp-14], 99
-     *   mov WORD PTR [rbp-13], 25956
-     *   mov BYTE PTR [rbp-11], 102
-     *
-     * ↓ その他のgcc
-     *
-     * .LC0:
-     *   .ascii "abc"
-     *   .ascii "def"
-     * ---------------
-     *   sub rsp, 16
-     *   mov eax, DWORD PTR .LC0[rip]
-     *   mov DWORD PTR [rbp-6], eax
-     *   movzx eax, WORD PTR .LC0[rip+4]
-     *   mov WORD PTR [rbp-2], ax
-     *
-     */
-    // TODO [2][3]だとprintfが変になるはず
     char charara[2][4] = {"abc", "def"};
     char *s1 = charara[0];
     char *s2 = charara[1];
     printf("%s%s\n", s1, s2);
     return 3;
+}
+
+// 5
+int char_array_and_pointer_6() {
+    // 0終端できないとprintfが変になるはず
+    char charara[2][3] = {"abc", "def"};
+    printf("%s%s\n", charara[0], charara[1]);
+    return 5;
+}
+
+// 8
+int char_array_and_pointer_7() {
+//    char charara[][] = {"abc", "def"};
+//    char charara[2][] = {"abc", "def"};
+    char charara[][4] = {"abc", "def"};
+    char *s1 = charara[0];
+    char *s2 = charara[1];
+    printf("%s%s\n", s1, s2);
+    return sizeof(charara);
+}
+
+int char_array_and_pointer_8() {
+    char charata[2][3][4] = {
+            {
+                    {1, 2, 3, 4},
+                    {1, 2},
+                    {1, 2},
+            },
+            {
+                    {1, 2},
+                    {1, 2},
+                    {1, 2},
+            },
+    };
+    return 33;
 }
 
 // 3
@@ -1080,6 +1063,8 @@ int main() {
     assert(24, char_array_and_pointer_3(), "char_array_and_pointer_3");
     assert(4, char_array_and_pointer_4(), "char_array_and_pointer_4");
     assert(3, char_array_and_pointer_5(), "char_array_and_pointer_5");
+    assert(5, char_array_and_pointer_6(), "char_array_and_pointer_6");
+    assert(8, char_array_and_pointer_7(), "char_array_and_pointer_7");
     assert(3, char_calculate_array(), "char_calculate_array");
 
     assert(5, global_variable_1(), "global_variable_1");

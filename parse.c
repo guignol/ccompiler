@@ -730,29 +730,49 @@ Node *block_statement(void) {
 }
 
 void visit_array_initializer(NodeArray *array, Type *type) {
-    /*
-      TODO 配列の初期化時のみ可能な式がいくつか
-     * char s1[][3] = {"abc", "def"};
-     * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
-     * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
-      int array[4] = {0, 1, 2, 3};
-      int array[4] = {0, 1, 2};
-      int array[] = {0, 1, 2, 3};
-      char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
-      char msg[4] = {'f', 'o', 'o', '\0'};
-      char msg[] = {'f', 'o', 'o', '\0'};
-      char *s1[2] = {"abc", "def"};
-      char *s1[] = {"abc", "def"};
-      char msg[] = "foo";
-      char msg[10] = "foo";
-      char msg[3] = "message"; => initializer-string for array of chars is too long
-      char s1[2][3] = {"abc", "def"};
-      TODO C99にはさらに色々ある
-       https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
-     */
     // TODO 明示されてなくて良いのは最初のみ。再帰するので、最初の呼び出し元でチェックしておく
     // 配列サイズが明示されていない場合
     const bool undefined_size = type->array_size == 0;
+    /*
+     * char charara[2][4] = {"abc", "def"};
+     *
+     * 0: pointer  (1 * 8 byte)
+     * 1: pointer
+     *
+     * ↑ではなく↓
+     *
+     * 0: char char char (3 * 1 byte)
+     * 1: char char char
+     *
+     * ↓ x86-64 gcc 9.1以降（これに近い方式を採用する）
+     *
+     *   sub rsp, 16
+     *   mov WORD PTR [rbp-6], 25185
+     *   mov BYTE PTR [rbp-4], 99
+     *   mov WORD PTR [rbp-3], 25956
+     *   mov BYTE PTR [rbp-1], 102
+     *
+     * ↓ x86-64 gcc 4.7.4以前
+     *
+     *   sub rsp, 16
+     *   mov WORD PTR [rbp-16], 25185
+     *   mov BYTE PTR [rbp-14], 99
+     *   mov WORD PTR [rbp-13], 25956
+     *   mov BYTE PTR [rbp-11], 102
+     *
+     * ↓ その他のgcc
+     *
+     * .LC0:
+     *   .ascii "abc"
+     *   .ascii "def"
+     * ---------------
+     *   sub rsp, 16
+     *   mov eax, DWORD PTR .LC0[rip]
+     *   mov DWORD PTR [rbp-6], eax
+     *   movzx eax, WORD PTR .LC0[rip+4]
+     *   mov WORD PTR [rbp-2], ax
+     *
+     */
     if (consume("{")) {
         if (type->ty != TYPE_ARRAY) {
             error_at(token->str, "配列の初期化式ではありません？");
@@ -804,12 +824,32 @@ void visit_array_initializer(NodeArray *array, Type *type) {
     }
 }
 
+/*
+  TODO 配列の初期化時のみ可能な式がいくつか
+ * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
+ * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
+  int array[4] = {0, 1, 2, 3};
+  int array[4] = {0, 1, 2};
+  int array[] = {0, 1, 2, 3};
+  char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
+  char msg[4] = {'f', 'o', 'o', '\0'};
+  char msg[] = {'f', 'o', 'o', '\0'};
+  char *s1[2] = {"abc", "def"};
+  char *s1[] = {"abc", "def"};
+  char msg[] = "foo";
+  char msg[10] = "foo";
+  char msg[3] = "message"; => initializer-string for array of chars is too long
+  char s1[2][3] = {"abc", "def"};
+  char s1[][3] = {"abc", "def"};
+  TODO C99にはさらに色々ある
+   https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
+ */
 Node *array_initializer(Node *const array_variable, Type *const type) {
     int capacity = get_element_count(type);
     NodeArray *nodeArray = create_node_array(capacity);
     visit_array_initializer(nodeArray, type);
 
-    // ポインター型への変換 TODO コピーを作る？
+    // ポインター型への変換
     Type *base = type->point_to;
     while (base->ty == TYPE_ARRAY) {
         base = base->point_to;
@@ -896,14 +936,15 @@ Node *variable_declaration(Type *base) {
     while (consume("[")) {
         Token *size_token = consume_number();
         if (!size_token) {
-            // 初期化式では右辺からサイズを決定できる
-            // 配列の配列ではできないはずなのでここでbreakする
-            // TODO 配列の配列も初期化可能
-            //  https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96
+            if (type->ty == TYPE_ARRAY) {
+                error_at(token->str, "配列のサイズを省略できません");
+                exit(1);
+            }
+            // 最初の[]のみ、初期化式では右辺からサイズを決定できる
             undefined_size_array = true;
             type = create_array_type(type, 0);
             expect("]");
-            break;
+            continue;
         }
         int array_size = size_token->val;
         type = create_array_type(type, array_size);
