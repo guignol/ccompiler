@@ -19,7 +19,7 @@ int foo() {
 
 int count;
 
-void assert(int expected, int actual, char *name) {
+void assert(char *name, int expected, int actual) {
     count = count + 1;
     printf("%d: %s\n", count, name);
     if (expected != actual) {
@@ -30,29 +30,25 @@ void assert(int expected, int actual, char *name) {
 
 /////////////////////////////////////////////////
 
-//int scope_for_1() {
-//    int a;
-//    a = 1;
-//    for (int i; a < 10; a++) {
-//        i = 1;
-//        a = i + a;
-//    }
-//    return a;
-//}
-
-// 3
-int scoped_2() {
-    int a = 3;
-    int b = a;
-    {
-        bar(a);
-        int a = b - 2;
-        bar(a);
-        if (a == b) {
-            return a;
-        }
+// 11
+int scope_for_1() {
+    int a;
+    a = 1;
+    for (int i; a < 10; a = a + 1) {
+        i = 1;
+        a = i + a;
     }
     return a;
+}
+
+// 12
+int scope_for_2() {
+    int a = 0;
+    int i = 3;
+    for (int i = 0; i < 10; i = i + 1) {
+        a = i;
+    }
+    return a + i;
 }
 
 // 1
@@ -70,6 +66,21 @@ int scoped_1() {
         }
     }
     return a_0;
+}
+
+// 3
+int scoped_2() {
+    int a = 3;
+    int b = a;
+    {
+        bar(a);
+        int a = b - 2;
+        bar(a);
+        if (a == b) {
+            return a;
+        }
+    }
+    return a;
 }
 
 /////////////////////////////////////////////////
@@ -233,18 +244,28 @@ int char_array_and_pointer_7() {
 }
 
 int char_array_and_pointer_8() {
-    char charata[2][3][4] = {
+    int charata[2][3][4] = {
             {
-                    {1, 2, 3, 4},
-                    {1, 2},
-                    {1, 2},
+                    {111, 112, 113, 114},
+                    {121, 122},
+                    {131, 132, 133, 134, 135, 136},
             },
             {
-                    {1, 2},
-                    {1, 2},
-                    {1, 2},
+                    {211, 212},
+                    {221, 222},
+                    {231, 232, 233},
             },
     };
+    for (int i = 0; i < 2; i = i + 1) {
+        for (int j = 0; j < 3; j = j + 1) {
+            for (int k = 0; k < 4; k = k + 1) {
+                printf("%d, ", charata[i][j][k]);
+                if (k == 3) {
+                    printf("\n");
+                }
+            }
+        }
+    }
     return 33;
 }
 
@@ -934,214 +955,215 @@ int block_9() {
 /////////////////////////////////////////////////
 
 int assert_others() {
-    assert(99, ({
+    assert("", 99, ({
         int a;
         a = 0;
         int i;
         for (i = 0; i < 10; i = i + 1) a = a + 1;
         99;
-    }), "");
-    assert(10, ({
+    }));
+    assert("", 10, ({
         int a;
         a = 0;
         int i;
         for (i = 0; i < 10; i = i + 1) a = a + 1;
         a;
-    }), "");
-    assert(10, ({
+    }));
+    assert("", 10, ({
         int a;
         a = 0;
         while (a < 10) a = a + 1;
         a;
-    }), "");
+    }));
 
-    assert(25, ({
+    assert("", 25, ({
         int a_3;
         int _loc;
         a_3 = 12;
         _loc = 3;
         a_3 * _loc - 11;
-    }), "");
-    assert(5, ({
+    }));
+    assert("", 5, ({
         int aaa;
         aaa = 3;
         aaa + 2;
-    }), "");
-    assert(5, ({
+    }));
+    assert("", 5, ({
         int b29;
         int aaa;
         aaa = 3;
         b29 = 2;
         b29 + aaa;
-    }), "");
-    assert(5, ({
+    }));
+    assert("", 5, ({
         int O0;
         O0 = 3;
         O0 = 2;
         O0 + 3;
-    }), "");
+    }));
 
-    assert(5, ({
+    assert("", 5, ({
         int a;
         a = 3;
         a + 2;
-    }), "");
-    assert(3, ({
+    }));
+    assert("", 3, ({
         int a;
         a = 3;
         a;
-    }), "");
-    assert(5, ({
+    }));
+    assert("", 5, ({
         int a;
         int z;
         a = 3;
         z = 2;
         a + z;
-    }), "");
+    }));
 
-    assert(0, ({ 0; }), "");
-    assert(42, ({ 42; }), "");
-    assert(42, ({ 40 + 2; }), "");
-    assert(0, ({ 100 - 100; }), "");
-    assert(10, ({ 100 - 100 + 10; }), "");
-    assert(111, ({ 100 + 10 + 1; }), "");
-    assert(100, ({ 100 * 10 / 10; }), "");
-    assert(101, ({ 100 + 10 / 10; }), "");
-    assert(0, ({ 10 * -1 + 10; }), "");
-    assert(90, ({ 100 + -1 * 10; }), "");
+    assert("", 0, ({ 0; }));
+    assert("", 42, ({ 42; }));
+    assert("", 42, ({ 40 + 2; }));
+    assert("", 0, ({ 100 - 100; }));
+    assert("", 10, ({ 100 - 100 + 10; }));
+    assert("", 111, ({ 100 + 10 + 1; }));
+    assert("", 100, ({ 100 * 10 / 10; }));
+    assert("", 101, ({ 100 + 10 / 10; }));
+    assert("", 0, ({ 10 * -1 + 10; }));
+    assert("", 90, ({ 100 + -1 * 10; }));
 
-    assert(0, ({ 0 == 1; }), "");
-    assert(1, ({ 42 == 42; }), "");
-    assert(1, ({ 0 != 1; }), "");
-    assert(0, ({ 42 != 42; }), "");
-    assert(1, ({ 42 != 42 + 1; }), "");
-    assert(1, ({ 2 + 42 != 42; }), "");
-    assert(1, ({ (2 + 42) != 42; }), "");
+    assert("", 0, ({ 0 == 1; }));
+    assert("", 1, ({ 42 == 42; }));
+    assert("", 1, ({ 0 != 1; }));
+    assert("", 0, ({ 42 != 42; }));
+    assert("", 1, ({ 42 != 42 + 1; }));
+    assert("", 1, ({ 2 + 42 != 42; }));
+    assert("", 1, ({ (2 + 42) != 42; }));
 
-    assert(1, ({ 0 < 1; }), "");
-    assert(0, ({ 1 < 1; }), "");
-    assert(0, ({ 2 < 1; }), "");
-    assert(1, ({ 0 <= 1; }), "");
-    assert(1, ({ 1 <= 1; }), "");
-    assert(0, ({ 2 <= 1; }), "");
+    assert("", 1, ({ 0 < 1; }));
+    assert("", 0, ({ 1 < 1; }));
+    assert("", 0, ({ 2 < 1; }));
+    assert("", 1, ({ 0 <= 1; }));
+    assert("", 1, ({ 1 <= 1; }));
+    assert("", 0, ({ 2 <= 1; }));
 
-    assert(1, ({ 1 > 0; }), "");
-    assert(0, ({ 1 > 1; }), "");
-    assert(0, ({ 1 > 2; }), "");
-    assert(1, ({ 1 >= 0; }), "");
-    assert(1, ({ 1 >= 1; }), "");
-    assert(0, ({ 1 >= 2; }), "");
+    assert("", 1, ({ 1 > 0; }));
+    assert("", 0, ({ 1 > 1; }));
+    assert("", 0, ({ 1 > 2; }));
+    assert("", 1, ({ 1 >= 0; }));
+    assert("", 1, ({ 1 >= 1; }));
+    assert("", 0, ({ 1 >= 2; }));
 }
 
 /////////////////////////////////////////////////
 
 int main() {
 
-    // TODO
-//    assert(9, for_init_scope_1(), "scope_for_1");
-    assert(3, scoped_2(), "scoped_2");
-    assert(1, scoped_1(), "scoped_1");
+    assert("scope_for_1", 11, scope_for_1());
+    assert("scope_for_2", 12, scope_for_2());
+    assert("scoped_1", 1, scoped_1());
+    assert("scoped_2", 3, scoped_2());
 
     // TODO ポインタを返す関数のテストを追加
-    assert(8, string_return(), "string_return");
+    assert("string_return", 8, string_return());
 
-    assert(4, string_global(), "string_global");
-    assert(9, string_literal_japanese(), "string_literal_japanese");
-    assert(3, string_literal_ascii(), "string_literal_ascii");
-    assert(110, string_literal_char_array_1(), "string_literal_char_array_1");
-    assert(0, string_literal_char_array_2(), "string_literal_char_array_2");
-    assert(106, string_literal_char_array_3(), "string_literal_char_array_3");
-    assert(4, string_literal_char_array_4(), "string_literal_char_array_4");
+    assert("string_global", 4, string_global());
+    assert("string_literal_japanese", 9, string_literal_japanese());
+    assert("string_literal_ascii", 3, string_literal_ascii());
+    assert("string_literal_char_array_1", 110, string_literal_char_array_1());
+    assert("string_literal_char_array_2", 0, string_literal_char_array_2());
+    assert("string_literal_char_array_3", 106, string_literal_char_array_3());
+    assert("string_literal_char_array_4", 4, string_literal_char_array_4());
 
-    assert(5, char_literal_1(), "char_literal_1");
-    assert(6, char_literal_2(), "char_literal_2");
-    assert(7, char_literal_3(), "char_literal_3");
-    assert(9, char_literal_4(), "char_literal_4");
+    assert("char_literal_1", 5, char_literal_1());
+    assert("char_literal_2", 6, char_literal_2());
+    assert("char_literal_3", 7, char_literal_3());
+    assert("char_literal_4", 9, char_literal_4());
 
-    assert(13, char_array_and_pointer_1(), "char_array_and_pointer_1");
-    assert(8, char_array_and_pointer_2(), "char_array_and_pointer_2");
-    assert(24, char_array_and_pointer_3(), "char_array_and_pointer_3");
-    assert(4, char_array_and_pointer_4(), "char_array_and_pointer_4");
-    assert(3, char_array_and_pointer_5(), "char_array_and_pointer_5");
-    assert(5, char_array_and_pointer_6(), "char_array_and_pointer_6");
-    assert(8, char_array_and_pointer_7(), "char_array_and_pointer_7");
-    assert(3, char_calculate_array(), "char_calculate_array");
+    assert("char_array_and_pointer_1", 13, char_array_and_pointer_1());
+    assert("char_array_and_pointer_2", 8, char_array_and_pointer_2());
+    assert("char_array_and_pointer_3", 24, char_array_and_pointer_3());
+    assert("char_array_and_pointer_4", 4, char_array_and_pointer_4());
+    assert("char_array_and_pointer_5", 3, char_array_and_pointer_5());
+    assert("char_array_and_pointer_6", 5, char_array_and_pointer_6());
+    assert("char_array_and_pointer_7", 8, char_array_and_pointer_7());
+    assert("char_array_and_pointer_8", 33, char_array_and_pointer_8());
+    assert("char_calculate_array", 3, char_calculate_array());
 
-    assert(5, global_variable_1(), "global_variable_1");
-    assert(9, global_variable_2(), "global_variable_2");
-    assert(3, global_variable_3(), "global_variable_3");
-    assert(3, global_variable_4(), "global_variable_4");
+    assert("global_variable_1", 5, global_variable_1());
+    assert("global_variable_2", 9, global_variable_2());
+    assert("global_variable_3", 3, global_variable_3());
+    assert("global_variable_4", 3, global_variable_4());
 
-    assert(0, array_initialize_1(), "array_initialize_1");
-    assert(2, array_initialize_2(), "array_initialize_2");
-    assert(4, array_initialize_3(), "array_initialize_3");
+    assert("array_initialize_1", 0, array_initialize_1());
+    assert("array_initialize_2", 2, array_initialize_2());
+    assert("array_initialize_3", 4, array_initialize_3());
 
-    assert(8, array_and_pointer_1(), "array_and_pointer_1");
-    assert(8, array_and_pointer_2(), "array_and_pointer_2");
-    assert(8, array_and_pointer_3(), "array_and_pointer_3");
-    assert(8, array_and_pointer_4(), "array_and_pointer_4");
-    assert(12, array_and_pointer_5(), "array_and_pointer_5");
-    assert(12, array_and_pointer_6(), "array_and_pointer_6");
-    assert(12, array_and_pointer_7(), "array_and_pointer_7");
-    assert(12, array_and_pointer_8(), "array_and_pointer_8");
-    assert(8, array_and_pointer_9(), "array_and_pointer_9");
+    assert("array_and_pointer_1", 8, array_and_pointer_1());
+    assert("array_and_pointer_2", 8, array_and_pointer_2());
+    assert("array_and_pointer_3", 8, array_and_pointer_3());
+    assert("array_and_pointer_4", 8, array_and_pointer_4());
+    assert("array_and_pointer_5", 12, array_and_pointer_5());
+    assert("array_and_pointer_6", 12, array_and_pointer_6());
+    assert("array_and_pointer_7", 12, array_and_pointer_7());
+    assert("array_and_pointer_8", 12, array_and_pointer_8());
+    assert("array_and_pointer_9", 8, array_and_pointer_9());
 
-    assert(24, array_and_pointer_10(), "array_and_pointer_10");
-    assert(3, array_and_pointer_11(), "array_and_pointer_11");
-    assert(3, array_and_pointer_12(), "array_and_pointer_12");
-    assert(3, array_and_pointer_13(), "array_and_pointer_13");
-    assert(3, array_and_pointer_14(), "array_and_pointer_14");
-    assert(3, array_and_pointer_15(), "array_and_pointer_15");
-    assert(3, array_and_pointer_16(), "array_and_pointer_16");
-    assert(3, array_and_pointer_17(), "array_and_pointer_17");
-    assert(3, array_and_pointer_18(), "array_and_pointer_18");
-    assert(3, array_and_pointer_19(), "array_and_pointer_19");
+    assert("array_and_pointer_10", 24, array_and_pointer_10());
+    assert("array_and_pointer_11", 3, array_and_pointer_11());
+    assert("array_and_pointer_12", 3, array_and_pointer_12());
+    assert("array_and_pointer_13", 3, array_and_pointer_13());
+    assert("array_and_pointer_14", 3, array_and_pointer_14());
+    assert("array_and_pointer_15", 3, array_and_pointer_15());
+    assert("array_and_pointer_16", 3, array_and_pointer_16());
+    assert("array_and_pointer_17", 3, array_and_pointer_17());
+    assert("array_and_pointer_18", 3, array_and_pointer_18());
+    assert("array_and_pointer_19", 3, array_and_pointer_19());
 
-    assert(4, sizeof_1(), "sizeof_1");
-    assert(8, sizeof_2(), "sizeof_2");
-    assert(4, sizeof_3(), "sizeof_3");
-    assert(8, sizeof_4(), "sizeof_4");
-    assert(4, sizeof_5(), "sizeof_5");
-    assert(4, sizeof_6(), "sizeof_6");
-    assert(4, sizeof_7(), "sizeof_7"); // ★
-    assert(1, sizeof_8(), "sizeof_8");
+    assert("sizeof_1", 4, sizeof_1());
+    assert("sizeof_2", 8, sizeof_2());
+    assert("sizeof_3", 4, sizeof_3());
+    assert("sizeof_4", 8, sizeof_4());
+    assert("sizeof_5", 4, sizeof_5());
+    assert("sizeof_6", 4, sizeof_6());
+    assert("sizeof_7", 4, sizeof_7()); // ★
+    assert("sizeof_8", 1, sizeof_8());
 
-    assert(3, pointer_and_calculate_1(), "pointer_and_calculate_1");
-    assert(2, pointer_and_calculate_2(), "pointer_and_calculate_2");
-    assert(3, pointer_and_calculate_3(), "pointer_and_calculate_3"); // ★
-    assert(4, pointer_and_calculate_4(), "pointer_and_calculate_4");
-    assert(3, pointer_and_calculate_5(), "pointer_and_calculate_5");
+    assert("pointer_and_calculate_1", 3, pointer_and_calculate_1());
+    assert("pointer_and_calculate_2", 2, pointer_and_calculate_2());
+    assert("pointer_and_calculate_3", 3, pointer_and_calculate_3()); // ★
+    assert("pointer_and_calculate_4", 4, pointer_and_calculate_4());
+    assert("pointer_and_calculate_5", 3, pointer_and_calculate_5());
 
-    assert(13, function_1(), "function_1");
-    assert(13, function_2(), "function_2");
-    assert(13, function_3(), "function_3");
-    assert(13, function_4(), "function_4");
-    assert(13, function_5(), "function_5");
-    assert(37, function_6(), "function_6");
-    assert(12, function_7(), "function_7");
-    assert(12, function_8(), "function_8");
-    assert(1, function_9(), "function_9");
+    assert("function_1", 13, function_1());
+    assert("function_2", 13, function_2());
+    assert("function_3", 13, function_3());
+    assert("function_4", 13, function_4());
+    assert("function_5", 13, function_5());
+    assert("function_6", 37, function_6());
+    assert("function_7", 12, function_7());
+    assert("function_8", 12, function_8());
+    assert("function_9", 1, function_9());
 
-    assert(13, function_10(), "function_10");
-    assert(13, function_11(), "function_11");
-    assert(12, function_12(), "function_12");
-    assert(11, function_13(), "function_13");
-    assert(12, function_14(), "function_14");
-    assert(12, function_15(), "function_15");
-    assert(12, function_16(), "function_16");
-    assert(12, function_17(), "function_17");
-    assert(12, function_18(), "function_18");
-    assert(12, function_19(), "function_19");
+    assert("function_10", 13, function_10());
+    assert("function_11", 13, function_11());
+    assert("function_12", 12, function_12());
+    assert("function_13", 11, function_13());
+    assert("function_14", 12, function_14());
+    assert("function_15", 12, function_15());
+    assert("function_16", 12, function_16());
+    assert("function_17", 12, function_17());
+    assert("function_18", 12, function_18());
+    assert("function_19", 12, function_19());
 
-    assert(10, block_1(), "block_1");
-    assert(11, block_2(), "block_2");
-    assert(11, block_3(), "block_3");
-    assert(3, block_4(), "block_4");
-    assert(10, block_5(), "block_5");
-    assert(10, block_6(), "block_6");
-    assert(10, block_7(), "block_7");
-    assert(6, block_8(), "block_8");
-    assert(6, block_9(), "block_9");
+    assert("block_1", 10, block_1());
+    assert("block_2", 11, block_2());
+    assert("block_3", 11, block_3());
+    assert("block_4", 3, block_4());
+    assert("block_5", 10, block_5());
+    assert("block_6", 10, block_6());
+    assert("block_7", 10, block_7());
+    assert("block_8", 6, block_8());
+    assert("block_9", 6, block_9());
 
     assert_others();
 

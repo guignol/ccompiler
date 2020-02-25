@@ -109,7 +109,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
 //		        | "while" "(" expr ")" stmt
-//				| "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -782,9 +782,10 @@ void visit_array_initializer(NodeArray *array, Type *type) {
         do {
             if (!undefined_size && type->array_size <= index) {
                 warn_at(token->str, "excess elements in array initializer");
-                break;
+                token = token->next;
+            } else {
+                visit_array_initializer(array, type->point_to);
             }
-            visit_array_initializer(array, type->point_to);
             consume(","); // 末尾に残ってもOK
             index++;
         } while (!consume("}"));
@@ -1019,11 +1020,25 @@ Node *stmt(void) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_FOR;
         expect("(");
+        // 使い捨てるのでallocしない
+        Scope disposable;
+        // forスコープ
+        disposable.variables = NULL;
+        disposable.parent = current_scope;
+        current_scope = &disposable;
         // init
         if (!consume(";")) {
-            // TODO 変数宣言とそのスコープ、初期化
-            node->lhs = new_node(ND_EXPR_STMT, expr(), NULL);
-            expect(";");
+            Node *init;
+            Type *init_type_base = consume_base_type();
+            if (init_type_base) {
+                // 変数宣言および初期化
+                init =  variable_declaration(init_type_base);
+                node->lhs = new_node(ND_EXPR_STMT, init, NULL);
+            } else {
+                init = expr();
+                node->lhs = new_node(ND_EXPR_STMT, init, NULL);
+                expect(";");
+            }
         }
         // condition
         if (!consume(";")) {
@@ -1036,6 +1051,8 @@ Node *stmt(void) {
             expect(")");
         }
         node->execution = stmt();
+        // スコープを戻す
+        current_scope = disposable.parent;
         return node;
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
