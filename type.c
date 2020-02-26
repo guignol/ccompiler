@@ -277,7 +277,6 @@ int get_weight(Node *node) {
     }
 }
 
-// TODO sizeof(int)など
 int get_size(Type *type) {
     if (!type) {
         error("型が分かりません？\n");

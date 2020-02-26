@@ -434,20 +434,26 @@ void generate_global(Global *globals) {
     for (Global *global = globals; global; global = global->next) {
         // ラベル
         printf("%.*s:\n", global->label_length, global->label);
-        directive_target *target = global->target;
-        switch (global->directive) {
-            case _zero:
-                printf("  .zero %d\n", target->value);
-                break;
-            case _long:
-                printf("  .long %d\n", target->value);
-                break;
-            case _quad:
-                printf("  .quad %.*s\n", target->label_length, target->label);
-                break;
-            case _string: {
-                printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
-                break;
+        for (Directives *target = global->target; target ; target = target->next) {
+            switch (target->directive) {
+                // TODO 初期化なしの場合は .zero と .stringだけで足りる
+                case _zero:
+                    printf("  .zero %d\n", target->value);
+                    break;
+                case _byte:
+                    printf("  .byte %d\n", target->value);
+                    break;
+                case _long:
+                    printf("  .long %d\n", target->value);
+                    break;
+                case _quad:
+                    // TODO ポインタのオフセット計算がありうるけど、文字列をそのまま使う？
+                    printf("  .quad %.*s\n", target->reference_length, target->reference);
+                    break;
+                case _string: {
+                    printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
+                    break;
+                }
             }
         }
     }

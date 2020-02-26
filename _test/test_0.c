@@ -102,12 +102,14 @@ void init_global() {
     moji_global = "moji_global";
 }
 
+// 4
 int string_global() {
     init_global();
     printf(moji_global);
     return 4;
 }
 
+// 9
 int string_literal_japanese() {
     printf("日本語ですね\n");
     return 9;
@@ -245,16 +247,16 @@ int char_array_and_pointer_7() {
 
 // 33
 int char_array_and_pointer_8() {
-    int charata[2][3][4] = {
+    char charata[2][3][4] = {
             {
-                    {111, 112, 113, 114},
-                    {121, 122},
-                    {131, 132, 133, 134, 135, 136},
+                    {11, 12, 13, 14},
+                    {21, 22},
+                    {31, 32, 33, 34, 35, 36},
             },
             {
-                    {211, 212},
-                    {221, 222},
-                    {231, 232, 233},
+                    {41, 42},
+                    {51, 52},
+                    {61, 62, 63},
             },
     };
     for (int i = 0; i < 2; i = i + 1) {
@@ -337,6 +339,16 @@ int global_variable_4() {
     return b - aa;
 }
 
+char global_c_1;
+char global_c_2;
+
+// 2
+int global_variable_5() {
+    global_c_1 = 'a';
+    global_c_2 = 'c';
+    return global_c_2 - global_c_1;
+}
+
 /////////////////////////////////////////////////
 
 int write_stack_4() {
@@ -368,14 +380,6 @@ int array_initialize_3() {
     int b = 1;
     int *array[5] = {0, a, &a, &b};
     return *array[2] + *array[3];
-}
-
-//
-int array_initialize_4() {
-    // TODO
-//    int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
-
-    return 1;
 }
 
 /////////////////////////////////////////////////
@@ -1120,6 +1124,7 @@ int main() {
     assert("global_variable_2", 9, global_variable_2());
     assert("global_variable_3", 3, global_variable_3());
     assert("global_variable_4", 3, global_variable_4());
+    assert("global_variable_5", 2, global_variable_5());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

@@ -117,7 +117,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "sizeof" unary
-//				| ("+" | "-" | "*"* | "&"*)? primary
+//				| ("+" | "-" | "*"* | "&" )? primary
 // primary    = num
 // 				| literal_str
 //				| ident
@@ -258,10 +258,10 @@ Variable *find_local_variable(Scope *const scope, char *name, int len) {
 
 Global *find_string_literal(char *name, int len) {
     for (Global *g = globals->head; g; g = g->next) {
-        if (g->directive != _string) {
+        if (g->target->directive != _string) {
             continue;
         }
-        directive_target *target = g->target;
+        Directives *target = g->target;
         if (target->literal_length == len &&
             !strncmp(name, target->literal, target->literal_length)) {
             return g;
@@ -399,8 +399,8 @@ Node *new_node_string_literal() {
         g = calloc(1, sizeof(Global));
         g->label = label;
         g->label_length = label_length;
-        g->directive = _string;
-        g->target = calloc(1, sizeof(directive_target));
+        g->target = calloc(1, sizeof(Directives));
+        g->target->directive = _string;
         g->target->literal = token->str;
         g->target->literal_length = token->len;
         // Globalsに追加
@@ -536,26 +536,6 @@ struct Program *parse(Token *tok) {
     Function head_f;
     head_f.next = NULL;
     Function *tail_f = &head_f;
-    {
-//        char *const label = new_label();
-//        // デバッグ用のグローバル変数
-//        Global *g = calloc(1, sizeof(Global));
-//        g->label = "debug_moji"; // 変数名
-//        g->label_length = (int) strlen(g->label);
-//        g->directive = _quad;
-//        g->target = calloc(1, sizeof(directive_target));
-//        g->target->label = label;
-//        g->target->label_length = (int) strlen(g->target->label);
-//        add_globals(g);
-//        g = calloc(1, sizeof(Global));
-//        g->label = label;
-//        g->label_length = (int) strlen(g->label);
-//        g->directive = _string;
-//        g->target = calloc(1, sizeof(directive_target));
-//        g->target->literal = "moji: %i\\n"; // リテラル
-//        g->target->literal_length = (int) strlen(g->target->literal);
-//        add_globals(g);
-    }
     while (!at_eof()) {
         Type *base = consume_base_type();
         if (!base) {
@@ -563,6 +543,7 @@ struct Program *parse(Token *tok) {
             exit(1);
         }
         // TODO まずポインタ1つまで
+        // TODO グローバル変数は配列もありうる
         Type *const type = consume("*")
                            ? create_pointer_type(base)
                            : base;
@@ -607,14 +588,53 @@ struct Program *parse(Token *tok) {
 }
 
 Global *global_var(Token *variable_name, Type *type) {
-    // TODO まずは宣言のみ
-    expect(";");
+    /*
+     * グローバル変数の初期化に使えるもの
+     *
+     * 【定数式】
+     *  (NG)
+     * 　int n = ({3;});
+     *  int x = *y;
+     *
+     * 【グローバル変数や関数のアドレス】
+     *  ポインタのintへのキャストなし代入
+     *   => error （ローカルではwarning）
+     *  ポインタのintへのキャスト
+     *   => error （ローカルではwarning）
+     *
+     *  (OK)
+     *  int(*n)[2] = &m;
+     *  int *y     = &m;
+     *  size_t m[] = {(size_t)&a, 3};
+     *  size_t m[] = {&a, 3};
+     *  (NG)
+     *  size_t m[] = {(int)&a, 3};
+     *  int m[]    = {(int)&a, 3};
+     *  int m[]    = {&a, 3};
+     *
+     *  現在のところキャストもsize_tも実装してないので、単に型チェックするだけで良いはず
+     *
+     * 【グローバル変数や関数のアドレスに定数を足したもの】
+     *  引いたものもOK
+     */
     Global *g = calloc(1, sizeof(Global));
     g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
-    g->directive = _zero;
-    g->target = calloc(1, sizeof(directive_target));
+    if (consume("=")) {
+        // TODO とりあえず順番にやってみる？
+        //  int, char
+        //  int[], char[]
+        //  char*
+        //  int*
+        error_at(token->str, "TODO: グローバル変数の初期化");
+        exit(1);
+        expect(";");
+    } else {
+        expect(";");
+    }
+    g->target = calloc(1, sizeof(Directives));
+    g->target->directive = _zero;
     // サイズ分を0で初期化
     g->target->value = get_size(type);
     return g;
@@ -730,7 +750,6 @@ Node *block_statement(void) {
 }
 
 void visit_array_initializer(NodeArray *array, Type *type) {
-    // TODO 明示されてなくて良いのは最初のみ。再帰するので、最初の呼び出し元でチェックしておく
     // 配列サイズが明示されていない場合
     const bool undefined_size = type->array_size == 0;
     /*

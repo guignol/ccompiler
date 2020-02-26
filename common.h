@@ -244,31 +244,60 @@ void generate(struct Program *program);
 //  .string "%s"
 
 typedef enum {
+    /*
+     * -fno-commonが無いと、gccやclangは .zero ではなく .comm を使うらしい
+     *   -fno-common
+     *    このオプションを指定した場合、未初期化の大域変数は .data セクションに配置されます。（-fcommon の解説を参照。）
+     *    必ず 1 つの大域変数だけが非 extern 宣言で、他は全て extern 宣言である必要があります。
+     *    （GCC や Clang コンパイラ、GNU ld リンカのデフォルト動作に依存しない、
+     *    できる限り移植性のあるコードを書く必要がある場合に指定します。）
+     *   -fcommon
+     *    変数を ELF ファイル中のどのセクションに配置するかは、C の規格には含まれていません。
+     *    多くのコンパイラでは、初期値のある大域変数は .data セクション、
+     *    0 初期化された大域変数は bss セクションに配置されます。
+     *    GCC と Clang は、未初期化の大域変数をとりあえず common セクションに配置し、
+     *    GNU ld リンカ（およびその互換リンカ）が最後にまとめる（多重定義エラーにならない）という処理を行います。（デフォルト）
+     *   http://solid.kmckk.com/doc/skit/current/solid_toolchain/overview.html
+     */
     _zero,
-    _long,
-    _quad,
+    /*
+     * .comm name, size, alignment
+     *   The .comm directive allocates storage in the data section.
+     *   The storage is referenced by the identifier name.
+     *   Size is measured in bytes and must be a positive integer.
+     *   Name cannot be predefined. Alignment is optional.
+     *   If alignment is specified, the address of name is aligned to a multiple of alignment.
+     *   https://docs.oracle.com/cd/E26502_01/html/E28388/eoiyg.html
+     */
+//    _comm,
+    _byte, //　(1 byte) char
+    _long, // (4 byte) int
+    _quad, // (8 byte) pointer or size_t
     _string,
 } DIRECTIVE;
 
-typedef struct {
-    // VALUE
+typedef struct Directives Directives;
+
+struct Directives {
+    DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
+
+    // _zero, _byte, _long
     int value;
-    // REFER
-    char *label;
-    int label_length;
-    // STRING
+    // _quad
+    char *reference;
+    int reference_length;
+    // _string
     char *literal;
     int literal_length;
-} directive_target;
 
+    Directives *next;
+};
 
 struct Global {
     Type *type;
     char *label;
     int label_length;
-
-    DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
-    directive_target *target;
+    Directives *target;
 
     Global *next;
 };
