@@ -129,7 +129,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // args       = expr ("," expr)*
 // decl_a     = ("int" | "char") "*"* (pointed_id | ident)
 // decl_b     = decl_a ("[" num "]")*
-// decl_c     = decl_a ("[" num? "]")* "=" (array_init | expr)
+// decl_c     = decl_a "[]"? ("[" num? "]")* "=" (array_init | expr)
 // array_init = "{" args "}"
 // pointed_id = "(" "*"* ident ")"
 // ident      =
@@ -167,14 +167,14 @@ char *new_label() {
     return strndup(buf, 20);
 }
 
-char *consume(char *op) {
-    char *const location = token->str;
+Token *consume(char *op) {
+    Token *const t = token;
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
-        memcmp(location, op, token->len) != 0)
+        memcmp(token->str, op, token->len) != 0)
         return NULL;
     token = token->next;
-    return location;
+    return t;
 }
 
 Type *consume_base_type() {
@@ -882,33 +882,38 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
     return block;
 }
 
-Node *variable_declaration(Type *base) {
+Type *consume_type(Type *base, Variable **for_declaration) {
     if (base->ty == TYPE_VOID) {
         error_at(token->str, "変数にvoidは使えません");
         exit(1);
     }
-    // ローカル変数の宣言
     bool backwards = consume("(");
     Type *type = backwards ? NULL : base;
     while (consume("*")) {
         Type *pointer = create_pointer_type(type);
         type = pointer;
     }
-    Token *t = consume_ident();
-    if (!t) {
-        error_at(token->str, "変数名がありません");
-        exit(1);
-    }
-    {
+    Token *identifier_token = consume_ident();
+    // ローカル変数の宣言
+    if (identifier_token) {
+        if (!for_declaration) {
+            error_at(identifier_token->str, "ここでは変数を宣言できません");
+            exit(1);
+        }
         // 同じスコープ内で同名の変数は宣言できない
         // グローバル変数との重複は可能
         Scope *parent = current_scope->parent;
         current_scope->parent = NULL; // 現在のスコープのみ
-        if (find_local_variable(current_scope, t->str, t->len)) {
+        if (find_local_variable(current_scope, identifier_token->str, identifier_token->len)) {
             error_at(token->str, "変数名が重複しています");
             exit(1);
         }
         current_scope->parent = parent;
+    } else {
+        if (for_declaration) {
+            error_at(token->str, "変数名がありません");
+            exit(1);
+        }
     }
     Type *backwards_pointer = NULL;
     if (backwards) {
@@ -917,32 +922,31 @@ Node *variable_declaration(Type *base) {
         type = base;
     }
 
-    /**
-     * intの配列
-     * int p[2]
-     *
-     * ポインタの配列
-     * int *p[3];
-     *
-     * ポインタへのポインタの配列
-     * int **p[4];
-     *
-     * intの配列の配列
-     * int p[5][6];
-     *
-     * 配列へのポインタ
-     * int (*p)[];
-     */
-    bool undefined_size_array = false;
     while (consume("[")) {
+        /**
+         * intの配列
+         * int p[2]
+         *
+         * ポインタの配列
+         * int *p[3];
+         *
+         * ポインタへのポインタの配列
+         * int **p[4];
+         *
+         * intの配列の配列
+         * int p[5][6];
+         *
+         * 配列へのポインタ
+         * int (*p)[];
+         */
         Token *size_token = consume_number();
         if (!size_token) {
+            // 最初の[]のみ、初期化式では右辺からサイズを決定できる
+            // 配列へのポインタの場合も同様
             if (type->ty == TYPE_ARRAY) {
                 error_at(token->str, "配列のサイズを省略できません");
                 exit(1);
             }
-            // 最初の[]のみ、初期化式では右辺からサイズを決定できる
-            undefined_size_array = true;
             type = create_array_type(type, 0);
             expect("]");
             continue;
@@ -959,10 +963,21 @@ Node *variable_declaration(Type *base) {
         edge->point_to = type;
         type = edge;
     }
-    // 変数の登録（RBPへのオフセットが決定しない場合がある）
-    Variable *const variable = register_variable(t->str, t->len, type);
+    if (for_declaration) {
+        *for_declaration = register_variable(identifier_token->str, identifier_token->len, type);
+    }
+    return type;
+}
+
+Node *variable_declaration(Type *base) {
+    // 変数の登録
+    Variable *variable;
+    Type *const type = consume_type(base, &variable);
+    // RBPへのオフセットが決定しない場合がある
+    const bool undefined_size_array = type->array_size == 0;
+    // 初期化
     if (consume("=")) {
-        Node *const variable_node = new_node_variable(t->str, t->len);
+        Node *const variable_node = new_node_variable(variable->name, variable->len);
         if (type->ty == TYPE_ARRAY) {
             // 配列の初期化
             Node *node = array_initializer(variable_node, type);
@@ -974,11 +989,10 @@ Node *variable_declaration(Type *base) {
             expect(";");
             return node;
         } else {
-            if (backwards_pointer && undefined_size_array) {
-                // TODO
-                // 配列へのポインタはサイズ不定でもOK
-                // ただし、サイズを指定して不一致の場合はwarningを出す
-                // int (*pointer)[] = &array;
+            if (type->ty == TYPE_POINTER && undefined_size_array) {
+                // TODO サイズ不一致の場合はwarningを出す
+                //  int (*pointer)[] = &array;
+                //  配列の場合はarray_initializer関数で実施済み
             }
             char *loc = token->str;
             Node *node = new_node_assign(loc, variable_node, assign());
@@ -1032,7 +1046,7 @@ Node *stmt(void) {
             Type *init_type_base = consume_base_type();
             if (init_type_base) {
                 // 変数宣言および初期化
-                init =  variable_declaration(init_type_base);
+                init = variable_declaration(init_type_base);
                 node->lhs = new_node(ND_EXPR_STMT, init, NULL);
             } else {
                 init = expr();
@@ -1136,8 +1150,23 @@ Node *mul() {
 
 Node *unary() {
     if (consume("sizeof")) {
-        Node *operand = unary();
-        Type *type = find_type(operand);
+        Type *type;
+        Token *kakko = consume("(");
+        if (kakko) {
+            Type *const base = consume_base_type();
+            if (base) {
+                // sizeof(int)など
+                type = consume_type(base, NULL);
+                expect(")");
+                int size = get_size(type);
+                return new_node_num(size);
+            } else {
+                token = kakko;
+                type = find_type(unary());
+            }
+        } else {
+            type = find_type(unary());
+        }
         int size = get_size(type);
         return new_node_num(size);
     } else if (consume("+")) {

@@ -273,8 +273,10 @@ int char_array_and_pointer_8() {
 // 21
 int char_array_and_pointer_9() {
     int a = 0;
-    int array[][2] = {{1, 2}, {3, 4}, {5, 6}};
-    for (int i = 0; i < sizeof(array) / sizeof(a); i = i + 1) {
+    int array[][2] = {{1, 2},
+                      {3, 4},
+                      {5, 6}};
+    for (int i = 0; i < sizeof(array) / sizeof(int); i = i + 1) {
         a = a + array[0][i];
     }
     return a;
@@ -642,6 +644,19 @@ int sizeof_8() {
     int i;
     i = chaa(c);
     return i - c;
+}
+
+// 136
+int sizeof_9() {
+    // 4
+    int i = sizeof 1;
+    // 4
+    int a = sizeof i;
+    // 8 (pointer)
+    int b = sizeof(int (*)[4][5][6]);
+    // 120 = 4 * 5 * 6 * 1 (char)
+    int c = sizeof(char[4][5][6]);
+    return i + a + b + c;
 }
 
 /////////////////////////////////////////////////
@@ -1139,6 +1154,7 @@ int main() {
     assert("sizeof_6", 4, sizeof_6());
     assert("sizeof_7", 4, sizeof_7()); // ★
     assert("sizeof_8", 1, sizeof_8());
+    assert("sizeof_9", 136, sizeof_9());
 
     assert("pointer_and_calculate_1", 3, pointer_and_calculate_1());
     assert("pointer_and_calculate_2", 2, pointer_and_calculate_2());
