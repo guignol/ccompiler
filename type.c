@@ -284,7 +284,10 @@ int get_size(Type *type) {
     }
     switch (type->ty) {
         case TYPE_VOID:
+            // Cの仕様には無いらしいがgccは1を返す（clangも同様）
+            // https://stackoverflow.com/questions/1666224/what-is-the-size-of-void/1666255#1666255
             error("voidのサイズ？\n");
+            exit(1);
         case TYPE_CHAR:
             return sizeof(char); // 1
         case TYPE_INT:

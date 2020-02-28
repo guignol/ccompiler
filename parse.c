@@ -189,6 +189,8 @@ Type *consume_base_type() {
     }
 }
 
+Token *consume_type(Type *base, Type **r_type);
+
 Token *consume_ident() {
     if (token->kind == TK_IDENT) {
         Token *t = token;
@@ -557,16 +559,14 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数の型が正しく定義されていません");
             exit(1);
         }
-        // TODO まずポインタ1つまで
-        // TODO グローバル変数は配列もありうる
-        Type *const type = consume("*")
-                           ? create_pointer_type(base)
-                           : base;
-        Token *identifier = consume_ident();
+        // TODO 関数の返り値に配列は書けない
+        Type *type;
+        Token *identifier = consume_type(base, &type);
         if (!identifier) {
             error_at(token->str, "関数名または変数名がありません");
             exit(1);
         }
+        // 同名で同型のグローバル変数は宣言できる
         // 他のグローバル変数や関数との名前重複チェック
         if (find_global_variable(identifier->str, identifier->len)
             || find_function(identifier->str, identifier->len)) {
@@ -647,8 +647,8 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
     g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
+    char *loc = token->str;
     if (consume("=")) {
-        char *loc = token->str;
         // TODO とりあえず順番にやってみる？
         //  int, char
         //  int[], char[]
@@ -726,6 +726,10 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
             }
         }
     } else {
+        if (type->ty == TYPE_ARRAY && type->array_size == 0) {
+            error_at(loc, "配列のサイズが指定されていません。");
+            exit(1);
+        }
         g->target = calloc(1, sizeof(Directives));
         g->target->directive = _zero;
         // サイズ分を0で初期化
@@ -996,11 +1000,7 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
     return block;
 }
 
-Type *consume_type(Type *base, Variable **for_declaration) {
-    if (base->ty == TYPE_VOID) {
-        error_at(token->str, "変数にvoidは使えません");
-        exit(1);
-    }
+Token *consume_type(Type *base, Type **r_type) {
     bool backwards = consume("(");
     Type *type = backwards ? NULL : base;
     while (consume("*")) {
@@ -1008,12 +1008,8 @@ Type *consume_type(Type *base, Variable **for_declaration) {
         type = pointer;
     }
     Token *identifier_token = consume_ident();
-    // ローカル変数の宣言
-    if (identifier_token) {
-        if (!for_declaration) {
-            error_at(identifier_token->str, "ここでは変数を宣言できません");
-            exit(1);
-        }
+    // 変数の宣言
+    if (identifier_token && current_scope) {
         // 同じスコープ内で同名の変数は宣言できない
         // グローバル変数との重複は可能
         Scope *parent = current_scope->parent;
@@ -1023,11 +1019,6 @@ Type *consume_type(Type *base, Variable **for_declaration) {
             exit(1);
         }
         current_scope->parent = parent;
-    } else {
-        if (for_declaration) {
-            error_at(token->str, "変数名がありません");
-            exit(1);
-        }
     }
     Type *backwards_pointer = NULL;
     if (backwards) {
@@ -1077,16 +1068,23 @@ Type *consume_type(Type *base, Variable **for_declaration) {
         edge->point_to = type;
         type = edge;
     }
-    if (for_declaration) {
-        *for_declaration = register_variable(identifier_token->str, identifier_token->len, type);
-    }
-    return type;
+    *r_type = type;
+    return identifier_token;
 }
 
 Node *local_variable_declaration(Type *base) {
     // 変数の登録
-    Variable *variable;
-    Type *const type = consume_type(base, &variable);
+    Type *type;
+    Token *const identifier = consume_type(base, &type);
+    if (base->ty == TYPE_VOID) {
+        error_at(token->str, "変数にvoidは使えません");
+        exit(1);
+    }
+    if (!identifier) {
+        error_at(token->str, "変数名がありません");
+        exit(1);
+    }
+    Variable *variable = register_variable(identifier->str, identifier->len, type);
     // 初期化
     if (consume("=")) {
         // RBPへのオフセットが決定しない場合がある
@@ -1270,7 +1268,11 @@ Node *unary() {
             Type *const base = consume_base_type();
             if (base) {
                 // sizeof(int)など
-                type = consume_type(base, NULL);
+                Token *const identifier_token = consume_type(base, &type);
+                if (identifier_token) {
+                    error_at(identifier_token->str, "ここでは変数を宣言できません");
+                    exit(1);
+                }
                 expect(")");
                 int size = get_size(type);
                 return new_node_num(size);

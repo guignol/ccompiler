@@ -367,6 +367,10 @@ int global_variable_7() {
     return *global_p;
 }
 
+//int global_array_int_[];
+int global_array_int[4];
+char global_array_char[4];
+
 /////////////////////////////////////////////////
 
 int write_stack_4() {
