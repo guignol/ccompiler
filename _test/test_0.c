@@ -96,14 +96,15 @@ int string_return() {
 
 /////////////////////////////////////////////////
 
-char *moji_global;
+char *moji_global = "moji_global_before\n";
 
 void init_global() {
-    moji_global = "moji_global";
+    moji_global = "moji_global_after\n";
 }
 
 // 4
 int string_global() {
+    printf(moji_global);
     init_global();
     printf(moji_global);
     return 4;
@@ -296,7 +297,7 @@ int char_calculate_array() {
 
 /////////////////////////////////////////////////
 
-int *a;
+int *a = 55;
 int *b;
 int aa;
 
@@ -347,6 +348,23 @@ int global_variable_5() {
     global_c_1 = 'a';
     global_c_2 = 'c';
     return global_c_2 - global_c_1;
+}
+
+int global_int = sizeof(int) + 0;
+
+// 7
+int global_variable_6() {
+    int b = global_int;
+    int global_int = 3;
+    int c = global_int;
+    return b + c;
+}
+
+int *global_p = &global_int;
+
+// 4
+int global_variable_7() {
+    return *global_p;
 }
 
 /////////////////////////////////////////////////
@@ -1125,6 +1143,8 @@ int main() {
     assert("global_variable_3", 3, global_variable_3());
     assert("global_variable_4", 3, global_variable_4());
     assert("global_variable_5", 2, global_variable_5());
+    assert("global_variable_6", 7, global_variable_6());
+    assert("global_variable_7", 4, global_variable_7());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

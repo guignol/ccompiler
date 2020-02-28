@@ -105,7 +105,7 @@ struct Node {
     int len;
     int offset;    // ローカル変数のRBPからのオフセット
 
-    // 文字列リテラル
+    // 文字列リテラルへの参照
     char *label;
     int label_length;
 

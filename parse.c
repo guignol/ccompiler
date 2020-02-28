@@ -130,7 +130,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // decl_a     = ("int" | "char") "*"* (pointed_id | ident)
 // decl_b     = decl_a ("[" num "]")*
 // decl_c     = decl_a "[]"? ("[" num? "]")* "=" (array_init | expr)
-// array_init = "{" args "}"
+// decl_g     = decl_a "[]"? ("[" num? "]")* "=" (array_init | equality) // その他、制限あり
 // pointed_id = "(" "*"* ident ")"
 // ident      =
 // literal_str=
@@ -358,7 +358,7 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *new_node_variable(char *str, int len) {
+Node *new_node_local_variable(char *str, int len) {
     Variable *variable = find_local_variable(current_scope, str, len);
     if (!variable) {
         // ローカル変数が無い場合はグローバル変数を探す
@@ -375,7 +375,7 @@ Node *new_node_variable(char *str, int len) {
     return node;
 }
 
-Node *new_node_variable_global(char *str, int len) {
+Node *new_node_global_variable(char *str, int len) {
     Global *variable = find_global_variable(str, len);
     if (!variable) {
         error_at(str, "変数の宣言がありません。");
@@ -385,8 +385,8 @@ Node *new_node_variable_global(char *str, int len) {
     node->kind = ND_VARIABLE;
     node->type = variable->type;
     node->is_local = false;
-    node->name = str;
-    node->len = len;
+    node->name = variable->label;
+    node->len = variable->label_length;
     return node;
 }
 
@@ -459,13 +459,18 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
     const int weight_l = get_weight(left);
     const int weight_r = get_weight(right);
     if (weight_l == weight_r) {
-        if (kind == ND_SUB) {
-            // ポインタ同士の引き算
-            Node *node = new_node(kind, left, right);
-            return new_node(ND_DIV, node, new_node_num(weight_l));
-        } else {
-            // TODO 足し算はどうなるべきか
+        if (weight_l == 1) {
+            // 整数の引き算または足し算
             return new_node(kind, left, right);
+        } else {
+            if (kind == ND_SUB) {
+                // ポインタどうしの引き算
+                Node *node = new_node(kind, left, right);
+                return new_node(ND_DIV, node, new_node_num(weight_l));
+            } else {
+                error_at(token->str, "ポインタどうしの足し算はできません");
+                exit(1);
+            }
         }
     } else if (weight_l == 1) {
         left = new_node(ND_MUL, new_node_num(weight_r), left);
@@ -480,6 +485,23 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
     }
 }
 
+Assignable assert_assignable(char *loc,
+                             Type *const left_type,
+                             Type *const right_type,
+                             const bool rZero) {
+    switch (are_assignable_type(left_type, right_type, rZero)) {
+        case AS_INCOMPATIBLE:
+            warn_at(loc, "warning: 代入式の左右の型が異なります。");
+            warn_incompatible_type(left_type, right_type);
+        case AS_SAME:
+            break;
+        case CANNOT_ASSIGN:
+            error_at(loc, "error: 代入式の左右の型が異なります。");
+            exit(1);
+    }
+    return true;
+}
+
 Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     Type *const left_type = find_type(lhs);
     Type *const right_type = find_type(rhs);
@@ -487,15 +509,8 @@ Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
     // （0リテラル、配列の0パディング）
     bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
-    switch (are_assignable_type(left_type, right_type, rZero)) {
-        case AS_INCOMPATIBLE:
-            warn_at(loc, "warning: 代入式の左右の型が異なります。");
-            warn_incompatible_type(left_type, right_type);
-        case AS_SAME:
-            return new_node(ND_ASSIGN, lhs, rhs);
-        case CANNOT_ASSIGN:
-            error_at(loc, "error: 代入式の左右の型が異なります。");
-            exit(1);
+    if (assert_assignable(loc, left_type, right_type, rZero)) {
+        return new_node(ND_ASSIGN, lhs, rhs);
     }
 }
 
@@ -587,6 +602,17 @@ struct Program *parse(Token *tok) {
     return prog;
 }
 
+int retrieve_int(Node *node) {
+    switch (node->kind) {
+        case ND_NUM:
+            return node->val;
+        default:
+            error_at(token->str, "ぐああああああああああああああああ\n");
+            exit(1);
+    }
+}
+
+
 Global *global_variable_declaration(Token *variable_name, Type *type) {
     /*
      * グローバル変数の初期化に使えるもの
@@ -622,21 +648,90 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
     g->label = variable_name->str;
     g->label_length = variable_name->len;
     if (consume("=")) {
+        char *loc = token->str;
         // TODO とりあえず順番にやってみる？
         //  int, char
         //  int[], char[]
         //  char*
         //  int*
-        error_at(token->str, "TODO: グローバル変数の初期化");
-        exit(1);
-        expect(";");
+        if (type->ty == TYPE_ARRAY) {
+            error_at(loc, "TODO: グローバル変数（配列）の初期化");
+            exit(1);
+        } else {
+            Node *const node = equality();
+            // 型チェック
+            bool rZero = node->kind == ND_NUM && node->val == 0;
+            assert_assignable(loc, type, find_type(node), rZero);
+            switch (node->kind) {
+                case ND_STR_LITERAL:
+                    g->target = calloc(1, sizeof(Directives));
+                    g->target->directive = _quad;
+                    g->target->reference = node->label;
+                    g->target->reference_length = node->label_length;
+                    break;
+                case ND_NUM:
+                    // リテラル、sizeof、ポインタ演算
+                    g->target = calloc(1, sizeof(Directives));
+                    g->target->directive = _long;
+                    g->target->value = node->val;
+                    break;
+                case ND_ADD: {
+                    int val = retrieve_int(node->lhs) + retrieve_int(node->rhs);
+                    g->target = calloc(1, sizeof(Directives));
+                    g->target->directive = _long;
+                    g->target->value = val;
+                    break;
+                }
+                case ND_ADDRESS: {
+                    // ポインタ
+                    Node *v = node->lhs;
+                    switch (v->kind) {
+                        case ND_VARIABLE:
+                        case ND_VARIABLE_ARRAY:
+                            g->target = calloc(1, sizeof(Directives));
+                            g->target->directive = _quad;
+                            g->target->reference = v->name;
+                            g->target->reference_length = v->len;
+                            break;
+                        default:
+                            error_at(loc, "グローバル変数の初期化に使えるアドレスはグローバル変数のみです");
+                            exit(1);
+                    }
+                    break;
+                }
+                case ND_SUB:
+                case ND_MUL:
+                case ND_DIV:
+                case ND_EQL:
+                case ND_NOT:
+                case ND_LESS:
+                case ND_LESS_EQL:
+                    error_at(loc, "TODO: グローバル変数の初期化は未実装");
+                    exit(1);
+                case ND_VARIABLE: // Nodeのトップには来ない
+                case ND_VARIABLE_ARRAY: // Nodeのトップには来ない
+                case ND_EXPR_STMT:
+                case ND_IF:
+                case ND_WHILE:
+                case ND_FOR:
+                case ND_BLOCK:
+                case ND_FUNC:
+                case ND_DEREF:
+                case ND_DEREF_ARRAY_POINTER:
+                case ND_RETURN:
+                case ND_ASSIGN:
+                case ND_NOTHING:
+                    error_at(loc, "グローバル変数の初期化では非対応です？");
+                    exit(1);
+            }
+        }
     } else {
-        expect(";");
+        g->target = calloc(1, sizeof(Directives));
+        g->target->directive = _zero;
+        // サイズ分を0で初期化
+        g->target->value = get_size(type);
     }
-    g->target = calloc(1, sizeof(Directives));
-    g->target->directive = _zero;
-    // サイズ分を0で初期化
-    g->target->value = get_size(type);
+    expect(";");
     return g;
 }
 
@@ -996,7 +1091,7 @@ Node *local_variable_declaration(Type *base) {
     if (consume("=")) {
         // RBPへのオフセットが決定しない場合がある
         const bool implicit_size = type->array_size == 0;
-        Node *const variable_node = new_node_variable(variable->name, variable->len);
+        Node *const variable_node = new_node_local_variable(variable->name, variable->len);
         if (type->ty == TYPE_ARRAY) {
             // 配列の初期化
             Node *node = array_initializer(variable_node, type);
@@ -1223,9 +1318,9 @@ Node *primary() {
             return new_node_function_call(tok);
         } else {
             // 変数
-            Node *variable = new_node_variable(tok->str, tok->len);
+            Node *variable = new_node_local_variable(tok->str, tok->len);
             if (!variable) {
-                variable = new_node_variable_global(tok->str, tok->len);
+                variable = new_node_global_variable(tok->str, tok->len);
             }
             return with_index(variable);
         }
