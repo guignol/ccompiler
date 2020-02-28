@@ -136,7 +136,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // literal_str=
 // num        =
 
-Global *global_var(Token *variable_name, Type *type);
+Global *global_variable_declaration(Token *variable_name, Type *type);
 
 Function *function(Token *function_name, Type *returnType);
 
@@ -574,7 +574,7 @@ struct Program *parse(Token *tok) {
             tail_f = tail_f->next = function(identifier, type);
         } else {
             // グローバル変数
-            Global *const g = global_var(identifier, type);
+            Global *const g = global_variable_declaration(identifier, type);
             add_globals(g);
         }
     }
@@ -587,7 +587,7 @@ struct Program *parse(Token *tok) {
     return prog;
 }
 
-Global *global_var(Token *variable_name, Type *type) {
+Global *global_variable_declaration(Token *variable_name, Type *type) {
     /*
      * グローバル変数の初期化に使えるもの
      *
@@ -751,7 +751,7 @@ Node *block_statement(void) {
 
 void visit_array_initializer(NodeArray *array, Type *type) {
     // 配列サイズが明示されていない場合
-    const bool undefined_size = type->array_size == 0;
+    const bool implicit_size = type->array_size == 0;
     /*
      * char charara[2][4] = {"abc", "def"};
      *
@@ -799,7 +799,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
         }
         int index = 0;
         do {
-            if (!undefined_size && type->array_size <= index) {
+            if (!implicit_size && type->array_size <= index) {
                 warn_at(token->str, "excess elements in array initializer");
                 token = token->next;
             } else {
@@ -808,7 +808,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
             consume(","); // 末尾に残ってもOK
             index++;
         } while (!consume("}"));
-        if (undefined_size) {
+        if (implicit_size) {
             // サイズを明示していない配列のサイズを決定する
             type->array_size = index;
         }
@@ -820,7 +820,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
     } else if (token->kind == TK_STR_LITERAL && type->ty == TYPE_ARRAY) {
         int index = 0;
         for (; index < token->len; index++) {
-            if (!undefined_size && type->array_size <= index) {
+            if (!implicit_size && type->array_size <= index) {
                 warn_at(token->str, "initializer-string for array of chars is too long");
                 break;
             }
@@ -828,7 +828,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
             Node *const node = new_node_num(c);
             push_node(array, node);
         }
-        if (undefined_size) {
+        if (implicit_size) {
             // サイズを明示していない配列のサイズを決定する
             type->array_size = index;
         }
@@ -870,11 +870,11 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
     visit_array_initializer(nodeArray, type);
 
     // ポインター型への変換
-    Type *base = type->point_to;
-    while (base->ty == TYPE_ARRAY) {
-        base = base->point_to;
+    Type *pointed = type->point_to;
+    while (pointed->ty == TYPE_ARRAY) {
+        pointed = pointed->point_to;
     }
-    array_variable->type = create_pointer_type(base);
+    array_variable->type = create_pointer_type(pointed);
     Node *pointer = array_variable;
 
     /*
@@ -988,19 +988,19 @@ Type *consume_type(Type *base, Variable **for_declaration) {
     return type;
 }
 
-Node *variable_declaration(Type *base) {
+Node *local_variable_declaration(Type *base) {
     // 変数の登録
     Variable *variable;
     Type *const type = consume_type(base, &variable);
-    // RBPへのオフセットが決定しない場合がある
-    const bool undefined_size_array = type->array_size == 0;
     // 初期化
     if (consume("=")) {
+        // RBPへのオフセットが決定しない場合がある
+        const bool implicit_size = type->array_size == 0;
         Node *const variable_node = new_node_variable(variable->name, variable->len);
         if (type->ty == TYPE_ARRAY) {
             // 配列の初期化
             Node *node = array_initializer(variable_node, type);
-            if (undefined_size_array) {
+            if (implicit_size) {
                 // 配列のサイズが決まってからオフセットを再設定する
                 variable->offset = stack_size = stack_size + get_size(type);
                 variable_node->offset = variable->offset;
@@ -1008,7 +1008,7 @@ Node *variable_declaration(Type *base) {
             expect(";");
             return node;
         } else {
-            if (type->ty == TYPE_POINTER && undefined_size_array) {
+            if (type->ty == TYPE_POINTER) {
                 // TODO サイズ不一致の場合はwarningを出す
                 //  int (*pointer)[] = &array;
                 //  配列の場合はarray_initializer関数で実施済み
@@ -1029,7 +1029,7 @@ Node *stmt(void) {
     Type *base = consume_base_type();
     if (base) {
         // 変数宣言および初期化
-        return variable_declaration(base);
+        return local_variable_declaration(base);
     } else if (consume("{")) {
         return block_statement();
     } else if (consume("if")) {
@@ -1065,7 +1065,7 @@ Node *stmt(void) {
             Type *init_type_base = consume_base_type();
             if (init_type_base) {
                 // 変数宣言および初期化
-                init = variable_declaration(init_type_base);
+                init = local_variable_declaration(init_type_base);
                 node->lhs = new_node(ND_EXPR_STMT, init, NULL);
             } else {
                 init = expr();
