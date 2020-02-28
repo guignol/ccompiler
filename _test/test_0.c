@@ -360,17 +360,17 @@ int global_variable_6() {
     return b + c;
 }
 
-int *global_p = &global_int;
+int *global_p = &global_int + (0 + 3) * 1 - 3;
 
 // 4
 int global_variable_7() {
     return *global_p;
 }
 
-//int global_array_int_[];
-int global_array_int[4];
-int *global_array_element_pointer = &global_array_int[2];
-int global_multiple = 4 + 1 * 3 * 5; // 19
+//int bbb = 3;
+//int global_multiple = bbb - 3 + 4 + 1 * 3 * 5; // 19
+int global_multiple = 3 - 3 + 4 + 1 * 3 * 5; // 19
+
 int global_division = 35 / 7 + 9; // 14
 
 int global_array_array[2][3];
@@ -393,6 +393,8 @@ int global_variable_9() {
     return forty - global_multiple - global_division;
 }
 
+/////////////////////////////////////////////////
+
 char global_array_char[4];
 char *global_pointer_char = &global_array_char;
 
@@ -400,6 +402,23 @@ char *global_pointer_char = &global_array_char;
 int global_variable_10() {
     global_array_char[1] = 11;
     return global_pointer_char[1];
+}
+
+//int global_array_int_[];
+int global_array_int[4];
+int *global_array_element_pointer = &global_array_int[2];
+//int *global_array_element_pointer = &(global_array_int[2]); // と同じ
+//int *global_array_element_pointer = (&global_array_int)[2]; // もビルドは通ることになってる
+
+// 33
+int global_variable_11() {
+    global_array_int[0] = 0;
+    global_array_int[1] = 1;
+    global_array_int[2] = 2;
+    global_array_int[3] = 33;
+    int i = global_array_element_pointer[1];
+    printf("%d-------------\n", i);
+    return i;
 }
 
 /////////////////////////////////////////////////
@@ -1182,7 +1201,9 @@ int main() {
     assert("global_variable_7", 4, global_variable_7());
     assert("global_variable_8", 17, global_variable_8());
     assert("global_variable_9", 7, global_variable_9());
+
     assert("global_variable_10", 11, global_variable_10());
+    assert("global_variable_11", 33, global_variable_11());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

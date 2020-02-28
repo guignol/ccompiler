@@ -596,47 +596,57 @@ struct Program *parse(Token *tok) {
     return prog;
 }
 
-int retrieve_int(Node *node, Node **pointed) {
+int load_node(Node *node, Node **pointed) {
+    if (!pointed) {
+        error_at(token->str, "グローバル変数の初期化に失敗： 変数を発見\n");
+        exit(1);
+    } else if (*pointed) {
+        // ポインタが複数あった
+        error_at(token->str, "グローバル変数の初期化に失敗： 変数が複数\n");
+        exit(1);
+    } else {
+        *pointed = node;
+        return 0;
+    }
+}
+
+int reduce_int(Node *node, Node **pointed) {
     switch (node->kind) {
+        case ND_NUM:
+            return node->val;
         case ND_ADD: {
-            int left = retrieve_int(node->lhs, pointed);
-            int right = retrieve_int(node->rhs, pointed);
+            int left = reduce_int(node->lhs, pointed);
+            int right = reduce_int(node->rhs, pointed);
             return left + right;
         }
         case ND_SUB: {
-            int left = retrieve_int(node->lhs, pointed);
-            int right = retrieve_int(node->rhs, pointed);
+            int left = reduce_int(node->lhs, pointed);
+            int right = reduce_int(node->rhs, pointed);
             return left - right;
         }
         case ND_MUL: {
-            int left = retrieve_int(node->lhs, pointed);
-            int right = retrieve_int(node->rhs, pointed);
+            // 子nodeには変数によるポインタアクセスなし
+            int left = reduce_int(node->lhs, NULL);
+            int right = reduce_int(node->rhs, NULL);
             return left * right;
         }
         case ND_DIV: {
-            int left = retrieve_int(node->lhs, pointed);
-            int right = retrieve_int(node->rhs, pointed);
+            // 子nodeには変数によるポインタアクセスなし
+            int left = reduce_int(node->lhs, NULL);
+            int right = reduce_int(node->rhs, NULL);
             return left / right;
         }
-        case ND_NUM:
-            return node->val;
-        case ND_ADDRESS:
-            return retrieve_int(node->lhs, pointed);
-        case ND_VARIABLE:
-        case ND_VARIABLE_ARRAY: {
-            if (!pointed) {
-                // ポインタは予期していない
-                error_at(token->str, "ぐいいいいいいいいいいいいい\n");
-                exit(1);
-            } else if (*pointed) {
-                // ポインタが複数あった
-                error_at(token->str, "ぐああああああああああああああああ\n");
-                exit(1);
-            } else {
-                *pointed = node;
-                return 0;
+        case ND_ADDRESS: {
+            Node *const referred = node->lhs;
+            switch (referred->kind) {
+                case ND_VARIABLE:
+                    return load_node(referred, pointed);
+                default:
+                    return reduce_int(referred, pointed);
             }
         }
+        case ND_VARIABLE_ARRAY:
+            return load_node(node, pointed);
         default:
             error_at(token->str, "ぐええええええええええええ\n");
             exit(1);
@@ -707,28 +717,67 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
                     target->value = node->val;
                     break;
                 case ND_ADD:
-                case ND_SUB:
+                case ND_SUB: {
+                    Node *pointed = NULL;
+                    int sum = reduce_int(node, &pointed);
+                    if (pointed) {
+                        // TODO 実用的な例は無いかも？
+                        //  int *a = &b + 1
+                        target->directive = _quad;
+                        target->reference = pointed->name;
+                        target->reference_length = pointed->len;
+                        target->value = sum;
+                    } else {
+                        target->directive = _long;
+                        target->value = sum;
+                    }
+                    break;
+                }
                 case ND_MUL:
                 case ND_DIV: {
-                    int sum = retrieve_int(node, NULL);
+                    int sum = reduce_int(node, NULL);
                     target->directive = _long;
                     target->value = sum;
                     break;
                 }
+                case ND_DEREF_ARRAY_POINTER: {
+                    // 配列の途中まで、またはポインタへの[]アクセスの場合
+                    // ポインタ
+                    Node *pointed = NULL;
+                    int sum = reduce_int(node->lhs, &pointed);
+                    if (pointed) {
+                        target->directive = _quad;
+                        target->reference = pointed->name;
+                        target->reference_length = pointed->len;
+                        target->value = sum;
+                    } else {
+                        error_at(loc, "ぐaaaaaaaaaaaaaa");
+                        exit(1);
+                    }
+                    break;
+                }
                 case ND_ADDRESS: {
                     // ポインタ
-                    Node *v = node->lhs;
-                    switch (v->kind) {
+                    Node *referred = node->lhs;
+                    switch (referred->kind) {
                         case ND_VARIABLE:
                         case ND_VARIABLE_ARRAY:
                             target->directive = _quad;
-                            target->reference = v->name;
-                            target->reference_length = v->len;
+                            target->reference = referred->name;
+                            target->reference_length = referred->len;
                             break;
                         case ND_DEREF:
                         case ND_DEREF_ARRAY_POINTER: {
+                            /*
+                             * 例.1
+                             * int global_array_int[4];
+                             * int *global_array_element_pointer = &global_array_int[2];
+                             * 例.2
+                             * int global_array_array[2][3];
+                             * int (*test)[3] = &(global_array_array[1]);
+                             */
                             Node *pointed = NULL;
-                            int sum = retrieve_int(v->lhs, &pointed);
+                            int sum = reduce_int(referred->lhs, &pointed);
                             if (pointed) {
                                 target->directive = _quad;
                                 target->reference = pointed->name;
@@ -755,7 +804,6 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
                 case ND_VARIABLE: // Nodeのトップには来ない
                 case ND_VARIABLE_ARRAY: // Nodeのトップには来ない
                 case ND_DEREF: // Nodeのトップには来ない
-                case ND_DEREF_ARRAY_POINTER: // Nodeのトップには来ない
                 case ND_EXPR_STMT:
                 case ND_IF:
                 case ND_WHILE:
