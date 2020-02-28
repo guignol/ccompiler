@@ -115,6 +115,12 @@ struct Node {
     Node *args;         // function( ...args )
 };
 
+typedef struct NodeArray NodeArray;
+struct NodeArray {
+    Node **memory;
+    int count;
+    int capacity;
+};
 
 /////////////////////////////////////////////////
 
@@ -194,7 +200,7 @@ struct Function {
     // 引数
     Variable *parameters;
     // 関数本体
-    Node **body;
+    NodeArray *body;
     // スタックのサイズ
     int stack_size;
 

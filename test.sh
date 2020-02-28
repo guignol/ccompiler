@@ -21,5 +21,6 @@ fi
 if [ $? == 0 ]; then
   echo "OK"
 else
+  echo "exit code: $?"
   echo "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNG"
 fi

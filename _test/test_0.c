@@ -369,7 +369,38 @@ int global_variable_7() {
 
 //int global_array_int_[];
 int global_array_int[4];
+int *global_array_element_pointer = &global_array_int[2];
+int global_multiple = 4 + 1 * 3 * 5; // 19
+int global_division = 35 / 7 + 9; // 14
+
+int global_array_array[2][3];
+//int global_array_array[2][3] = {{1, 2, 3}, {4, 5, 6}};
+int (*test)[3] = &(global_array_array[1]);
+
+// 17
+int global_variable_8() {
+    global_array_array[1][1] = 50;
+    int fifty = (*test)[1];
+    return fifty - global_multiple - global_division;
+}
+
+// 7
+int global_variable_9() {
+//    int global_array_array[2][3];
+    int (*test)[3] = &(global_array_array[1]);
+    global_array_array[1][0] = 40;
+    int forty = (*test)[0];
+    return forty - global_multiple - global_division;
+}
+
 char global_array_char[4];
+char *global_pointer_char = &global_array_char;
+
+// 11
+int global_variable_10() {
+    global_array_char[1] = 11;
+    return global_pointer_char[1];
+}
 
 /////////////////////////////////////////////////
 
@@ -1149,6 +1180,9 @@ int main() {
     assert("global_variable_5", 2, global_variable_5());
     assert("global_variable_6", 7, global_variable_6());
     assert("global_variable_7", 4, global_variable_7());
+    assert("global_variable_8", 17, global_variable_8());
+    assert("global_variable_9", 7, global_variable_9());
+    assert("global_variable_10", 11, global_variable_10());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

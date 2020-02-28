@@ -83,6 +83,15 @@ void gen_address(Node *node) {
             */
             gen(node->lhs);
             break;
+        case ND_DEREF_ARRAY_POINTER: {
+            /*
+             * int global_array_array[2][3];
+             * int (*test)[3] = &(global_array_array[1]);
+             *                                        ↑
+             */
+            gen(node->lhs);
+            break;
+        }
         default: {
             error("代入の左辺値が変数ではありません\n");
             exit(1);
@@ -409,8 +418,8 @@ void generate_function(Function *func) {
     printf("  mov rbp, rsp\n");
     prepare_stack(func->stack_size, func->parameters);
 
-    for (size_t i = 0; i < 100; i++) {
-        Node *node = func->body[i];
+    for (int i = 0; i < func->body->count; ++i) {
+        Node *node = func->body->memory[i];
         if (node == NULL)
             break;
 
@@ -434,7 +443,7 @@ void generate_global(Global *globals) {
     for (Global *global = globals; global; global = global->next) {
         // ラベル
         printf("%.*s:\n", global->label_length, global->label);
-        for (Directives *target = global->target; target ; target = target->next) {
+        for (Directives *target = global->target; target; target = target->next) {
             switch (target->directive) {
                 // TODO 初期化なしの場合は .zero と .stringだけで足りる
                 case _zero:
@@ -446,10 +455,20 @@ void generate_global(Global *globals) {
                 case _long:
                     printf("  .long %d\n", target->value);
                     break;
-                case _quad:
-                    // TODO ポインタのオフセット計算がありうるけど、文字列をそのまま使う？
-                    printf("  .quad %.*s\n", target->reference_length, target->reference);
+                case _quad: {
+                    int offset = target->value;
+                    if (0 < offset) {
+                        printf("  .quad %.*s%s%d\n",
+                               target->reference_length, target->reference, "+", offset);
+                    } else if (target->value < 0) {
+                        printf("  .quad %.*s%s%d\n",
+                               target->reference_length, target->reference, "-", offset);
+                    } else {
+                        printf("  .quad %.*s\n",
+                               target->reference_length, target->reference);
+                    }
                     break;
+                }
                 case _string: {
                     printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
                     break;

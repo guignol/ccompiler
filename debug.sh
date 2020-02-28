@@ -11,4 +11,5 @@
 /usr/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -B./build/ -H.
 /usr/bin/cmake --build ./build --target clean -- -j 4
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
-./build/ccompiler "--file" "$(pwd)/_test/debug.c" >tmp.s && gcc -static -o tmp tmp.s && ./tmp && echo "$?"
+./build/ccompiler "--file" "$(pwd)/_test/debug.c" >tmp.s && gcc -static -o tmp tmp.s && ./tmp
+echo "$?"

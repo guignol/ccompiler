@@ -69,13 +69,6 @@ void add_globals(Global *next) {
 
 /////////////////////////
 
-typedef struct NodeArray NodeArray;
-struct NodeArray {
-    Node **memory;
-    int count;
-    int capacity;
-};
-
 NodeArray *create_node_array(int capacity) {
     if (capacity < 1) {
         capacity = 10;
@@ -384,7 +377,8 @@ Node *new_node_global_variable(char *str, int len) {
         exit(1);
     }
     Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_VARIABLE;
+    bool is_array = variable->type->ty == TYPE_ARRAY;
+    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = variable->type;
     node->is_local = false;
     node->name = variable->label;
@@ -602,32 +596,69 @@ struct Program *parse(Token *tok) {
     return prog;
 }
 
-int retrieve_int(Node *node) {
+int retrieve_int(Node *node, Node **pointed) {
     switch (node->kind) {
+        case ND_ADD: {
+            int left = retrieve_int(node->lhs, pointed);
+            int right = retrieve_int(node->rhs, pointed);
+            return left + right;
+        }
+        case ND_SUB: {
+            int left = retrieve_int(node->lhs, pointed);
+            int right = retrieve_int(node->rhs, pointed);
+            return left - right;
+        }
+        case ND_MUL: {
+            int left = retrieve_int(node->lhs, pointed);
+            int right = retrieve_int(node->rhs, pointed);
+            return left * right;
+        }
+        case ND_DIV: {
+            int left = retrieve_int(node->lhs, pointed);
+            int right = retrieve_int(node->rhs, pointed);
+            return left / right;
+        }
         case ND_NUM:
             return node->val;
+        case ND_ADDRESS:
+            return retrieve_int(node->lhs, pointed);
+        case ND_VARIABLE:
+        case ND_VARIABLE_ARRAY: {
+            if (!pointed) {
+                // ポインタは予期していない
+                error_at(token->str, "ぐいいいいいいいいいいいいい\n");
+                exit(1);
+            } else if (*pointed) {
+                // ポインタが複数あった
+                error_at(token->str, "ぐああああああああああああああああ\n");
+                exit(1);
+            } else {
+                *pointed = node;
+                return 0;
+            }
+        }
         default:
-            error_at(token->str, "ぐああああああああああああああああ\n");
+            error_at(token->str, "ぐええええええええええええ\n");
             exit(1);
     }
 }
-
 
 Global *global_variable_declaration(Token *variable_name, Type *type) {
     /*
      * グローバル変数の初期化に使えるもの
      *
      * 【定数式】
+     *  （OK）
+     *  int a[] = {2, 0, 3};
+     *  int moshi = 1 < 2 ? 3 : sizeof(a);
      *  (NG)
      * 　int n = ({3;});
      *  int x = *y;
+     *  int x = c = 9;
+     *
+     *  参考演算子は使えるが、コンパイル時に解決される
      *
      * 【グローバル変数や関数のアドレス】
-     *  ポインタのintへのキャストなし代入
-     *   => error （ローカルではwarning）
-     *  ポインタのintへのキャスト
-     *   => error （ローカルではwarning）
-     *
      *  (OK)
      *  int(*n)[2] = &m;
      *  int *y     = &m;
@@ -638,6 +669,11 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
      *  int m[]    = {(int)&a, 3};
      *  int m[]    = {&a, 3};
      *
+     *  ポインタのintへのキャストなし代入
+     *   => error （ローカルではwarning）
+     *  ポインタのintへのキャスト
+     *   => error （ローカルではwarning）
+     *
      *  現在のところキャストもsize_tも実装してないので、単に型チェックするだけで良いはず
      *
      * 【グローバル変数や関数のアドレスに定数を足したもの】
@@ -647,13 +683,10 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
     g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
+    g->target = calloc(1, sizeof(Directives));
+    Directives *target = g->target;
     char *loc = token->str;
     if (consume("=")) {
-        // TODO とりあえず順番にやってみる？
-        //  int, char
-        //  int[], char[]
-        //  char*
-        //  int*
         if (type->ty == TYPE_ARRAY) {
             error_at(loc, "TODO: グローバル変数（配列）の初期化");
             exit(1);
@@ -664,22 +697,22 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
             assert_assignable(loc, type, find_type(node), rZero);
             switch (node->kind) {
                 case ND_STR_LITERAL:
-                    g->target = calloc(1, sizeof(Directives));
-                    g->target->directive = _quad;
-                    g->target->reference = node->label;
-                    g->target->reference_length = node->label_length;
+                    target->directive = _quad;
+                    target->reference = node->label;
+                    target->reference_length = node->label_length;
                     break;
                 case ND_NUM:
-                    // リテラル、sizeof、ポインタ演算
-                    g->target = calloc(1, sizeof(Directives));
-                    g->target->directive = _long;
-                    g->target->value = node->val;
+                    // リテラル、sizeof
+                    target->directive = _long;
+                    target->value = node->val;
                     break;
-                case ND_ADD: {
-                    int val = retrieve_int(node->lhs) + retrieve_int(node->rhs);
-                    g->target = calloc(1, sizeof(Directives));
-                    g->target->directive = _long;
-                    g->target->value = val;
+                case ND_ADD:
+                case ND_SUB:
+                case ND_MUL:
+                case ND_DIV: {
+                    int sum = retrieve_int(node, NULL);
+                    target->directive = _long;
+                    target->value = sum;
                     break;
                 }
                 case ND_ADDRESS: {
@@ -688,20 +721,31 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
                     switch (v->kind) {
                         case ND_VARIABLE:
                         case ND_VARIABLE_ARRAY:
-                            g->target = calloc(1, sizeof(Directives));
-                            g->target->directive = _quad;
-                            g->target->reference = v->name;
-                            g->target->reference_length = v->len;
+                            target->directive = _quad;
+                            target->reference = v->name;
+                            target->reference_length = v->len;
                             break;
+                        case ND_DEREF:
+                        case ND_DEREF_ARRAY_POINTER: {
+                            Node *pointed = NULL;
+                            int sum = retrieve_int(v->lhs, &pointed);
+                            if (pointed) {
+                                target->directive = _quad;
+                                target->reference = pointed->name;
+                                target->reference_length = pointed->len;
+                                target->value = sum;
+                            } else {
+                                error_at(loc, "ぐaaaaaaaaaaaaaa");
+                                exit(1);
+                            }
+                            break;
+                        }
                         default:
                             error_at(loc, "グローバル変数の初期化に使えるアドレスはグローバル変数のみです");
                             exit(1);
                     }
                     break;
                 }
-                case ND_SUB:
-                case ND_MUL:
-                case ND_DIV:
                 case ND_EQL:
                 case ND_NOT:
                 case ND_LESS:
@@ -710,14 +754,14 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
                     exit(1);
                 case ND_VARIABLE: // Nodeのトップには来ない
                 case ND_VARIABLE_ARRAY: // Nodeのトップには来ない
+                case ND_DEREF: // Nodeのトップには来ない
+                case ND_DEREF_ARRAY_POINTER: // Nodeのトップには来ない
                 case ND_EXPR_STMT:
                 case ND_IF:
                 case ND_WHILE:
                 case ND_FOR:
                 case ND_BLOCK:
                 case ND_FUNC:
-                case ND_DEREF:
-                case ND_DEREF_ARRAY_POINTER:
                 case ND_RETURN:
                 case ND_ASSIGN:
                 case ND_NOTHING:
@@ -730,10 +774,9 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
             error_at(loc, "配列のサイズが指定されていません。");
             exit(1);
         }
-        g->target = calloc(1, sizeof(Directives));
-        g->target->directive = _zero;
+        target->directive = _zero;
         // サイズ分を0で初期化
-        g->target->value = get_size(type);
+        target->value = get_size(type);
     }
     expect(";");
     return g;
@@ -775,22 +818,13 @@ void function_parameter() {
     expect(")");
 }
 
-Node **function_body() {
+NodeArray *function_body() {
     expect("{");
-    // Node *code[100];
-    Node **body = (Node **) malloc(sizeof(Node *) * 100);
-    {
-        int i = 0;
-        while (!consume("}")) {
-            // この数が100まで、なので、Node自体は100を超えても大丈夫
-            body[i++] = stmt();
-        }
-        // ただし、これが83になる関数がテストコード内にある
-//        printf("# FUNCTION TOP LEVEL Node: %d\n", i + 1);
-
-        body[i] = NULL;
+    NodeArray *nodeArray = create_node_array(10);
+    while (!consume("}")) {
+        push_node(nodeArray, stmt());
     }
-    return body;
+    return nodeArray;
 }
 
 Function *function(Token *function_name, Type *returnType) {
