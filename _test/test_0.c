@@ -376,6 +376,7 @@ int global_division = 35 / 7 + 9; // 14
 int global_array_array[2][3];
 //int global_array_array[2][3] = {{1, 2, 3}, {4, 5, 6}};
 int (*test)[3] = &(global_array_array[1]);
+//int failed = global_array_array[1][2];
 
 // 17
 int global_variable_8() {

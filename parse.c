@@ -653,6 +653,112 @@ int reduce_int(Node *node, Node **pointed) {
     }
 }
 
+Directives *global_initializer(Type *type) {
+    Directives *const target = calloc(1, sizeof(Directives));
+    char *const loc = token->str;
+    Node *const node = equality();
+    // 型チェック
+    bool rZero = node->kind == ND_NUM && node->val == 0;
+    assert_assignable(loc, type, find_type(node), rZero);
+    switch (node->kind) {
+        case ND_EQL:
+        case ND_NOT:
+        case ND_LESS:
+        case ND_LESS_EQL:
+            error_at(loc, "TODO: グローバル変数の初期化は未実装");
+            exit(1);
+        case ND_STR_LITERAL:
+            target->directive = _quad;
+            target->reference = node->label;
+            target->reference_length = node->label_length;
+            return target;
+        case ND_NUM:
+            // リテラル、sizeof
+            target->directive = _long;
+            target->value = node->val;
+            return target;
+        case ND_ADD:
+        case ND_SUB: {
+            Node *pointed = NULL;
+            int sum = reduce_int(node, &pointed);
+            if (pointed) {
+                // TODO 実用的な例は無いかも？
+                //  int *a = &b + 1
+                target->directive = _quad;
+                target->reference = pointed->name;
+                target->reference_length = pointed->len;
+                target->value = sum;
+            } else {
+                target->directive = _long;
+                target->value = sum;
+            }
+            return target;
+        }
+        case ND_MUL:
+        case ND_DIV: {
+            int sum = reduce_int(node, NULL);
+            target->directive = _long;
+            target->value = sum;
+            return target;
+        }
+        case ND_DEREF_ARRAY_POINTER: {
+            // 配列の途中まで、またはポインタへの[]アクセスの場合
+            // ポインタ
+            Node *pointed = NULL;
+            int sum = reduce_int(node->lhs, &pointed);
+            if (pointed) {
+                target->directive = _quad;
+                target->reference = pointed->name;
+                target->reference_length = pointed->len;
+                target->value = sum;
+                return target;
+            }
+            goto error_label;
+        }
+        case ND_ADDRESS: {
+            // ポインタ
+            Node *referred = node->lhs;
+            switch (referred->kind) {
+                case ND_VARIABLE:
+                case ND_VARIABLE_ARRAY:
+                    target->directive = _quad;
+                    target->reference = referred->name;
+                    target->reference_length = referred->len;
+                    return target;
+                case ND_DEREF:
+                case ND_DEREF_ARRAY_POINTER: {
+                    /*
+                     * 例.1
+                     * int global_array_int[4];
+                     * int *global_array_element_pointer = &global_array_int[2];
+                     * 例.2
+                     * int global_array_array[2][3];
+                     * int (*test)[3] = &(global_array_array[1]);
+                     */
+                    Node *pointed = NULL;
+                    int sum = reduce_int(referred->lhs, &pointed);
+                    if (pointed) {
+                        target->directive = _quad;
+                        target->reference = pointed->name;
+                        target->reference_length = pointed->len;
+                        target->value = sum;
+                        return target;
+                    }
+                }
+                default:
+                    goto error_label;
+            }
+        }
+        default:
+            goto error_label;
+    }
+    error_label:
+    {
+        error_at(loc, "グローバル変数の初期化では非対応です？");
+        exit(1);
+    }
+}
+
 Global *global_variable_declaration(Token *variable_name, Type *type) {
     /*
      * グローバル変数の初期化に使えるもの
@@ -693,138 +799,22 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
     g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
-    g->target = calloc(1, sizeof(Directives));
-    Directives *target = g->target;
-    char *loc = token->str;
     if (consume("=")) {
         if (type->ty == TYPE_ARRAY) {
-            error_at(loc, "TODO: グローバル変数（配列）の初期化");
+            error_at(token->str, "TODO: グローバル変数（配列）の初期化");
             exit(1);
         } else {
-            Node *const node = equality();
-            // 型チェック
-            bool rZero = node->kind == ND_NUM && node->val == 0;
-            assert_assignable(loc, type, find_type(node), rZero);
-            switch (node->kind) {
-                case ND_STR_LITERAL:
-                    target->directive = _quad;
-                    target->reference = node->label;
-                    target->reference_length = node->label_length;
-                    break;
-                case ND_NUM:
-                    // リテラル、sizeof
-                    target->directive = _long;
-                    target->value = node->val;
-                    break;
-                case ND_ADD:
-                case ND_SUB: {
-                    Node *pointed = NULL;
-                    int sum = reduce_int(node, &pointed);
-                    if (pointed) {
-                        // TODO 実用的な例は無いかも？
-                        //  int *a = &b + 1
-                        target->directive = _quad;
-                        target->reference = pointed->name;
-                        target->reference_length = pointed->len;
-                        target->value = sum;
-                    } else {
-                        target->directive = _long;
-                        target->value = sum;
-                    }
-                    break;
-                }
-                case ND_MUL:
-                case ND_DIV: {
-                    int sum = reduce_int(node, NULL);
-                    target->directive = _long;
-                    target->value = sum;
-                    break;
-                }
-                case ND_DEREF_ARRAY_POINTER: {
-                    // 配列の途中まで、またはポインタへの[]アクセスの場合
-                    // ポインタ
-                    Node *pointed = NULL;
-                    int sum = reduce_int(node->lhs, &pointed);
-                    if (pointed) {
-                        target->directive = _quad;
-                        target->reference = pointed->name;
-                        target->reference_length = pointed->len;
-                        target->value = sum;
-                    } else {
-                        error_at(loc, "ぐaaaaaaaaaaaaaa");
-                        exit(1);
-                    }
-                    break;
-                }
-                case ND_ADDRESS: {
-                    // ポインタ
-                    Node *referred = node->lhs;
-                    switch (referred->kind) {
-                        case ND_VARIABLE:
-                        case ND_VARIABLE_ARRAY:
-                            target->directive = _quad;
-                            target->reference = referred->name;
-                            target->reference_length = referred->len;
-                            break;
-                        case ND_DEREF:
-                        case ND_DEREF_ARRAY_POINTER: {
-                            /*
-                             * 例.1
-                             * int global_array_int[4];
-                             * int *global_array_element_pointer = &global_array_int[2];
-                             * 例.2
-                             * int global_array_array[2][3];
-                             * int (*test)[3] = &(global_array_array[1]);
-                             */
-                            Node *pointed = NULL;
-                            int sum = reduce_int(referred->lhs, &pointed);
-                            if (pointed) {
-                                target->directive = _quad;
-                                target->reference = pointed->name;
-                                target->reference_length = pointed->len;
-                                target->value = sum;
-                            } else {
-                                error_at(loc, "ぐaaaaaaaaaaaaaa");
-                                exit(1);
-                            }
-                            break;
-                        }
-                        default:
-                            error_at(loc, "グローバル変数の初期化に使えるアドレスはグローバル変数のみです");
-                            exit(1);
-                    }
-                    break;
-                }
-                case ND_EQL:
-                case ND_NOT:
-                case ND_LESS:
-                case ND_LESS_EQL:
-                    error_at(loc, "TODO: グローバル変数の初期化は未実装");
-                    exit(1);
-                case ND_VARIABLE: // Nodeのトップには来ない
-                case ND_VARIABLE_ARRAY: // Nodeのトップには来ない
-                case ND_DEREF: // Nodeのトップには来ない
-                case ND_EXPR_STMT:
-                case ND_IF:
-                case ND_WHILE:
-                case ND_FOR:
-                case ND_BLOCK:
-                case ND_FUNC:
-                case ND_RETURN:
-                case ND_ASSIGN:
-                case ND_NOTHING:
-                    error_at(loc, "グローバル変数の初期化では非対応です？");
-                    exit(1);
-            }
+            g->target = global_initializer(type);
         }
     } else {
         if (type->ty == TYPE_ARRAY && type->array_size == 0) {
-            error_at(loc, "配列のサイズが指定されていません。");
+            error_at(token->str, "配列のサイズが指定されていません。");
             exit(1);
         }
-        target->directive = _zero;
+        g->target = calloc(1, sizeof(Directives));
+        g->target->directive = _zero;
         // サイズ分を0で初期化
-        target->value = get_size(type);
+        g->target->value = get_size(type);
     }
     expect(";");
     return g;
