@@ -188,15 +188,25 @@ Type *find_type(const Node *node) {
                     case TYPE_CHAR:
                     case TYPE_INT:
                         return left;
-                    case TYPE_VOID:
-                    case TYPE_POINTER:
-                    case TYPE_ARRAY: {
-                        if (are_same_type(left, right)) {
-                            return left;
+                    case TYPE_ARRAY:
+                    case TYPE_POINTER: {
+                        if (node->kind == ND_ADD) {
+                            error("ポインター型どうしの足し算はできません？\n");
+                            exit(1);
                         }
-                        error("異なるポインター型またはvoidに対する演算はできません？\n");
+                        if (are_same_type(left, right)) {
+                            // 本来の型はptrdiff_tとして定義されていて環境依存で
+                            // x64 Linuxではlongらしい
+                            // x64 LinuxはLP64なので64bit
+                            // これをintとして扱うと、gccは-Wconversionオプションでwarningを出す
+                            return shared_int_type();
+                        }
+                        error("異なるポインター型に対する演算はできません？\n");
                         exit(1);
                     }
+                    case TYPE_VOID:
+                        error("voidに対する演算はできません？\n");
+                        exit(1);
                 }
             } else {
                 switch (left->ty) {
@@ -208,6 +218,7 @@ Type *find_type(const Node *node) {
                         return left;
                     case TYPE_VOID:
                         error("voidに対する演算はできません？\n");
+                        exit(1);
                 }
             }
             case ND_VARIABLE:

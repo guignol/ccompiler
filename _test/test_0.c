@@ -468,8 +468,6 @@ int global_compare_4 = -12 <= global_string + 3;
 int global_compare_5 = 0 > global_string + 3;
 // 0
 int global_compare_6 = (global_string + 1) >= (global_string + 3);
-// TODO 代入時の型チェックで引っかかる。たぶんポインタどうしの引き算がポインタ扱いになってる？
-//int global_compare_xx = (global_string + 3) - (global_string + 1) + (global_string + 3) - (global_string + 3);
 
 // 1
 int global_variable_13() {
@@ -498,6 +496,20 @@ int global_variable_16() {
     return 16 + global_compare_6;
 }
 
+// 2
+int global_offset_1 = (global_string + 3) - (global_string + 1);
+// 3
+int global_offset_2 = (global_string + 3) - (global_string + 1) + (global_string + 4) - (global_string + 3);
+
+// 2
+int global_variable_17() {
+    return global_offset_1;
+}
+
+// 3
+int global_variable_18() {
+    return global_offset_2;
+}
 
 /////////////////////////////////////////////////
 
@@ -1290,6 +1302,8 @@ int main() {
     assert("global_variable_14", 12, global_variable_14());
     assert("global_variable_15", 13, global_variable_15());
     assert("global_variable_16", 16, global_variable_16());
+    assert("global_variable_17", 2, global_variable_17());
+    assert("global_variable_18", 3, global_variable_18());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

@@ -20,6 +20,31 @@ int get_pointer(Node *node, Node **pointed) {
 
 int reduce_int(Node *node, Node **pointed);
 
+bool same_pointer(Node *left_p, Node *right_p) {
+    if (left_p == NULL && right_p == NULL) {
+        return true;
+    } else if (left_p != NULL && right_p != NULL) {
+        if (left_p->kind != right_p->kind) {
+            return false;
+        }
+        switch (left_p->kind) {
+            case ND_VARIABLE:
+            case ND_VARIABLE_ARRAY: {
+                if (left_p->len == right_p->len && !memcmp(left_p->name, right_p->name, left_p->len)) {
+                    return true;
+                }
+                return false;
+            }
+            case ND_ADDRESS:
+                return same_pointer(left_p->lhs, right_p->lhs);
+            default:
+                return false;
+        }
+    } else {
+        return false;
+    }
+}
+
 int FUNC_LESS(int left, int right) {
     return left < right;
 }
@@ -56,7 +81,9 @@ int reduce_compare(Node *node, int (*operation)(int, int)) {
     } else {
         // ポインタ無しの場合はそのまま計算
         // ポインタ2つの場合はオフセット値のみで計算
-        return operation(left, right);
+        if (same_pointer(left_p, right_p)) {
+            return operation(left, right);
+        }
     }
     error_at(loc__, "ぽっぽえええええええええええええ\n");
     exit(1);
@@ -74,10 +101,25 @@ int reduce_int(Node *node, Node **pointed) {
         case ND_SUB: {
             // TODO 最終的な呼び出し元ではポインタは1つしか扱わないが、途中で同じポインタは登場できる
             //  同じポインタに対する計算はコンパイル時に決定できるため
-            //  同じポインタかどうかの判定はどうやる？
-            int left = reduce_int(node->lhs, pointed);
-            int right = reduce_int(node->rhs, pointed);
-            return left - right;
+            Node *left_p = NULL;
+            Node *right_p = NULL;
+            int left = reduce_int(node->lhs, &left_p);
+            int right = reduce_int(node->rhs, &right_p);
+            if (left_p != NULL && right_p == NULL) {
+                // 左側にポインタ
+                *pointed = left_p;
+                return left - right;
+            } else if (left_p == NULL && right_p != NULL) {
+                // 右側にポインタ
+                *pointed = right_p;
+                return left - right;
+            } else {
+                if (same_pointer(left_p, right_p)) {
+                    *pointed = NULL;
+                    return left - right;
+                }
+            }
+            goto error_label;
         }
         case ND_MUL: {
             // 子nodeには変数によるポインタアクセスなし
@@ -109,14 +151,20 @@ int reduce_int(Node *node, Node **pointed) {
                 case ND_VARIABLE:
                     return get_pointer(referred, pointed);
                 default:
-                    return reduce_int(referred, pointed);
+                    // TODO 配列はありそう
+                    goto error_label;
             }
         }
         case ND_VARIABLE_ARRAY:
             return get_pointer(node, pointed);
         default:
-            error_at(loc__, "ぐええええええええええええ\n");
-            exit(1);
+            goto error_label;
+    }
+
+    error_label:
+    {
+        error_at(loc__, "ぐええええええええええええ\n");
+        exit(1);
     }
 }
 
