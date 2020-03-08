@@ -117,11 +117,35 @@ int string_literal_japanese() {
 }
 
 // 3
-int string_literal_ascii() {
+int string_literal_ascii_1() {
     char *moji;
     moji = "moji\ndesu\nne\n";
     printf(moji);
     return 3;
+}
+
+// 4
+int string_literal_ascii_2() {
+    char *moji = "haru ha akebono\n";
+    char *four = moji + 4;
+    char *eight = moji + 8;
+    if (four < eight) {
+        return eight - four;
+    } else {
+        return 100;
+    }
+}
+
+// 2
+int string_literal_ascii_3() {
+    char *moji = "haru ha akebono\n";
+    char *four = moji + 4;
+    char *eight = moji + 8;
+    if (four + 4 <= eight) {
+        return eight - 2 - four;
+    } else {
+        return 100;
+    }
 }
 
 // 110
@@ -168,6 +192,9 @@ int char_literal_2() {
 
 // 7
 int char_literal_3() {
+    // 最後の文字が使われる
+    // 仕様かどうかは不明
+    // gccに合わせた
     char msg[4] = {'f', 'qo', '\o', 'qwe\0'};
     // foo == foo
     printf("foo == %s\n", msg);
@@ -397,12 +424,12 @@ int global_variable_9() {
 /////////////////////////////////////////////////
 
 char global_array_char[4];
-char *global_pointer_char = &global_array_char;
+char *global_pointer_char_1 = global_array_char + 1;
 
 // 11
 int global_variable_10() {
     global_array_char[1] = 11;
-    return global_pointer_char[1];
+    return global_pointer_char_1[0];
 }
 
 //int global_array_int_[];
@@ -421,6 +448,54 @@ int global_variable_11() {
     printf("%d-------------\n", i);
     return i;
 }
+
+int global_compare_1 = 1 < 3;
+
+// 1
+int global_variable_12() {
+    printf("[compare: 1 < 3] %d-------------\n", global_compare_1);
+    return global_compare_1;
+}
+
+char global_string[10];
+// 1
+int global_compare_2 = (global_string + 1) < (global_string + 3);
+// TODO CLionでなぜかerror扱いになっているがgccでもちゃんとビルド通る
+int global_compare_3 = 0 < (global_string + 3);
+int global_compare_4 = -12 <= (global_string + 3);
+int global_compare_5 = 0 > (global_string + 3);
+// 0
+int global_compare_6 = (global_string + 1) >= (global_string + 3);
+// TODO 代入時の型チェックで引っかかる。たぶんポインタどうしの引き算がポインタ扱いになってる？
+//int global_compare_xx = (global_string + 3) - (global_string + 1) + (global_string + 3) - (global_string + 3);
+
+// 1
+int global_variable_13() {
+    printf("[compare: pointer + 1 < pointer + 3] %d-------------\n", global_compare_2);
+    return global_compare_2;
+}
+
+// 12
+int global_variable_14() {
+    if (global_compare_3)
+        return 12;
+    return 0;
+}
+
+// 13
+int global_variable_15() {
+    if (global_compare_4)
+        return 13;
+    return 0;
+}
+
+// 16
+int global_variable_16() {
+    if (global_compare_5)
+        return 0;
+    return 16 + global_compare_6;
+}
+
 
 /////////////////////////////////////////////////
 
@@ -1171,11 +1246,14 @@ int main() {
 
     assert("string_global", 4, string_global());
     assert("string_literal_japanese", 9, string_literal_japanese());
-    assert("string_literal_ascii", 3, string_literal_ascii());
+    assert("string_literal_ascii_1", 3, string_literal_ascii_1());
+    assert("string_literal_ascii_2", 4, string_literal_ascii_2());
+    assert("string_literal_ascii_3", 2, string_literal_ascii_3());
+    
     assert("string_literal_char_array_1", 110, string_literal_char_array_1());
     assert("string_literal_char_array_2", 0, string_literal_char_array_2());
     assert("string_literal_char_array_3", 106, string_literal_char_array_3());
-    assert("string_literal_char_array_4", 4, string_literal_char_array_4());
+    assert("string_literal_char_array_4", 4, string_literal_char_array_4()); // ★
 
     assert("char_literal_1", 5, char_literal_1());
     assert("char_literal_2", 6, char_literal_2());
@@ -1205,6 +1283,11 @@ int main() {
 
     assert("global_variable_10", 11, global_variable_10());
     assert("global_variable_11", 33, global_variable_11());
+    assert("global_variable_12", 1, global_variable_12());
+    assert("global_variable_13", 1, global_variable_13());
+    assert("global_variable_14", 12, global_variable_14());
+    assert("global_variable_15", 13, global_variable_15());
+    assert("global_variable_16", 16, global_variable_16());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

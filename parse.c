@@ -606,7 +606,57 @@ int load_node(Node *node, Node **pointed) {
         exit(1);
     } else {
         *pointed = node;
+        // 足し算または引き算の項として0を返す
+        // ポインタに対しては乗除できないので、入れ子になった計算を考慮する必要は無いはず
         return 0;
+    }
+}
+
+int reduce_int(Node *node, Node **pointed);
+
+int FUNC_LESS(int left, int right) {
+    return left < right;
+}
+
+int FUNC_LESS_EQL(int left, int right) {
+    return left <= right;
+}
+
+int reduce_compare(Node *node, int (*operation)(int, int)) {
+    Node *left_p = NULL;
+    Node *right_p = NULL;
+    int left = reduce_int(node->lhs, &left_p);
+    int right = reduce_int(node->rhs, &right_p);
+    if (left_p != NULL && right_p == NULL) {
+        // 左側にポインタ
+        // p < 0
+        if (right <= 0) {
+            // 0は特別扱いでwarningは出さない by gcc
+            if (right != 0) {
+                warn_at(token->str, "整数とポインターの比較をしています\n");
+            }
+            return 0;
+        } else {
+            error_at(token->str, "ぽっぽやあああああああああああ\n");
+            exit(1);
+        }
+    } else if (left_p == NULL && right_p != NULL) {
+        // 右側にポインタ
+        // 0 < p
+        if (left <= 0) {
+            // 0は特別扱いでwarningは出さない by gcc
+            if (left != 0) {
+                warn_at(token->str, "整数とポインターの比較をしています\n");
+            }
+            return 1;
+        } else {
+            error_at(token->str, "ぽっぽえええええええええええええ\n");
+            exit(1);
+        }
+    } else {
+        // ポインタ無しの場合はそのまま計算
+        // ポインタ2つの場合はオフセット値のみで計算
+        return operation(left, right);
     }
 }
 
@@ -620,6 +670,8 @@ int reduce_int(Node *node, Node **pointed) {
             return left + right;
         }
         case ND_SUB: {
+            // TODO 最終的な呼び出し元ではポインタは1つしか扱わないが、途中で同じポインタは登場できる
+            //  同じポインタに対する計算はコンパイル時に決定できるため
             int left = reduce_int(node->lhs, pointed);
             int right = reduce_int(node->rhs, pointed);
             return left - right;
@@ -636,6 +688,18 @@ int reduce_int(Node *node, Node **pointed) {
             int right = reduce_int(node->rhs, NULL);
             return left / right;
         }
+        case ND_LESS: {
+            // 同じポインタへのオフセットどうしの比較は可能
+            // 片方がポインタの場合は値が0または負の数のみ可能
+            // 負の数の場合はwarningあり（intとポインタの比較になるため）
+            //  【OK】 0 < (global_string + 3);は可能だが
+            //  【NG】 1 < (global_string + 3);は不可能
+            //  【OK】 (1 - 2) < (global_string + 3);
+            //  等号が逆およびイコールつきでも同様
+            return reduce_compare(node, FUNC_LESS);
+        }
+        case ND_LESS_EQL:
+            return reduce_compare(node, FUNC_LESS_EQL);
         case ND_ADDRESS: {
             Node *const referred = node->lhs;
             switch (referred->kind) {
@@ -653,28 +717,45 @@ int reduce_int(Node *node, Node **pointed) {
     }
 }
 
+DIRECTIVE type_to_directive(char *const loc, Type *type) {
+    switch (type->ty) {
+        case TYPE_CHAR:
+            return _byte;
+        case TYPE_INT:
+            return _long;
+        case TYPE_POINTER:
+            return _quad;
+        default:
+            error_at(loc, "どおおおおおおおおおおおおおお\n");
+            exit(1);
+    }
+}
+
+
 Directives *global_initializer(Type *type) {
-    Directives *const target = calloc(1, sizeof(Directives));
     char *const loc = token->str;
     Node *const node = equality();
     // 型チェック
     bool rZero = node->kind == ND_NUM && node->val == 0;
+    // TODO 暗黙のキャストはできないので
+    //  int *yy_yy = &x - 4; は通るが
+    //  int yy_yy = &x - 4; はエラーになる
+    //  これを考慮できてない気がする
     assert_assignable(loc, type, find_type(node), rZero);
+
+    Directives *const target = calloc(1, sizeof(Directives));
+    target->directive = type_to_directive(loc, type);
     switch (node->kind) {
         case ND_EQL:
         case ND_NOT:
-        case ND_LESS:
-        case ND_LESS_EQL:
             error_at(loc, "TODO: グローバル変数の初期化は未実装");
             exit(1);
         case ND_STR_LITERAL:
-            target->directive = _quad;
             target->reference = node->label;
             target->reference_length = node->label_length;
             return target;
         case ND_NUM:
             // リテラル、sizeof
-            target->directive = _long;
             target->value = node->val;
             return target;
         case ND_ADD:
@@ -682,22 +763,22 @@ Directives *global_initializer(Type *type) {
             Node *pointed = NULL;
             int sum = reduce_int(node, &pointed);
             if (pointed) {
-                // TODO 実用的な例は無いかも？
-                //  int *a = &b + 1
-                target->directive = _quad;
+                // 現実的な例としては、配列（の先頭を指すポインタ）がある
+                // char head[4];
+                // char *second = head + 1;
                 target->reference = pointed->name;
                 target->reference_length = pointed->len;
                 target->value = sum;
             } else {
-                target->directive = _long;
                 target->value = sum;
             }
             return target;
         }
         case ND_MUL:
-        case ND_DIV: {
+        case ND_DIV:
+        case ND_LESS:
+        case ND_LESS_EQL: {
             int sum = reduce_int(node, NULL);
-            target->directive = _long;
             target->value = sum;
             return target;
         }
@@ -707,7 +788,6 @@ Directives *global_initializer(Type *type) {
             Node *pointed = NULL;
             int sum = reduce_int(node->lhs, &pointed);
             if (pointed) {
-                target->directive = _quad;
                 target->reference = pointed->name;
                 target->reference_length = pointed->len;
                 target->value = sum;
@@ -721,7 +801,6 @@ Directives *global_initializer(Type *type) {
             switch (referred->kind) {
                 case ND_VARIABLE:
                 case ND_VARIABLE_ARRAY:
-                    target->directive = _quad;
                     target->reference = referred->name;
                     target->reference_length = referred->len;
                     return target;
@@ -738,7 +817,6 @@ Directives *global_initializer(Type *type) {
                     Node *pointed = NULL;
                     int sum = reduce_int(referred->lhs, &pointed);
                     if (pointed) {
-                        target->directive = _quad;
                         target->reference = pointed->name;
                         target->reference_length = pointed->len;
                         target->value = sum;
