@@ -309,3 +309,5 @@ struct Global {
 
     Global *next;
 };
+
+Directives *global_initializer(char *loc, Type *type, Node *node);

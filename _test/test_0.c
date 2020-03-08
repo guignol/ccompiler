@@ -324,7 +324,9 @@ int char_calculate_array() {
 
 /////////////////////////////////////////////////
 
-int *a = 55;
+// CLionでは何も表示されないが暗黙のキャストが発生しているためエラーになる
+//int *a = 55;
+int *a = 0;
 int *b;
 int aa;
 
@@ -460,10 +462,10 @@ int global_variable_12() {
 char global_string[10];
 // 1
 int global_compare_2 = (global_string + 1) < (global_string + 3);
-// TODO CLionでなぜかerror扱いになっているがgccでもちゃんとビルド通る
-int global_compare_3 = 0 < (global_string + 3);
-int global_compare_4 = -12 <= (global_string + 3);
-int global_compare_5 = 0 > (global_string + 3);
+// CLionでなぜかerror扱いになっているがgccでもちゃんとビルド通る
+int global_compare_3 = 0 < global_string + 3;
+int global_compare_4 = -12 <= global_string + 3;
+int global_compare_5 = 0 > global_string + 3;
 // 0
 int global_compare_6 = (global_string + 1) >= (global_string + 3);
 // TODO 代入時の型チェックで引っかかる。たぶんポインタどうしの引き算がポインタ扱いになってる？
