@@ -51,24 +51,6 @@ void add_function_declaration(Declaration *next) {
 
 /////////////////////////
 
-struct Global_C {
-    Global *head;
-    Global *tail;
-};
-// グローバル変数その他
-struct Global_C *globals;
-
-void add_globals(Global *next) {
-    if (!globals->head) {
-        globals->head = next;
-        globals->tail = next;
-        return;
-    }
-    globals->tail = globals->tail->next = next;
-}
-
-/////////////////////////
-
 NodeArray *create_node_array(int capacity) {
     if (capacity < 1) {
         capacity = 10;
@@ -129,7 +111,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // literal_str=
 // num        =
 
-Global *global_variable_declaration(Token *variable_name, Type *type);
+void global_variable_declaration(Token *variable_name, Type *type);
 
 Function *function(Token *function_name, Type *returnType);
 
@@ -152,13 +134,6 @@ Node *unary(void);
 Node *primary(void);
 
 //////////////////////////////////////////////////////////////////
-
-char *new_label() {
-    static int cnt = 0;
-    char buf[20];
-    sprintf(buf, ".LC.%d", cnt++);
-    return strndup(buf, 20);
-}
 
 Token *consume(char *op) {
     Token *const t = token;
@@ -249,27 +224,6 @@ Variable *find_local_variable(Scope *const scope, char *name, int len) {
         }
     }
     return find_local_variable(scope->parent, name, len);
-}
-
-Global *find_string_literal(char *name, int len) {
-    for (Global *g = globals->head; g; g = g->next) {
-        if (g->target->directive != _string) {
-            continue;
-        }
-        Directives *target = g->target;
-        if (target->literal_length == len &&
-            !strncmp(name, target->literal, target->literal_length)) {
-            return g;
-        }
-    }
-    return NULL;
-}
-
-Global *find_global_variable(char *name, int len) {
-    for (Global *g = globals->head; g; g = g->next)
-        if (g->label_length == len && !strncmp(name, g->label, g->label_length))
-            return g;
-    return NULL;
 }
 
 Declaration *find_function(char *name, int len) {
@@ -387,22 +341,7 @@ Node *new_node_global_variable(char *str, int len) {
 }
 
 Node *new_node_string_literal() {
-    // Globalsから検索
-    Global *g = find_string_literal(token->str, token->len);
-    if (!g) {
-        char *const label = new_label();
-        const int label_length = (int) strlen(label);
-        g = calloc(1, sizeof(Global));
-        g->label = label;
-        g->label_length = label_length;
-        g->target = calloc(1, sizeof(Directives));
-        g->target->directive = _string;
-        g->target->literal = token->str;
-        g->target->literal_length = token->len;
-        // Globalsに追加
-        add_globals(g);
-    }
-
+    Global *g = get_string_literal(token->str, token->len);
     // ラベルを指すnodeを作る
     Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
     node->label = g->label;
@@ -555,7 +494,7 @@ Node *with_index(Node *left) {
 
 struct Program *parse(Token *tok) {
     token = tok;
-    globals = calloc(1, sizeof(struct Global_C));
+    init_globals();
     declarations = calloc(1, sizeof(struct Declaration_C));
 
     // 関数
@@ -598,8 +537,7 @@ struct Program *parse(Token *tok) {
             tail_f = tail_f->next = function(identifier, type);
         } else {
             // グローバル変数
-            Global *const g = global_variable_declaration(identifier, type);
-            add_globals(g);
+            global_variable_declaration(identifier, type);
         }
     }
 
@@ -607,11 +545,11 @@ struct Program *parse(Token *tok) {
 
     struct Program *prog = calloc(1, sizeof(struct Program));
     prog->functions = head_f.next;
-    prog->globals = globals->head;
+    prog->globals = get_globals();
     return prog;
 }
 
-Global *global_variable_declaration(Token *variable_name, Type *type) {
+void global_variable_declaration(Token *variable_name, Type *type) {
     /*
      * グローバル変数の初期化に使えるもの
      *
@@ -653,6 +591,7 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
     g->label_length = variable_name->len;
     if (consume("=")) {
         if (type->ty == TYPE_ARRAY) {
+            // TODO
             error_at(token->str, "TODO: グローバル変数（配列）の初期化");
             exit(1);
         } else {
@@ -678,7 +617,7 @@ Global *global_variable_declaration(Token *variable_name, Type *type) {
         g->target->value = get_size(type);
     }
     expect(";");
-    return g;
+    add_globals(g);
 }
 
 void function_parameter() {

@@ -310,4 +310,14 @@ struct Global {
     Global *next;
 };
 
+void init_globals();
+
+void add_globals(Global *next);
+
+Global *get_globals();
+
+Global *get_string_literal(char *name, int len);
+
+Global *find_global_variable(char *name, int len);
+
 Directives *global_initializer(char *loc, Type *type, Node *node);

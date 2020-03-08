@@ -1,5 +1,78 @@
 #include "common.h"
 
+struct Global_C {
+    Global *head;
+    Global *tail;
+};
+
+// グローバル変数その他
+struct Global_C *globals;
+
+void init_globals() {
+    globals = calloc(1, sizeof(struct Global_C));
+}
+
+Global *get_globals() {
+    return globals->head;
+}
+
+void add_globals(Global *next) {
+    if (!globals->head) {
+        globals->head = next;
+        globals->tail = next;
+        return;
+    }
+    globals->tail = globals->tail->next = next;
+}
+
+char *new_label() {
+    static int cnt = 0;
+    char buf[20];
+    sprintf(buf, ".LC.%d", cnt++);
+    return strndup(buf, 20);
+}
+
+Global *find_string_literal(char *name, int len) {
+    for (Global *g = globals->head; g; g = g->next) {
+        if (g->target->directive != _string) {
+            continue;
+        }
+        Directives *target = g->target;
+        if (target->literal_length == len &&
+            !strncmp(name, target->literal, target->literal_length)) {
+            return g;
+        }
+    }
+    return NULL;
+}
+
+Global *get_string_literal(char *name, int len) {
+    Global *g = find_string_literal(name, len);
+    if (!g) {
+        char *const label = new_label();
+        const int label_length = (int) strlen(label);
+        g = calloc(1, sizeof(Global));
+        g->label = label;
+        g->label_length = label_length;
+        g->target = calloc(1, sizeof(Directives));
+        g->target->directive = _string;
+        g->target->literal = name;
+        g->target->literal_length = len;
+        // Globalsに追加
+        add_globals(g);
+    }
+    return g;
+}
+
+Global *find_global_variable(char *name, int len) {
+    for (Global *g = globals->head; g; g = g->next)
+        if (g->label_length == len && !strncmp(name, g->label, g->label_length))
+            return g;
+    return NULL;
+}
+
+//////////////////////////////////////////////////////////////////
+
 static char *loc__ = NULL;
 
 int get_pointer(Node *node, Node **pointed) {
@@ -99,8 +172,8 @@ int reduce_int(Node *node, Node **pointed) {
             return left + right;
         }
         case ND_SUB: {
-            // TODO 最終的な呼び出し元ではポインタは1つしか扱わないが、途中で同じポインタは登場できる
-            //  同じポインタに対する計算はコンパイル時に決定できるため
+            // 最終的な呼び出し元ではポインタは1つしか扱わないが、途中で同じポインタは登場できる
+            // 同じポインタに対する計算はコンパイル時に決定できるため
             Node *left_p = NULL;
             Node *right_p = NULL;
             int left = reduce_int(node->lhs, &left_p);
