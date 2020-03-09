@@ -524,20 +524,40 @@ int global_variable_19() {
 
 /////////////////////////////////////////////////
 
-int global_array_init[4] = {1, 2, 3, 4};
+int global_array_init_1[4] = {1, 2, 3, 4};
+int global_array_init_2[] = {1, 2, 3, 4};
+//int global_array_init_x[] = "文字は書けない";
+//int global_array_init_x[] = {"文字は書けない", 12, 1};
 
 // 10
 int global_variable_20() {
 //    char global_string[] = "春は曙。やうやう白くなりゆく山際、すこしあかりて、紫だちたる雲の細くたなびきたる。";
     printf("枕草子: %s\n", global_string);
-    return global_array_init[0] +
-           global_array_init[1] +
-           global_array_init[2] +
-           global_array_init[3];
+    return global_array_init_1[0] +
+           global_array_init_1[1] +
+           global_array_init_1[2] +
+           global_array_init_1[3];
 }
 
-// TODO テスト書く
+// 16
+int global_variable_21() {
+    global_array_init_2[3] = 40;
+    // 4 * 4
+    return sizeof(global_array_init_2);
+}
 
+// 39
+int global_variable_22() {
+    for (int i = 0; i < sizeof(global_string) / sizeof(char); i = i + 1) {
+        int a = i;
+        while (26 <= a) {
+            a = a - 26;
+        }
+        global_string[i] = 65 + a;
+    }
+    printf("枕草子: %s\n", global_string);
+    return global_array_init_2[3] - global_array_init_2[0];
+}
 
 /////////////////////////////////////////////////
 
@@ -1335,6 +1355,8 @@ int main() {
     assert("global_variable_19", 4, global_variable_19());
 
     assert("global_variable_20", 10, global_variable_20());
+    assert("global_variable_21", 16, global_variable_21());
+    assert("global_variable_22", 39, global_variable_22());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

@@ -600,7 +600,10 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     if (consume("=")) {
         if (type->ty == TYPE_ARRAY) {
             if (token->kind == TK_STR_LITERAL) {
-                // TODO 型チェック
+                if (type->point_to->ty != TYPE_CHAR) {
+                    error_at(loc, "error: 代入式の左右の型が異なります。");
+                    exit(1);
+                }
                 g->target = calloc(1, sizeof(Directives));
                 g->target->directive = _string;
                 g->target->literal = token->str;
