@@ -599,24 +599,33 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     char *loc = token->str;
     if (consume("=")) {
         if (type->ty == TYPE_ARRAY) {
-            // 配列の初期化
-            Node *const variable_node = new_node_global_variable(variable_name->str, variable_name->len);
-            // 型チェックはここでできてるはず
-            // 配列のサイズが明示されていない場合は、type変数が更新されるが
-            // それ以外はそのままで問題無いはず
-            Node *block = array_initializer(variable_node, type);
+            if (token->kind == TK_STR_LITERAL) {
+                // TODO 型チェック
+                g->target = calloc(1, sizeof(Directives));
+                g->target->directive = _string;
+                g->target->literal = token->str;
+                g->target->literal_length = type->array_size = token->len;
+                token = token->next;
+            } else {
+                // 配列の初期化
+                Node *const variable_node = new_node_global_variable(variable_name->str, variable_name->len);
+                // 型チェックはここでできてるはず
+                // 配列のサイズが明示されていない場合は、type変数が更新されるが
+                // それ以外はそのままで問題無いはず
+                Node *block = array_initializer(variable_node, type);
 
-            Directives head;
-            head.next = NULL;
-            Directives *tail = &head;
-            for (Node *next = block->statement;
-                 next;
-                 next = next->statement) {
-                // 代入式の右辺
-                Node *right = next->rhs;
-                tail = tail->next = global_initializer(loc, type, right);
+                Directives head;
+                head.next = NULL;
+                Directives *tail = &head;
+                for (Node *next = block->statement;
+                     next;
+                     next = next->statement) {
+                    // 代入式の右辺
+                    Node *right = next->rhs;
+                    tail = tail->next = global_initializer(loc, type, right);
+                }
+                g->target = head.next;
             }
-            g->target = head.next;
         } else {
             Node *node = equality();
             // 型チェック
@@ -821,6 +830,10 @@ void visit_array_initializer(NodeArray *array, Type *type) {
             push_node(array, node);
         }
         if (implicit_size) {
+            index++;
+            // 末尾を\0
+            Node *const zero = new_node_num(0);
+            push_node(array, zero);
             // サイズを明示していない配列のサイズを決定する
             type->array_size = index;
         }

@@ -166,7 +166,7 @@ int string_literal_char_array_3() {
     return moji[2];
 }
 
-// 4
+// 5
 int string_literal_char_array_4() {
     char moji[] = "moji"; // => 0終端
     return sizeof(moji) / sizeof(*moji);
@@ -459,7 +459,7 @@ int global_variable_12() {
     return global_compare_1;
 }
 
-char global_string[10];
+char global_string[] = "春は曙。やうやう白くなりゆく山際、すこしあかりて、紫だちたる雲の細くたなびきたる。";
 // 1
 int global_compare_2 = (global_string + 1) < (global_string + 3);
 // CLionでなぜかerror扱いになっているがgccでもちゃんとビルド通る
@@ -467,6 +467,7 @@ int global_compare_3 = 0 < global_string + 3;
 int global_compare_4 = -12 <= global_string + 3;
 int global_compare_5 = 0 > global_string + 3;
 int global_compare_6 = (global_string + 1) >= (global_string + 3);
+// clangだとエラー
 int global_compare_7 = (&global_string + 5) > (&global_string + 1);
 
 // 1
@@ -527,6 +528,8 @@ int global_array_init[4] = {1, 2, 3, 4};
 
 // 10
 int global_variable_20() {
+//    char global_string[] = "春は曙。やうやう白くなりゆく山際、すこしあかりて、紫だちたる雲の細くたなびきたる。";
+    printf("枕草子: %s\n", global_string);
     return global_array_init[0] +
            global_array_init[1] +
            global_array_init[2] +
@@ -1292,7 +1295,7 @@ int main() {
     assert("string_literal_char_array_1", 110, string_literal_char_array_1());
     assert("string_literal_char_array_2", 0, string_literal_char_array_2());
     assert("string_literal_char_array_3", 106, string_literal_char_array_3());
-    assert("string_literal_char_array_4", 4, string_literal_char_array_4()); // ★
+    assert("string_literal_char_array_4", 5, string_literal_char_array_4());
 
     assert("char_literal_1", 5, char_literal_1());
     assert("char_literal_2", 6, char_literal_2());
