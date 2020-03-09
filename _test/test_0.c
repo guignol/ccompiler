@@ -1,7 +1,7 @@
 
 int printf();
 
-void exit();
+void exit(int status);
 
 int hoge(int x, int y) {
     printf("--------------hoge: %i, %i\n", x, y);

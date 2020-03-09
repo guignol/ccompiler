@@ -11,6 +11,7 @@ typedef struct Scope Scope;
 
 struct Scope {
     Variable *variables;
+    Variable *tail;
     Scope *parent;
 };
 
@@ -28,7 +29,7 @@ struct Declaration {
     char *name;
     int len;
     // 引数
-    // Variable *parameters;
+    Variable *type_only;
 
     Declaration *next;
 };
@@ -240,8 +241,12 @@ Variable *register_variable(char *str, int len, Type *type) {
     variable->len = len;
     variable->offset = stack_size = stack_size + get_size(type);
     variable->index = -1;
-    variable->next = current_scope->variables;
-    current_scope->variables = variable;
+    if (current_scope->variables) {
+        current_scope->tail = current_scope->tail->next = variable;
+    } else {
+        current_scope->variables = variable;
+        current_scope->tail = variable;
+    }
     return variable;
 }
 
@@ -287,6 +292,41 @@ void assert_indexable(Node *left, Node *right) {
             }
             break;
         }
+    }
+}
+
+void assert_assignable(char *loc,
+                       Type *const left_type,
+                       Node *const rhs) {
+    // コンパイラで生成しているnew_node_num(0)もあるはずだが、
+    // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
+    // （0リテラル、配列の0パディング）
+    bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
+    Type *const right_type = find_type(rhs);
+    switch (are_assignable_type(left_type, right_type, rZero)) {
+        case AS_INCOMPATIBLE:
+            warn_at(loc, "warning: 代入式の左右または引数の型が異なります。");
+            warn_incompatible_type(left_type, right_type);
+        case AS_SAME:
+            break;
+        case CANNOT_ASSIGN:
+            error_at(loc, "error: 代入式の左右または引数の型が異なります。");
+            exit(1);
+    }
+}
+
+void assert_assignable_exactly(char *loc,
+                               Type *const left_type,
+                               Node *const rhs) {
+    bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
+    Type *const right_type = find_type(rhs);
+    switch (are_assignable_type(left_type, right_type, rZero)) {
+        case AS_SAME:
+            break;
+        case AS_INCOMPATIBLE:
+        case CANNOT_ASSIGN:
+            error_at(loc, "error: 代入式の左右の型が異なります。");
+            exit(1);
     }
 }
 
@@ -370,7 +410,7 @@ Node *new_node_function_call(const Token *tok) {
     // 存在チェック
     Declaration *declaration = find_function(tok->str, tok->len);
     if (!declaration) {
-        error_at(tok->str, "関数が定義されていません");
+        error_at(tok->str, "関数が定義または宣言されていません");
         exit(1);
     }
     // 関数呼び出し
@@ -379,9 +419,30 @@ Node *new_node_function_call(const Token *tok) {
     node->type = declaration->return_type;
     if (!consume(")")) {
         Node *last = node;
-        last->args = expr();
-        while (consume(",") && (last = last->args)) {
-            last->args = expr();
+        char *const loc = token->str;
+        Variable *declared_type = declaration->type_only;
+        bool type_check = declared_type != NULL;
+        do {
+            last = last->args = expr();
+            // 引数の型チェック
+            if (type_check) {
+                if (declared_type) {
+                    assert_assignable(loc, declared_type->type, last);
+                    declared_type = declared_type->next;
+                } else {
+                    // 宣言側の型が足りなかったら
+                    error_at(loc, "引数の数が多いです");
+                    exit(1);
+                }
+            }
+        } while (consume(","));
+        // 引数の型チェック
+        if (type_check) {
+            if (declared_type) {
+                // 宣言側の型が余っていたら
+                error_at(loc, "引数の数が少ないです");
+                exit(1);
+            }
         }
         expect(")");
     }
@@ -414,50 +475,14 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
         right = new_node(ND_MUL, new_node_num(weight_l), right);
         return new_node(kind, left, right);
     } else {
-        // TODO
         error("異なるポインター型の演算はできません？\n");
         exit(1);
     }
 }
 
-void assert_assignable(char *loc,
-                       Type *const left_type,
-                       Type *const right_type,
-                       const bool rZero) {
-    switch (are_assignable_type(left_type, right_type, rZero)) {
-        case AS_INCOMPATIBLE:
-            warn_at(loc, "warning: 代入式の左右の型が異なります。");
-            warn_incompatible_type(left_type, right_type);
-        case AS_SAME:
-            break;
-        case CANNOT_ASSIGN:
-            error_at(loc, "error: 代入式の左右の型が異なります。");
-            exit(1);
-    }
-}
-
-void assert_assignable_exactly(char *loc,
-                               Type *const left_type,
-                               Type *const right_type,
-                               const bool rZero) {
-    switch (are_assignable_type(left_type, right_type, rZero)) {
-        case AS_SAME:
-            break;
-        case AS_INCOMPATIBLE:
-        case CANNOT_ASSIGN:
-            error_at(loc, "error: 代入式の左右の型が異なります。");
-            exit(1);
-    }
-}
-
 Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     Type *const left_type = find_type(lhs);
-    Type *const right_type = find_type(rhs);
-    // コンパイラで生成しているnew_node_num(0)もあるはずだが、
-    // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
-    // （0リテラル、配列の0パディング）
-    bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
-    assert_assignable(loc, left_type, right_type, rZero);
+    assert_assignable(loc, left_type, rhs);
     return new_node(ND_ASSIGN, lhs, rhs);
 }
 
@@ -512,6 +537,7 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数名または変数名がありません");
             exit(1);
         }
+        // TODO このままでは前方宣言ができない
         // 同名で同型のグローバル変数は宣言できる
         // 他のグローバル変数や関数との名前重複チェック
         if (find_global_variable(identifier->str, identifier->len)
@@ -524,19 +550,11 @@ struct Program *parse(Token *tok) {
                 error_at(token->str, "関数の返り値に配列は使えません");
                 exit(1);
             }
-            // TODO 関数宣言（テストを動かすための仮実装）
-            Token *saved = token;
-            if (consume(")") && consume(";")) {
-                Declaration *d = calloc(1, sizeof(Declaration));
-                d->return_type = type;
-                d->name = identifier->str;
-                d->len = identifier->len;
-                add_function_declaration(d);
-                continue;
+            // 関数(宣言のみ場合はNULLが返ってくる)
+            Function *func = function(identifier, type);
+            if (func) {
+                tail_f = tail_f->next = func;
             }
-            token = saved;
-            // 関数
-            tail_f = tail_f->next = function(identifier, type);
         } else {
             if (type->ty == TYPE_VOID) {
                 error_at(token->str, "変数にvoidは使えません");
@@ -632,12 +650,11 @@ void global_variable_declaration(Token *variable_name, Type *type) {
         } else {
             Node *node = equality();
             // 型チェック
-            bool rZero = node->kind == ND_NUM && node->val == 0;
             // 暗黙のキャストはできないので
             // int *yy_yy = &x - 4; は通るが
             // int yy_yy = &x - 4; はエラーになる
             // 0は特別扱い
-            assert_assignable_exactly(loc, type, find_type(node), rZero);
+            assert_assignable_exactly(loc, type, node);
             g->target = global_initializer(loc, type, node);
         }
     } else {
@@ -662,6 +679,7 @@ void function_parameter() {
     Type *param_type;
     while ((param_type = consume_base_type())) {
         if (param_type->ty == TYPE_VOID) {
+            // TODO 宣言には使える
             error_at(token->str, "引数にvoidは使えません");
             exit(1);
         }
@@ -676,6 +694,7 @@ void function_parameter() {
                 exit(1);
             }
         } else {
+            // TODO 宣言なら名前はいらない
             error_at(token->str, "引数名がありません");
             exit(1);
         }
@@ -702,19 +721,27 @@ Function *function(Token *function_name, Type *returnType) {
     Scope *parameter = current_scope = calloc(1, sizeof(Scope));
     function_parameter();
 
+    // 再帰呼び出しでの定義チェックがあるため、先に関数宣言として追加
+    Declaration *d = calloc(1, sizeof(Declaration));
+    d->return_type = returnType;
+    d->name = function_name->str;
+    d->len = function_name->len;
+    d->type_only = parameter->variables;
+    add_function_declaration(d);
+
+    if (consume(";")) {
+        // 関数宣言
+        current_scope = NULL;
+        stack_size = 0;
+        return NULL;
+    }
+
     // 仮引数以外は不要、かつblockスコープのものは捨てるので、他のローカル変数も捨てることにする
     Scope func_body;
     func_body.variables = NULL;
     func_body.parent = parameter;
     // 関数スコープ
     current_scope = &func_body;
-
-    // 再帰呼び出しでの定義チェックがあるため、先に関数宣言として追加
-    Declaration *d = calloc(1, sizeof(Declaration));
-    d->return_type = returnType;
-    d->name = function_name->str;
-    d->len = function_name->len;
-    add_function_declaration(d);
 
     Function *function = calloc(1, sizeof(Function));
     function->name = copy(function_name->str, function_name->len);
@@ -873,6 +900,7 @@ void visit_array_initializer(NodeArray *array, Type *type) {
    https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
  */
 Node *array_initializer(Node *const array_variable, Type *const type) {
+    char *loc = token->str;
     int capacity = get_element_count(type);
     NodeArray *nodeArray = create_node_array(capacity);
     visit_array_initializer(nodeArray, type);
@@ -903,7 +931,6 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
     for (int i = 0; i < nodeArray->count; ++i) {
         Node *n = nodeArray->memory[i];
         Node *const indexed = new_node_array_index(pointer, new_node_num(i), ND_DEREF);
-        char *loc = token->str; // TODO
         last = last->statement = new_node_assign(loc, indexed, n);
     }
     return block;
