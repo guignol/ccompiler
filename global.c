@@ -188,7 +188,9 @@ int reduce_int(Node *node, Node **pointed) {
                 return left - right;
             } else {
                 if (same_pointer(left_p, right_p)) {
-                    *pointed = NULL;
+                    if (pointed) {
+                        *pointed = NULL;
+                    }
                     return left - right;
                 }
             }
@@ -222,9 +224,9 @@ int reduce_int(Node *node, Node **pointed) {
             Node *const referred = node->lhs;
             switch (referred->kind) {
                 case ND_VARIABLE:
+                case ND_VARIABLE_ARRAY:
                     return get_pointer(referred, pointed);
                 default:
-                    // TODO 配列はありそう
                     goto error_label;
             }
         }

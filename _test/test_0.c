@@ -466,8 +466,8 @@ int global_compare_2 = (global_string + 1) < (global_string + 3);
 int global_compare_3 = 0 < global_string + 3;
 int global_compare_4 = -12 <= global_string + 3;
 int global_compare_5 = 0 > global_string + 3;
-// 0
 int global_compare_6 = (global_string + 1) >= (global_string + 3);
+int global_compare_7 = (&global_string + 5) > (&global_string + 1);
 
 // 1
 int global_variable_13() {
@@ -500,6 +500,8 @@ int global_variable_16() {
 int global_offset_1 = (global_string + 3) - (global_string + 1);
 // 3
 int global_offset_2 = (global_string + 3) - (global_string + 1) + (global_string + 4) - (global_string + 3);
+// 4
+int global_offset_3 = (&global_string + 5) - (&global_string + 1);
 
 // 2
 int global_variable_17() {
@@ -510,6 +512,16 @@ int global_variable_17() {
 int global_variable_18() {
     return global_offset_2;
 }
+
+// 4
+int global_variable_19() {
+    if (global_compare_7) {
+        return global_offset_3;
+    }
+    return 11;
+}
+
+
 
 /////////////////////////////////////////////////
 
@@ -1304,6 +1316,7 @@ int main() {
     assert("global_variable_16", 16, global_variable_16());
     assert("global_variable_17", 2, global_variable_17());
     assert("global_variable_18", 3, global_variable_18());
+    assert("global_variable_19", 4, global_variable_19());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

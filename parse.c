@@ -420,10 +420,10 @@ Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
     }
 }
 
-Assignable assert_assignable(char *loc,
-                             Type *const left_type,
-                             Type *const right_type,
-                             const bool rZero) {
+void assert_assignable(char *loc,
+                       Type *const left_type,
+                       Type *const right_type,
+                       const bool rZero) {
     switch (are_assignable_type(left_type, right_type, rZero)) {
         case AS_INCOMPATIBLE:
             warn_at(loc, "warning: 代入式の左右の型が異なります。");
@@ -434,13 +434,12 @@ Assignable assert_assignable(char *loc,
             error_at(loc, "error: 代入式の左右の型が異なります。");
             exit(1);
     }
-    return true;
 }
 
-Assignable assert_assignable_exactly(char *loc,
-                                     Type *const left_type,
-                                     Type *const right_type,
-                                     const bool rZero) {
+void assert_assignable_exactly(char *loc,
+                               Type *const left_type,
+                               Type *const right_type,
+                               const bool rZero) {
     switch (are_assignable_type(left_type, right_type, rZero)) {
         case AS_SAME:
             break;
@@ -449,7 +448,6 @@ Assignable assert_assignable_exactly(char *loc,
             error_at(loc, "error: 代入式の左右の型が異なります。");
             exit(1);
     }
-    return true;
 }
 
 Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
@@ -459,9 +457,8 @@ Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     // 代入式の右辺の最上部Nodeに現れるものはリテラル相当のはず
     // （0リテラル、配列の0パディング）
     bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
-    if (assert_assignable(loc, left_type, right_type, rZero)) {
-        return new_node(ND_ASSIGN, lhs, rhs);
-    }
+    assert_assignable(loc, left_type, right_type, rZero);
+    return new_node(ND_ASSIGN, lhs, rhs);
 }
 
 Node *new_node_array_index(Node *const left, Node *const right, const NodeKind kind) {
@@ -507,7 +504,6 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数の型が正しく定義されていません");
             exit(1);
         }
-        // TODO 関数の返り値に配列は書けない
         Type *type;
         Token *identifier = consume_type(base, &type);
         if (!identifier) {
@@ -522,6 +518,10 @@ struct Program *parse(Token *tok) {
             exit(1);
         }
         if (consume("(")) {
+            if (type->ty == TYPE_ARRAY) {
+                error_at(token->str, "関数の返り値に配列は使えません");
+                exit(1);
+            }
             // TODO 関数宣言（テストを動かすための仮実装）
             Token *saved = token;
             if (consume(")") && consume(";")) {
@@ -536,6 +536,10 @@ struct Program *parse(Token *tok) {
             // 関数
             tail_f = tail_f->next = function(identifier, type);
         } else {
+            if (type->ty == TYPE_VOID) {
+                error_at(token->str, "変数にvoidは使えません");
+                exit(1);
+            }
             // グローバル変数
             global_variable_declaration(identifier, type);
         }
