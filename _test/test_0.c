@@ -521,6 +521,19 @@ int global_variable_19() {
     return 11;
 }
 
+/////////////////////////////////////////////////
+
+int global_array_init[4] = {1, 2, 3, 4};
+
+// 10
+int global_variable_20() {
+    return global_array_init[0] +
+           global_array_init[1] +
+           global_array_init[2] +
+           global_array_init[3];
+}
+
+// TODO テスト書く
 
 
 /////////////////////////////////////////////////
@@ -1275,7 +1288,7 @@ int main() {
     assert("string_literal_ascii_1", 3, string_literal_ascii_1());
     assert("string_literal_ascii_2", 4, string_literal_ascii_2());
     assert("string_literal_ascii_3", 2, string_literal_ascii_3());
-    
+
     assert("string_literal_char_array_1", 110, string_literal_char_array_1());
     assert("string_literal_char_array_2", 0, string_literal_char_array_2());
     assert("string_literal_char_array_3", 106, string_literal_char_array_3());
@@ -1317,6 +1330,8 @@ int main() {
     assert("global_variable_17", 2, global_variable_17());
     assert("global_variable_18", 3, global_variable_18());
     assert("global_variable_19", 4, global_variable_19());
+
+    assert("global_variable_20", 10, global_variable_20());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

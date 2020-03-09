@@ -487,6 +487,8 @@ Node *with_index(Node *left) {
     return left;
 }
 
+Node *array_initializer(Node *array_variable, Type *type);
+
 //////////////////////////////////////////////////////////////////
 
 struct Program *parse(Token *tok) {
@@ -593,13 +595,29 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     g->type = type;
     g->label = variable_name->str;
     g->label_length = variable_name->len;
+    add_globals(g);
+    char *loc = token->str;
     if (consume("=")) {
         if (type->ty == TYPE_ARRAY) {
-            // TODO
-            error_at(token->str, "TODO: グローバル変数（配列）の初期化");
-            exit(1);
+            // 配列の初期化
+            Node *const variable_node = new_node_global_variable(variable_name->str, variable_name->len);
+            // 型チェックはここでできてるはず
+            // 配列のサイズが明示されていない場合は、type変数が更新されるが
+            // それ以外はそのままで問題無いはず
+            Node *block = array_initializer(variable_node, type);
+
+            Directives head;
+            head.next = NULL;
+            Directives *tail = &head;
+            for (Node *next = block->statement;
+                 next;
+                 next = next->statement) {
+                // 代入式の右辺
+                Node *right = next->rhs;
+                tail = tail->next = global_initializer(loc, type, right);
+            }
+            g->target = head.next;
         } else {
-            char *loc = token->str;
             Node *node = equality();
             // 型チェック
             bool rZero = node->kind == ND_NUM && node->val == 0;
@@ -612,7 +630,7 @@ void global_variable_declaration(Token *variable_name, Type *type) {
         }
     } else {
         if (type->ty == TYPE_ARRAY && type->array_size == 0) {
-            error_at(token->str, "配列のサイズが指定されていません。");
+            error_at(loc, "配列のサイズが指定されていません。");
             exit(1);
         }
         g->target = calloc(1, sizeof(Directives));
@@ -621,7 +639,6 @@ void global_variable_declaration(Token *variable_name, Type *type) {
         g->target->value = get_size(type);
     }
     expect(";");
-    add_globals(g);
 }
 
 void function_parameter() {

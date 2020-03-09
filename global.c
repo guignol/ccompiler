@@ -34,6 +34,9 @@ char *new_label() {
 
 Global *find_string_literal(char *name, int len) {
     for (Global *g = globals->head; g; g = g->next) {
+        if (!g->target) {
+            continue;
+        }
         if (g->target->directive != _string) {
             continue;
         }
@@ -251,6 +254,13 @@ DIRECTIVE type_to_directive(Type *type) {
             return _long;
         case TYPE_POINTER:
             return _quad;
+        case TYPE_ARRAY: {
+            Type *pointed = type->point_to;
+            while (pointed->ty == TYPE_ARRAY) {
+                pointed = pointed->point_to;
+            }
+            return type_to_directive(pointed);
+        }
         default:
             error_at(loc__, "どおおおおおおおおおおおおおお\n");
             exit(1);

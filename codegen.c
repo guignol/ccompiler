@@ -151,8 +151,7 @@ void gen(Node *node) {
         }
         case ND_BLOCK: {
             ___COMMENT___("block begin");
-            gen(node->statement);
-            for (Node *next = node->statement->statement;
+            for (Node *next = node->statement;
                  next;
                  next = next->statement) {
                 gen(next);
