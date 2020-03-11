@@ -1,12 +1,19 @@
 
 int printf();
 
+void exit();
 void exit(int status);
+void exit(int status);
+void exit();
+
+int hoge(int x, int y);
 
 int hoge(int x, int y) {
     printf("--------------hoge: %i, %i\n", x, y);
     return x + y;
 }
+
+int bar();
 
 int bar(int v) {
     printf("--------------bar: %i\n", v);

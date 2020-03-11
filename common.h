@@ -163,6 +163,8 @@ Type *create_pointer_type(Type *point_to);
 
 Type *create_array_type(Type *element_type, int array_size);
 
+bool are_same_type(Type *left, Type *right);
+
 Assignable are_assignable_type(Type *left, Type *right, bool r_zero);
 
 Type *find_type(const Node *node);

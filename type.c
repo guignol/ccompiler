@@ -84,7 +84,6 @@ bool are_same_type(Type *left, Type *right) {
     }
     switch (left->ty) {
         case TYPE_VOID:
-            return false;
         case TYPE_CHAR:
         case TYPE_INT:
             return true;
