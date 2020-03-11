@@ -315,21 +315,6 @@ void assert_assignable(char *loc,
     }
 }
 
-void assert_assignable_exactly(char *loc,
-                               Type *const left_type,
-                               Node *const rhs) {
-    bool rZero = rhs->kind == ND_NUM && rhs->val == 0;
-    Type *const right_type = find_type(rhs);
-    switch (are_assignable_type(left_type, right_type, rZero)) {
-        case AS_SAME:
-            break;
-        case AS_INCOMPATIBLE:
-        case CANNOT_ASSIGN:
-            error_at(loc, "error: 代入式の左右の型が異なります。");
-            exit(1);
-    }
-}
-
 //////////////////////////////////////////////////////////////////
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
@@ -586,7 +571,7 @@ void global_variable_declaration(Token *variable_name, Type *type) {
      *  int x = *y;
      *  int x = c = 9;
      *
-     *  参考演算子は使えるが、コンパイル時に解決される
+     *  三項演算子は使えるが、コンパイル時に解決される
      *
      * 【グローバル変数や関数のアドレス】
      *  (OK)
@@ -654,7 +639,9 @@ void global_variable_declaration(Token *variable_name, Type *type) {
             // int *yy_yy = &x - 4; は通るが
             // int yy_yy = &x - 4; はエラーになる
             // 0は特別扱い
-            assert_assignable_exactly(loc, type, node);
+            // 暗黙のキャストだけどエラーにならないパターンもある
+            // int *a = 55;
+            assert_assignable(loc, type, node);
             g->target = global_initializer(loc, type, node);
         }
     } else {

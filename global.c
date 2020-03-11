@@ -137,21 +137,15 @@ int reduce_compare(Node *node, int (*operation)(int, int)) {
     if (left_p != NULL && right_p == NULL) {
         // 左側にポインタ
         // p < 0
-        if (right <= 0) {
-            // 0は特別扱いでwarningは出さない by gcc
-            if (right != 0) {
-                warn_at(loc__, "整数とポインターの比較をしています\n");
-            }
+        // 整数のうち、0のみポインタと比較できる
+        if (right == 0) {
             return 0;
         }
     } else if (left_p == NULL && right_p != NULL) {
         // 右側にポインタ
         // 0 < p
-        if (left <= 0) {
-            // 0は特別扱いでwarningは出さない by gcc
-            if (left != 0) {
-                warn_at(loc__, "整数とポインターの比較をしています\n");
-            }
+        // 整数のうち、0のみポインタと比較できる
+        if (left == 0) {
             return 1;
         }
     } else {

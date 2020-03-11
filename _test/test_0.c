@@ -19,6 +19,8 @@ int foo() {
 
 int count;
 
+//void assert(char *, int expected, int);
+
 void assert(char *name, int expected, int actual) {
     count = count + 1;
     printf("%d: %s\n", count, name);
@@ -324,9 +326,7 @@ int char_calculate_array() {
 
 /////////////////////////////////////////////////
 
-// CLionでは何も表示されないが暗黙のキャストが発生しているためエラーになる
-//int *a = 55;
-int *a = 0;
+int *a = 55; // 暗黙のキャストだけどエラーにならないパターン
 int *b;
 int aa;
 
@@ -462,12 +462,12 @@ int global_variable_12() {
 char global_string[] = "春は曙。やうやう白くなりゆく山際、すこしあかりて、紫だちたる雲の細くたなびきたる。";
 // 1
 int global_compare_2 = (global_string + 1) < (global_string + 3);
-// CLionでなぜかerror扱いになっているがgccでもちゃんとビルド通る
+// CLion（clangd）ではerror扱いになっているがgccではビルド通る
 int global_compare_3 = 0 < global_string + 3;
-int global_compare_4 = -12 <= global_string + 3;
+//int global_compare_4 = -12 <= global_string + 3; // これはgccでもエラー
+int global_compare_4 = 0 <= global_string + 3;
 int global_compare_5 = 0 > global_string + 3;
 int global_compare_6 = (global_string + 1) >= (global_string + 3);
-// clangだとエラー
 int global_compare_7 = (&global_string + 5) > (&global_string + 1);
 
 // 1
