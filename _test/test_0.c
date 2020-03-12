@@ -6,7 +6,9 @@ void exit(int status);
 void exit(int status);
 void exit();
 
+int hoge();
 int hoge(int x, int y);
+//int hoge(int a, int b, int c);
 
 int hoge(int x, int y) {
     printf("--------------hoge: %i, %i\n", x, y);
@@ -853,6 +855,10 @@ int sizeof_7() {
     // sizeofの結果はsize_t型（8バイト）になる
     return sizeof(sizeof(1));
 }
+
+// 引数なしの宣言と、非ポインタのcharを含む定義および宣言は互換なし
+//char chaa();
+//char chaa(char c);
 
 char chaa(char c) {
     return c + 1;

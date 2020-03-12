@@ -27,6 +27,22 @@ Declaration *find_function(char *name, int len) {
     return NULL;
 }
 
+void assert_contains_no_char(char *loc, Variable *const var) {
+    // 引数なしの宣言と、非ポインタのcharを含む定義および宣言は互換なし
+    for (const Variable *v = var; v ; v = v->next) {
+        switch (v->type->ty) {
+            case TYPE_CHAR:
+                error_at(loc, "関数の引数の型が一致しません[empty to char]");
+                exit(1);
+            case TYPE_VOID:
+            case TYPE_INT:
+            case TYPE_POINTER:
+            case TYPE_ARRAY:
+                continue;
+        }
+    }
+}
+
 void assert_function_signature(const Declaration *const old, const Declaration *const new) {
     char *const loc = new->name;
     // 定義 ⇒ 定義
@@ -67,38 +83,35 @@ void assert_function_signature(const Declaration *const old, const Declaration *
         // 引数なし（古、新）
         return;
     } else if (old_type == NULL) {
-        // 引数なし（古）
         if (old->defined) {
-            // 定義（なし） ⇒ 宣言（あり）
-            // [new] int main(int argc);
-            // [old] int main() { return 0; }
+            // 定義（引数なし） ⇒ 宣言（引数あり）
+            // 　[new] int main(int argc);
+            // 　[old] int main() { return 0; }
             error_at(loc, "関数の引数の型が一致しません");
             exit(1);
         } else {
-            // 宣言（なし） ⇒ 定義（あり）
-            // [old] int main(int argc);
-            // [new] int main() { return 0; }
+            // 宣言（引数なし） ⇒ 定義（引数あり）
+            // 　[old] int main(int argc);
+            // 　[new] int main() { return 0; }
             // または、
-            // 宣言（なし） ⇒ 宣言（あり）
-            // TODO charを含むとエラー
+            // 宣言（引数なし） ⇒ 宣言（引数あり）
+            assert_contains_no_char(loc, new_type);
             return;
         }
     } else if (new_type == NULL) {
-        // 引数なし（新）
-        if (old->defined) {
-            // 定義（あり） ⇒ 宣言（なし）
-            // [new] int main(int argc);
-            // [old] int main() { return 0; }
-            // TODO charを含むとエラー
-            return;
-        } else if (new->defined) {
-            // 宣言（あり） ⇒ 定義（なし）
-            // [old] int main(int argc);
-            // [new] int main() { return 0; }
+        if (new->defined) {
+            // 宣言（引数あり） ⇒ 定義（引数なし）
+            // 　[old] int main(int argc);
+            // 　[new] int main() { return 0; }
             error_at(loc, "関数の引数の型が一致しません");
             exit(1);
         } else {
-            // 宣言（あり） ⇒ 宣言（なし）
+            // 定義（引数あり） ⇒ 宣言（引数なし）
+            // 　[new] int main(int argc);
+            // 　[old] int main() { return 0; }
+            // または、
+            // 宣言（引数あり） ⇒ 宣言（引数なし）
+            assert_contains_no_char(loc, old_type);
             return;
         }
     } else {
