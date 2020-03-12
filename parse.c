@@ -213,6 +213,22 @@ Variable *register_variable(char *str, int len, Type *type) {
     return variable;
 }
 
+void void_arg(char *loc) {
+    Variable *void_arg = calloc(1, sizeof(Variable));
+    void_arg->type = shared_void_type();
+    void_arg->name = NULL;
+    void_arg->len = 0;
+    void_arg->offset = 0;
+    void_arg->index = -1;
+    if (current_scope->variables) {
+        error_at(loc, "引数にvoid以外のものがあります？");
+        exit(1);
+    } else {
+        current_scope->variables = void_arg;
+        current_scope->tail = void_arg;
+    }
+}
+
 void assert_indexable(Node *left, Node *right) {
     // 片方がintで、もう片方が配列orポインタ
     Type *left_type = find_type(left);
@@ -627,9 +643,16 @@ void consume_function_parameter() {
      */
     int i = 0;
     Type *param_type;
+    bool expect_just_declare = false;
     while ((param_type = consume_base_type())) {
+        // void
         if (param_type->ty == TYPE_VOID) {
-            // TODO 宣言には使える
+            // TODO
+//            if (i == 0 && consume(")")) {
+//                // 宣言には使える
+//                void_arg(token->str);
+//                return;
+//            }
             error_at(token->str, "引数にvoidは使えません");
             exit(1);
         }
@@ -644,18 +667,28 @@ void consume_function_parameter() {
                 exit(1);
             }
         } else {
-            // TODO 宣言なら名前はいらない
-            error_at(token->str, "引数名がありません");
-            exit(1);
+            // 宣言なら名前はいらない
+            expect_just_declare = true;
         }
-
-        Variable *param = register_variable(t->str, t->len, param_type);
+        char *name = t ? t->str : NULL;
+        int len = t ? (int) t->len : 0;
+        Variable *param = register_variable(name, len, param_type);
         param->index = i++;
         if (!consume(","))
             break;
     }
 
     expect(")");
+    // 引数名が無かったので関数宣言とみなす
+    if (expect_just_declare) {
+        Token *const saved = token;
+        if (!consume(";")) {
+            // 実際には関数定義だった場合
+            error_at(saved->str, "関数定義の引数に名前がありません");
+            exit(1);
+        }
+        token = saved;
+    }
 }
 
 NodeArray *function_body() {
@@ -681,6 +714,7 @@ Function *function(Token *function_name, Type *return_type) {
     }
 
     Scope *const parameter = current_scope = calloc(1, sizeof(Scope));
+    // TODO void
     consume_function_parameter();
 
     const bool just_declare = consume(";");

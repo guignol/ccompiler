@@ -2,11 +2,15 @@
 int printf();
 
 void exit();
+
 void exit(int status);
+
 void exit(int status);
+
 void exit();
 
-int hoge();
+int hoge(int, int);
+
 int hoge(int x, int y);
 //int hoge(int a, int b, int c);
 
@@ -21,6 +25,13 @@ int bar(int v) {
     printf("--------------bar: %i\n", v);
     return v;
 }
+
+// TODO
+//int foo(void);
+//
+//int foo();
+//
+//int foo(void);
 
 int foo() {
     return bar(11);
