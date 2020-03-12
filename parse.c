@@ -502,7 +502,7 @@ Node *array_initializer(Node *array_variable, Type *type);
 
 //////////////////////////////////////////////////////////////////
 
-Type *consume_member() {
+Variable *consume_member() {
     Type *base = consume_base_type();
     if (!base) {
         error_at(token->str, "構造体のメンバーが正しく定義されていません");
@@ -518,19 +518,37 @@ Type *consume_member() {
         error_at(token->str, "構造体のメンバーに名前がありません");
         exit(1);
     }
+    Variable *variable = register_variable(identifier->str, identifier->len, type);
     expect(";");
-    return type;
+    return variable;
 }
 
 Type *consume_struct_def_or_dec(Type *base) {
     if (base->ty == TYPE_STRUCT) {
         // 構造体の定義
         if (consume("{")) {
+            // 前処理
+            const int saved_stack = stack_size; // TODO ローカルで定義されると効いてくる
+            stack_size = 0;
+            Scope *const saved_scope = current_scope;
+            {
+                // 重複チェックに使う
+                Scope disposable;
+                disposable.variables = NULL;
+                disposable.parent = NULL;
+                current_scope = &disposable;
+            }
+
             STRUCT_INFO *const struct_info = base->struct_info;
             do {
-                Type *const member = consume_member();
+                Variable *const member = consume_member();
                 push_type_to_struct(struct_info, member);
             } while (!consume("}"));
+
+            // 後処理
+            current_scope = saved_scope;
+            stack_size = saved_stack;
+
             expect(";");
             return base;
         }

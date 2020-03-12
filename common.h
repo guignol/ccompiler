@@ -152,19 +152,6 @@ struct Type {
     STRUCT_INFO *struct_info;
 };
 
-struct STRUCT_INFO {
-    const char *type_name;
-    int name_length;
-    // 定義のみ場合は空
-    Type **members;
-    int count;
-    int capacity;
-};
-
-STRUCT_INFO *create_struct_info(const char *type_name, int name_length);
-
-STRUCT_INFO *push_type_to_struct(STRUCT_INFO *struct_info, Type *type);
-
 /////////////////////////////////////////////////
 
 typedef enum {
@@ -210,7 +197,7 @@ struct Variable {
     Type *type;      // 型
     char *name;     // 変数の名前
     int len;        // 名前の長さ
-    int offset;     // RBPからのオフセット
+    int offset;     // RBPまたは構造体の先頭からのオフセット
 
     int index; // 関数の仮引数の場合、何番目か
 
@@ -243,7 +230,6 @@ struct Program *parse(Token *tok);
 void generate(struct Program *program);
 
 /////////////////////////////////////////////////
-
 
 //char c;
 //char c_c[2];
@@ -371,3 +357,16 @@ void add_function_declaration(Type *returnType,
                               Token *function_name,
                               Variable *type_only,
                               bool definition);
+
+/////////////////////////////////////////////////
+
+struct STRUCT_INFO {
+    const char *type_name;
+    int name_length;
+    // 定義のみ場合は空
+    Variable *members;
+};
+
+STRUCT_INFO *create_struct_info(const char *type_name, int name_length);
+
+void push_type_to_struct(STRUCT_INFO *struct_info, Variable *member);

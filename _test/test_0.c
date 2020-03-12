@@ -53,6 +53,7 @@ void assert(char *name, int expected, int actual) {
 
 struct Box {
     int a;
+//    char a;
 };
 
 //struct A;
