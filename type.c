@@ -220,7 +220,7 @@ Type *find_type(const Node *node) {
                         exit(1);
                     case TYPE_STRUCT:
                         // TODO
-                        error("構造体実装中\n");
+                        error("[type]構造体実装中\n");
                         exit(1);
                 }
             } else {
@@ -236,7 +236,7 @@ Type *find_type(const Node *node) {
                         exit(1);
                     case TYPE_STRUCT:
                         // TODO
-                        error("構造体実装中\n");
+                        error("[type]構造体実装中\n");
                         exit(1);
                 }
             }
@@ -266,7 +266,7 @@ Type *find_type(const Node *node) {
                         return type->point_to;
                     case TYPE_STRUCT:
                         // TODO
-                        error("構造体実装中\n");
+                        error("[type]構造体実装中\n");
                         exit(1);
                 }
             }
@@ -309,7 +309,7 @@ int get_weight(Node *node) {
             return get_size(type->point_to);
         case TYPE_STRUCT:
             // TODO
-            error("構造体実装中\n");
+            error("[type]構造体実装中\n");
             exit(1);
     }
 }
@@ -333,10 +333,15 @@ int get_size(Type *type) {
             return sizeof(int *); // 8
         case TYPE_ARRAY:
             return (int) type->array_size * get_size(type->point_to);
-        case TYPE_STRUCT:
-            // TODO
-            error("構造体実装中\n");
-            exit(1);
+        case TYPE_STRUCT: {
+            int max = 0;
+            for (Variable *m = type->struct_info->members; m; m = m->next) {
+                if (max < m->offset) {
+                    max = m->offset;
+                }
+            }
+            return max;
+        }
     }
 }
 
@@ -355,7 +360,7 @@ int get_element_count(Type *type) {
             return (int) type->array_size * get_element_count(type->point_to);
         case TYPE_STRUCT:
             // TODO
-            error("構造体実装中\n");
+            error("[type]構造体実装中\n");
             exit(1);
     }
 }

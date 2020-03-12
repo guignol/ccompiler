@@ -367,6 +367,8 @@ struct STRUCT_INFO {
     Variable *members;
 };
 
-STRUCT_INFO *create_struct_info(const char *type_name, int name_length);
+void init_struct_registry();
 
-void push_type_to_struct(STRUCT_INFO *struct_info, Variable *member);
+void push_struct(STRUCT_INFO *info);
+
+void load_struct(STRUCT_INFO *target);

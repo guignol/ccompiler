@@ -145,7 +145,11 @@ Type *consume_base_type() {
         if (!t) {
             // TODO エラー（とりあえず、ぬるぽ）
         }
-        base->struct_info = create_struct_info(t->str, t->len);
+        STRUCT_INFO *structInfo = malloc(sizeof(STRUCT_INFO));
+        structInfo->type_name = t->str;
+        structInfo->name_length = t->len;
+        structInfo->members = NULL;
+        base->struct_info = structInfo;
         return base;
     } else {
         return NULL;
@@ -196,7 +200,7 @@ Variable *find_local_variable(Scope *const scope, char *name, int len) {
         return NULL;
     }
     for (Variable *var = scope->variables; var; var = var->next) {
-        if (var->len == len && !memcmp(name, var->name, var->len)) {
+        if (var->len == len && !memcmp(name, var->name, len)) {
             return var;
         }
     }
@@ -259,7 +263,7 @@ void assert_indexable(Node *left, Node *right) {
                     break;
                 case TYPE_STRUCT:
                     // TODO
-                    error("構造体実装中\n");
+                    error("[parse]構造体実装中\n");
                     exit(1);
             }
             break;
@@ -280,14 +284,14 @@ void assert_indexable(Node *left, Node *right) {
                     exit(1);
                 case TYPE_STRUCT:
                     // TODO
-                    error("構造体実装中\n");
+                    error("[parse]構造体実装中\n");
                     exit(1);
             }
             break;
         }
         case TYPE_STRUCT:
             // TODO
-            error("構造体実装中\n");
+            error("[parse]構造体実装中\n");
             exit(1);
     }
 }
@@ -387,7 +391,7 @@ Node *new_node_dereference(Node *operand) {
             return new_node(ND_DEREF, operand, NULL);
         case TYPE_STRUCT:
             // TODO
-            error("構造体実装中\n");
+            error("[parse]構造体実装中\n");
             exit(1);
     }
 }
@@ -523,7 +527,7 @@ Variable *consume_member() {
     return variable;
 }
 
-Type *consume_struct_def_or_dec(Type *base) {
+bool consume_struct_def_or_dec(Type *base) {
     if (base->ty == TYPE_STRUCT) {
         // 構造体の定義
         if (consume("{")) {
@@ -532,7 +536,7 @@ Type *consume_struct_def_or_dec(Type *base) {
             stack_size = 0;
             Scope *const saved_scope = current_scope;
             {
-                // 重複チェックに使う
+                // 構造体メンバー名の重複チェックに使う
                 Scope disposable;
                 disposable.variables = NULL;
                 disposable.parent = NULL;
@@ -540,30 +544,37 @@ Type *consume_struct_def_or_dec(Type *base) {
             }
 
             STRUCT_INFO *const struct_info = base->struct_info;
+            Variable head;
+            head.next = NULL;
+            Variable *tail = &head;
             do {
                 Variable *const member = consume_member();
-                push_type_to_struct(struct_info, member);
+                tail = tail->next = member;
             } while (!consume("}"));
+            struct_info->members = head.next;
 
             // 後処理
             current_scope = saved_scope;
             stack_size = saved_stack;
 
             expect(";");
-            return base;
+            push_struct(base->struct_info);
+            return true;
         }
         // 構造体の宣言
         if (consume(";")) {
-            return base;
+            push_struct(base->struct_info);
+            return true;
         }
     }
-    return NULL;
+    return false;
 }
 
 struct Program *parse(Token *tok) {
     token = tok;
     init_globals();
     init_functions();
+    init_struct_registry();
 
     // 関数
     Function head_f;
@@ -575,16 +586,20 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数の型が正しく定義されていません");
             exit(1);
         }
-        // TODO 構造体の定義または宣言
+        // 構造体の定義または宣言
         if (consume_struct_def_or_dec(base)) {
             continue;
         }
-
         Type *type;
         Token *identifier = consume_type(base, &type);
         if (!identifier) {
             error_at(token->str, "関数名または変数名がありません");
             exit(1);
+        }
+        if (type->ty == TYPE_STRUCT) {
+            // TODO グローバル変数では定義が後ろにあっても使える
+            // 構造体の型データを取得
+            load_struct(type->struct_info);
         }
         if (consume("(")) {
             // 関数(宣言の場合はNULLが返ってくる)

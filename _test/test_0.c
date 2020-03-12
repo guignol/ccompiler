@@ -53,8 +53,10 @@ void assert(char *name, int expected, int actual) {
 
 struct Box {
     int a;
-//    char a;
+    int b;
+//    char a; // TODO エラーメッセージが微妙
 };
+struct Box box;
 
 //struct A;
 //// グローバル変数は前後のどこかで定義されてればOK
