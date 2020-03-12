@@ -83,6 +83,10 @@ void assert_function_signature(const Declaration *const old, const Declaration *
         // 引数なし（古、新）
         return;
     } else if (old_type == NULL) {
+        if (new_type->type->ty == TYPE_VOID) {
+            // 引数なしとvoidは互換あり
+            return;
+        }
         if (old->defined) {
             // 定義（引数なし） ⇒ 宣言（引数あり）
             // 　[new] int main(int argc);
@@ -99,6 +103,10 @@ void assert_function_signature(const Declaration *const old, const Declaration *
             return;
         }
     } else if (new_type == NULL) {
+        if (old_type->type->ty == TYPE_VOID) {
+            // 引数なしとvoidは互換あり
+            return;
+        }
         if (new->defined) {
             // 宣言（引数あり） ⇒ 定義（引数なし）
             // 　[old] int main(int argc);

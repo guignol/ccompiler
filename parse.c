@@ -647,13 +647,11 @@ void consume_function_parameter() {
     while ((param_type = consume_base_type())) {
         // void
         if (param_type->ty == TYPE_VOID) {
-            // TODO
-//            if (i == 0 && consume(")")) {
-//                // 宣言には使える
-//                void_arg(token->str);
-//                return;
-//            }
-            error_at(token->str, "引数にvoidは使えません");
+            if (i == 0) {
+                void_arg(token->str);
+                break;
+            }
+            error_at(token->str, "voidとその他の引数は共存できません");
             exit(1);
         }
         // TODO 複数
@@ -674,20 +672,21 @@ void consume_function_parameter() {
         int len = t ? (int) t->len : 0;
         Variable *param = register_variable(name, len, param_type);
         param->index = i++;
-        if (!consume(","))
+        if (!consume(",")) {
             break;
+        }
     }
-
     expect(")");
+
     // 引数名が無かったので関数宣言とみなす
     if (expect_just_declare) {
-        Token *const saved = token;
-        if (!consume(";")) {
+        Token *const semi_colon = consume(";");
+        if (!semi_colon) {
             // 実際には関数定義だった場合
-            error_at(saved->str, "関数定義の引数に名前がありません");
+            error_at(token->str, "関数定義の引数に名前がありません");
             exit(1);
         }
-        token = saved;
+        token = semi_colon;
     }
 }
 
@@ -714,7 +713,6 @@ Function *function(Token *function_name, Type *return_type) {
     }
 
     Scope *const parameter = current_scope = calloc(1, sizeof(Scope));
-    // TODO void
     consume_function_parameter();
 
     const bool just_declare = consume(";");

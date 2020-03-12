@@ -26,12 +26,11 @@ int bar(int v) {
     return v;
 }
 
-// TODO
-//int foo(void);
-//
-//int foo();
-//
-//int foo(void);
+int foo(void);
+
+int foo();
+
+int foo(void);
 
 int foo() {
     return bar(11);
@@ -39,7 +38,7 @@ int foo() {
 
 int count;
 
-//void assert(char *, int expected, int);
+void assert(char *, int expected, int);
 
 void assert(char *name, int expected, int actual) {
     count = count + 1;
@@ -1218,7 +1217,9 @@ int block_9() {
 
 /////////////////////////////////////////////////
 
-int assert_others() {
+int assert_others();
+
+int assert_others(void) {
     assert("", 99, ({
         int a;
         a = 0;

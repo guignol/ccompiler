@@ -399,6 +399,10 @@ void prepare_stack(int stack_size, Variable *const parameters) {
 
         int count = 0;
         for (Variable *param = parameters; param; param = param->next) {
+            if (param->index < 0) {
+                // 引数がvoidの場合
+                continue;
+            }
             // レジスタで受け取った引数の値をスタックに積む
             arguments_to_stack(param);
             count++;
