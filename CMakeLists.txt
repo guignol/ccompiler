@@ -13,6 +13,7 @@ add_executable(ccompiler
         global.c
         main.c
         parse.c
+        struct.c
         tokenize.c
         type.c
         )

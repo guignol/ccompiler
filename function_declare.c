@@ -38,6 +38,7 @@ void assert_contains_no_char(char *loc, Variable *const var) {
             case TYPE_INT:
             case TYPE_POINTER:
             case TYPE_ARRAY:
+            case TYPE_STRUCT:
                 continue;
         }
     }

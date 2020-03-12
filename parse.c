@@ -20,8 +20,6 @@ Scope *current_scope;
 
 /////////////////////////
 
-/////////////////////////
-
 NodeArray *create_node_array(int capacity) {
     if (capacity < 1) {
         capacity = 10;
@@ -116,20 +114,6 @@ Token *consume(char *op) {
     return t;
 }
 
-Type *consume_base_type() {
-    if (consume("int")) {
-        return shared_int_type();
-    } else if (consume("char")) {
-        return shared_char_type();
-    } else if (consume("void")) {
-        return shared_void_type();
-    } else {
-        return NULL;
-    }
-}
-
-Token *consume_type(Type *base, Type **r_type);
-
 Token *consume_ident() {
     if (token->kind == TK_IDENT) {
         Token *t = token;
@@ -147,6 +131,28 @@ Token *consume_number() {
     }
     return NULL;
 }
+
+Type *consume_base_type() {
+    if (consume("int")) {
+        return shared_int_type();
+    } else if (consume("char")) {
+        return shared_char_type();
+    } else if (consume("void")) {
+        return shared_void_type();
+    } else if (consume("struct")) {
+        Type *base = create_struct_type();
+        Token *t = consume_ident();
+        if (!t) {
+            // TODO エラー（とりあえず、ぬるぽ）
+        }
+        base->struct_info = create_struct_info(t->str, t->len);
+        return base;
+    } else {
+        return NULL;
+    }
+}
+
+Token *consume_type(Type *base, Type **r_type);
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
@@ -251,6 +257,10 @@ void assert_indexable(Node *left, Node *right) {
                 case TYPE_POINTER:
                 case TYPE_ARRAY:
                     break;
+                case TYPE_STRUCT:
+                    // TODO
+                    error("構造体実装中\n");
+                    exit(1);
             }
             break;
         }
@@ -268,9 +278,17 @@ void assert_indexable(Node *left, Node *right) {
                 case TYPE_ARRAY:
                     error("not_int[not_int]はできません？");
                     exit(1);
+                case TYPE_STRUCT:
+                    // TODO
+                    error("構造体実装中\n");
+                    exit(1);
             }
             break;
         }
+        case TYPE_STRUCT:
+            // TODO
+            error("構造体実装中\n");
+            exit(1);
     }
 }
 
@@ -367,6 +385,10 @@ Node *new_node_dereference(Node *operand) {
             }
         case TYPE_ARRAY:
             return new_node(ND_DEREF, operand, NULL);
+        case TYPE_STRUCT:
+            // TODO
+            error("構造体実装中\n");
+            exit(1);
     }
 }
 
@@ -480,6 +502,46 @@ Node *array_initializer(Node *array_variable, Type *type);
 
 //////////////////////////////////////////////////////////////////
 
+Type *consume_member() {
+    Type *base = consume_base_type();
+    if (!base) {
+        error_at(token->str, "構造体のメンバーが正しく定義されていません");
+        exit(1);
+    }
+    if (base->ty == TYPE_VOID) {
+        error_at(token->str, "構造体のメンバーにvoidは使えません");
+        exit(1);
+    }
+    Type *type;
+    Token *const identifier = consume_type(base, &type);
+    if (!identifier) {
+        error_at(token->str, "構造体のメンバーに名前がありません");
+        exit(1);
+    }
+    expect(";");
+    return type;
+}
+
+Type *consume_struct_def_or_dec(Type *base) {
+    if (base->ty == TYPE_STRUCT) {
+        // 構造体の定義
+        if (consume("{")) {
+            STRUCT_INFO *const struct_info = base->struct_info;
+            do {
+                Type *const member = consume_member();
+                push_type_to_struct(struct_info, member);
+            } while (!consume("}"));
+            expect(";");
+            return base;
+        }
+        // 構造体の宣言
+        if (consume(";")) {
+            return base;
+        }
+    }
+    return NULL;
+}
+
 struct Program *parse(Token *tok) {
     token = tok;
     init_globals();
@@ -495,6 +557,11 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数の型が正しく定義されていません");
             exit(1);
         }
+        // TODO 構造体の定義または宣言
+        if (consume_struct_def_or_dec(base)) {
+            continue;
+        }
+
         Type *type;
         Token *identifier = consume_type(base, &type);
         if (!identifier) {
@@ -869,24 +936,25 @@ void visit_array_initializer(NodeArray *array, Type *type) {
 }
 
 /*
-  配列の初期化時のみ可能な式がいくつか
-  int array[4] = {0, 1, 2, 3};
-  int array[4] = {0, 1, 2};
-  int array[] = {0, 1, 2, 3};
-  char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
-  char msg[4] = {'f', 'o', 'o', '\0'};
-  char msg[] = {'f', 'o', 'o', '\0'};
-  char *s1[2] = {"abc", "def"};
-  char *s1[] = {"abc", "def"};
-  char msg[] = "foo";
-  char msg[10] = "foo";
-  char msg[3] = "message"; => initializer-string for array of chars is too long
-  char s1[2][3] = {"abc", "def"};
-  char s1[][3] = {"abc", "def"};
-  int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
-  int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
-  TODO C99にはさらに色々ある
-   https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
+ * 配列の初期化時のみ可能な式がいくつか
+ * int array[4] = {0, 1, 2, 3};
+ * int array[4] = {0, 1, 2};
+ * int array[] = {0, 1, 2, 3};
+ * char msg[4] = {'f', 'o', 'o', '_'}; => 警告なし
+ * char msg[4] = {'f', 'o', 'o', '\0'};
+ * char msg[] = {'f', 'o', 'o', '\0'};
+ * char *s1[2] = {"abc", "def"};
+ * char *s1[] = {"abc", "def"};
+ * char msg[] = "foo";
+ * char msg[10] = "foo";
+ * char msg[3] = "message"; => initializer-string for array of chars is too long
+ * char s1[2][3] = {"abc", "def"};
+ * char s1[][3] = {"abc", "def"};
+ * int array[3][2] = {{3, 3}, {3, 3}, {3, 3}};
+ * int array[][2] = {{3, 3}, {3, 3}, {3, 3}};
+ *
+ * C99にはさらに色々ある
+ * https://kaworu.jpn.org/c/%E9%85%8D%E5%88%97%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96_%E6%8C%87%E7%A4%BA%E4%BB%98%E3%81%8D%E3%81%AE%E5%88%9D%E6%9C%9F%E5%8C%96%E6%8C%87%E5%AE%9A%E5%AD%90
  */
 Node *array_initializer(Node *const array_variable, Type *const type) {
     char *loc = token->str;
@@ -926,6 +994,31 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
 }
 
 Token *consume_type(Type *base, Type **r_type) {
+    // TODO 構造体の宣言、定義は、ローカルでも可能で
+    //  定義なしに宣言しただけでもポインタなら変数宣言が可能（たぶんサイズが決まるから）
+    //  グローバルならどこかで定義されていれば利用可能（対応は後回しの予定）
+    // TODO
+    //  本来この関数は、型か変数宣言を読むもの
+    //  構造体は、さらに型定義と型宣言のパターンがある
+    //  しかし、そうすると、型定義が存在するかどうかはどこでやる？
+    //  他の型は、この関数が呼ぶ前後で、型の存在は前提している
+    //  型の定義や宣言ができない場所からも呼ばれる
+    /**
+     * TODO どこから呼ばれてるか
+     * 1. グローバル（ファイル）スコープ
+     * 2. ローカルでの変数宣言および初期化 local_variable_declaration
+     *   2.1. 関数スコープまたはブロックスコープ
+     *   2.2. forスコープ
+     * 3. sizeof
+     * TODO 何ができるか
+     * 型利用（変数宣言、関数宣言、関数定義、サイズ）
+     * 1. 型定義　型宣言 型利用
+     * 2.1. 型定義　型宣言 型利用
+     * 2.2. 型利用
+     * 3. 型利用（identifierなし）
+     *
+     * TODO とりあえずグローバルから？
+     */
     bool backwards = consume("(");
     Type *type = backwards ? NULL : base;
     while (consume("*")) {
@@ -998,13 +1091,18 @@ Token *consume_type(Type *base, Type **r_type) {
 }
 
 Node *local_variable_declaration(Type *base) {
-    // 変数の登録
-    Type *type;
-    Token *const identifier = consume_type(base, &type);
     if (base->ty == TYPE_VOID) {
         error_at(token->str, "変数にvoidは使えません");
         exit(1);
     }
+    if (base->ty == TYPE_STRUCT) {
+        // TODO
+        error_at(token->str, "構造体の実装中");
+        exit(1);
+    }
+    // 変数の登録
+    Type *type;
+    Token *const identifier = consume_type(base, &type);
     if (!identifier) {
         error_at(token->str, "変数名がありません");
         exit(1);

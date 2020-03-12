@@ -99,6 +99,7 @@ int reserved(const char *p) {
             "int",
             "char",
             "void",
+            "struct",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];

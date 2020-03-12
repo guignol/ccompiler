@@ -117,14 +117,15 @@ struct Node {
     Node *args;         // function( ...args )
 };
 
-typedef struct NodeArray NodeArray;
-struct NodeArray {
+typedef struct {
     Node **memory;
     int count;
     int capacity;
-};
+} NodeArray;
 
 /////////////////////////////////////////////////
+
+typedef struct STRUCT_INFO STRUCT_INFO;
 
 struct Type {
     enum {
@@ -133,6 +134,7 @@ struct Type {
         TYPE_INT, // 4byte
         TYPE_POINTER, // 8byte
         TYPE_ARRAY, // array_size * sizeof(point_to) byte
+        TYPE_STRUCT,
     } ty;
     Type *point_to;
 
@@ -145,7 +147,25 @@ struct Type {
      * https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9721-%E9%85%8D%E5%88%97%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B
      */
     size_t array_size;
+
+    // 構造体の情報
+    STRUCT_INFO *struct_info;
 };
+
+struct STRUCT_INFO {
+    const char *type_name;
+    int name_length;
+    // 定義のみ場合は空
+    Type **members;
+    int count;
+    int capacity;
+};
+
+STRUCT_INFO *create_struct_info(const char *type_name, int name_length);
+
+STRUCT_INFO *push_type_to_struct(STRUCT_INFO *struct_info, Type *type);
+
+/////////////////////////////////////////////////
 
 typedef enum {
     CANNOT_ASSIGN = 0,
@@ -158,6 +178,8 @@ Type *shared_void_type();
 Type *shared_char_type();
 
 Type *shared_int_type();
+
+Type *create_struct_type();
 
 Type *create_pointer_type(Type *point_to);
 

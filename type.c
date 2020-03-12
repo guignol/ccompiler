@@ -30,6 +30,13 @@ Type *shared_int_type() {
     return int_type;
 }
 
+Type *create_struct_type() {
+    Type *struct_type = calloc(1, sizeof(Type));
+    struct_type->ty = TYPE_STRUCT;
+    struct_type->point_to = NULL;
+    return struct_type;
+}
+
 Type *create_pointer_type(Type *point_to) {
     Type *type = calloc(1, sizeof(Type));
     type->ty = TYPE_POINTER;
@@ -83,6 +90,11 @@ bool are_same_type(Type *left, Type *right) {
         return false;
     }
     switch (left->ty) {
+        case TYPE_STRUCT: {
+            const int length = left->struct_info->name_length;
+            return length == right->struct_info->name_length &&
+                   !memcmp(left->struct_info->type_name, left->struct_info->type_name, length);
+        }
         case TYPE_VOID:
         case TYPE_CHAR:
         case TYPE_INT:
@@ -206,6 +218,10 @@ Type *find_type(const Node *node) {
                     case TYPE_VOID:
                         error("voidに対する演算はできません？\n");
                         exit(1);
+                    case TYPE_STRUCT:
+                        // TODO
+                        error("構造体実装中\n");
+                        exit(1);
                 }
             } else {
                 switch (left->ty) {
@@ -217,6 +233,10 @@ Type *find_type(const Node *node) {
                         return left;
                     case TYPE_VOID:
                         error("voidに対する演算はできません？\n");
+                        exit(1);
+                    case TYPE_STRUCT:
+                        // TODO
+                        error("構造体実装中\n");
                         exit(1);
                 }
             }
@@ -244,6 +264,10 @@ Type *find_type(const Node *node) {
                     case TYPE_POINTER:
                     case TYPE_ARRAY:
                         return type->point_to;
+                    case TYPE_STRUCT:
+                        // TODO
+                        error("構造体実装中\n");
+                        exit(1);
                 }
             }
             case ND_BLOCK: {
@@ -283,7 +307,10 @@ int get_weight(Node *node) {
         case TYPE_ARRAY:
             // 配列は代入できないがポインタと同様に演算ができる
             return get_size(type->point_to);
-
+        case TYPE_STRUCT:
+            // TODO
+            error("構造体実装中\n");
+            exit(1);
     }
 }
 
@@ -306,6 +333,10 @@ int get_size(Type *type) {
             return sizeof(int *); // 8
         case TYPE_ARRAY:
             return (int) type->array_size * get_size(type->point_to);
+        case TYPE_STRUCT:
+            // TODO
+            error("構造体実装中\n");
+            exit(1);
     }
 }
 
@@ -322,6 +353,10 @@ int get_element_count(Type *type) {
             return 1;
         case TYPE_ARRAY:
             return (int) type->array_size * get_element_count(type->point_to);
+        case TYPE_STRUCT:
+            // TODO
+            error("構造体実装中\n");
+            exit(1);
     }
 }
 
