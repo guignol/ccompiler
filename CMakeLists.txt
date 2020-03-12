@@ -9,6 +9,7 @@ include_directories(.)
 add_executable(ccompiler
         common.h
         codegen.c
+        function_declare.c
         global.c
         main.c
         parse.c

@@ -323,3 +323,29 @@ Global *get_string_literal(char *name, int len);
 Global *find_global_variable(char *name, int len);
 
 Directives *global_initializer(char *loc, Type *type, Node *node);
+
+/////////////////////////////////////////////////
+
+typedef struct Declaration Declaration;
+
+struct Declaration {
+    // 返り値の型
+    Type *return_type;
+    // 関数名
+    char *name;
+    int len;
+    // 引数
+    Variable *type_only;
+    bool defined;
+
+    Declaration *next;
+};
+
+void init_functions();
+
+Declaration *find_function(char *name, int len);
+
+void add_function_declaration(Type *returnType,
+                              Token *function_name,
+                              Variable *type_only,
+                              bool definition);
