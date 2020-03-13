@@ -69,10 +69,15 @@ struct A {
 };
 struct A a_a[3];
 
-//void use_struct_1() {
-//    box.a = 1;
-//    a_s.a = 1;
-//}
+// 13
+int use_struct_1() {
+//    a.a = 1;
+//    box. = 1;
+//    box.c = 1;
+    box.a = 13;
+    a_s.a = box.a;
+    return a_s.a;
+}
 
 //void use_struct_2() {
 //    // ローカルで宣言した時点でグローバルの同名構造体は隠蔽される
@@ -1365,6 +1370,8 @@ int assert_others(void) {
 /////////////////////////////////////////////////
 
 int main() {
+
+    assert("use_struct_1", 13, use_struct_1());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

@@ -103,7 +103,7 @@ struct Node {
     // 変数または関数の返り値の型
     Type *type;
     bool is_local;
-    char *name; // 変数名、関数名
+    char *name; // 変数名、関数名、構造体のメンバー名
     int len;
     int offset;    // ローカル変数のRBPからのオフセット
 
@@ -378,3 +378,5 @@ void init_struct_registry();
 void push_struct(STRUCT_INFO *info);
 
 void load_struct(STRUCT_INFO *target);
+
+Variable *find_member(STRUCT_INFO *target, const char *name, int len);

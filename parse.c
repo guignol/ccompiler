@@ -63,12 +63,13 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // unary      = "sizeof" unary
 //				| ("+" | "-" | "*"* | "&" )? primary
 // primary    = num
+// 				| literal_char
 // 				| literal_str
-//				| ident
-//				| primary ( "(" index ")" )? index*
+//				| ident ("." ident )*
 //				| ident "(" args? ")"
 // 				| "(" expr ")"
 // 				| "({" stmt "})"
+//				| primary ( "(" index ")" )? index*
 // index      = "[" primary "]"
 // args       = expr ("," expr)*
 // decl_a     = ("int" | "char") "*"* (pointed_id | ident)
@@ -77,8 +78,9 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // decl_g     = decl_a "[]"? ("[" num? "]")* "=" (array_init | equality) // その他、制限あり
 // pointed_id = "(" "*"* ident ")"
 // ident      =
-// literal_str=
-// num        =
+// literal_char
+// literal_str
+// num
 
 void global_variable_declaration(Token *variable_name, Type *type);
 
@@ -366,6 +368,7 @@ Node *new_node_global_variable(char *str, int len) {
     node->is_local = false;
     node->name = variable->label;
     node->len = variable->label_length;
+    node->offset = 0;
     return node;
 }
 
@@ -1374,6 +1377,18 @@ Node *unary() {
     }
 }
 
+Node *new_node_struct_member(Node *variable, Variable *member) {
+    bool is_array = member->type->ty == TYPE_ARRAY; // TODO
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
+    node->type = member->type;
+    node->is_local = variable->is_local;
+    node->name = variable->name; //　TODO
+    node->len = variable->len;
+    node->offset = variable->offset + member->offset;
+    return node;
+}
+
 Node *primary() {
     Token *tok = consume_ident();
     if (tok) {
@@ -1385,6 +1400,33 @@ Node *primary() {
             Node *variable = new_node_local_variable(tok->str, tok->len);
             if (!variable) {
                 variable = new_node_global_variable(tok->str, tok->len);
+            }
+            // TODO 構造体へのアクセス
+            Token *const dot = consume(".");
+            if (dot) { // TODO 複数
+                if (variable->type->ty != TYPE_STRUCT) {
+                    error_at(token->str, "変数 %.*s は構造体ではありません", variable->len, variable->name);
+                    exit(1);
+                }
+                Token *const m = consume_ident();
+                if (m == NULL) {
+                    error_at(dot->str + 1, "構造体のメンバー名がありません。");
+                    exit(1);
+                }
+                STRUCT_INFO *const struct_info = variable->type->struct_info;
+                // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
+                // 変数宣言時には型情報を持っていないので読み込んでおく
+                load_struct(struct_info);
+                Variable *const member = find_member(struct_info, m->str, m->len);
+                if (member == NULL) {
+                    error_at(m->str, "構造体 %.*s にはメンバー %.*s がありません。",
+                            struct_info->name_length,
+                            struct_info->type_name,
+                             m->len,
+                             m->str);
+                    exit(1);
+                }
+                variable = new_node_struct_member(variable, member);
             }
             return with_index(variable);
         }

@@ -70,7 +70,13 @@ void gen_address(Node *node) {
                 printf("  lea rax, [rbp - %d]\n", node->offset);
                 printf("  push rax # variable [%.*s]\n", node->len, node->name);
             } else {
-                printf("  lea rax, %.*s[rip]\n", node->len, node->name);
+                if (node->offset) {
+                    // 構造体のメンバーアクセス
+                    printf("  lea rax, %.*s[rip+%d]\n", node->len, node->name, node->offset);
+                } else {
+                    printf("  lea rax, %.*s[rip]\n", node->len, node->name);
+                }
+                // TODO 構造体のメンバー名が表示されない
                 printf("  push rax # variable [%.*s]\n", node->len, node->name);
             }
             break;

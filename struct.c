@@ -17,7 +17,7 @@ void init_struct_registry() {
     registry->capacity = capacity;
 }
 
-STRUCT_INFO *find_struct(const void *name, int len) {
+STRUCT_INFO *find_struct(const void *const name, const int len) {
     for (int i = 0; i < registry->count; ++i) {
         STRUCT_INFO *s = registry->memory[i];
         if (s->name_length == len && !memcmp(name, s->type_name, len)) {
@@ -39,7 +39,7 @@ void push_struct(STRUCT_INFO *target) {
         }
         return;
     }
-    
+
     if (registry->count == registry->capacity) {
         registry->memory = realloc(registry->memory, sizeof(STRUCT_INFO *) * registry->capacity * 2);
         registry->capacity *= 2;
@@ -55,4 +55,13 @@ void load_struct(STRUCT_INFO *target) {
     if (same_struct) {
         target->members = same_struct->members;
     }
+}
+
+Variable *find_member(STRUCT_INFO *target, const char *const name, const int len) {
+    for (Variable *member = target->members; member; member = member->next) {
+        if (member->len == len && !memcmp(name, member->name, len)) {
+            return member;
+        }
+    }
+    return NULL;
 }
