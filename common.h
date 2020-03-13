@@ -379,4 +379,4 @@ void push_struct(STRUCT_INFO *info);
 
 void load_struct(STRUCT_INFO *target);
 
-Variable *find_member(STRUCT_INFO *target, const char *name, int len);
+Node *new_node_struct_member(Node *variable, const char *name, int len);

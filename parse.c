@@ -1377,18 +1377,6 @@ Node *unary() {
     }
 }
 
-Node *new_node_struct_member(Node *variable, Variable *member) {
-    bool is_array = member->type->ty == TYPE_ARRAY; // TODO
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
-    node->type = member->type;
-    node->is_local = variable->is_local;
-    node->name = variable->name; //　TODO
-    node->len = variable->len;
-    node->offset = variable->offset + member->offset;
-    return node;
-}
-
 Node *primary() {
     Token *tok = consume_ident();
     if (tok) {
@@ -1413,20 +1401,7 @@ Node *primary() {
                     error_at(dot->str + 1, "構造体のメンバー名がありません。");
                     exit(1);
                 }
-                STRUCT_INFO *const struct_info = variable->type->struct_info;
-                // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
-                // 変数宣言時には型情報を持っていないので読み込んでおく
-                load_struct(struct_info);
-                Variable *const member = find_member(struct_info, m->str, m->len);
-                if (member == NULL) {
-                    error_at(m->str, "構造体 %.*s にはメンバー %.*s がありません。",
-                            struct_info->name_length,
-                            struct_info->type_name,
-                             m->len,
-                             m->str);
-                    exit(1);
-                }
-                variable = new_node_struct_member(variable, member);
+                variable = new_node_struct_member(variable, m->str, m->len);
             }
             return with_index(variable);
         }

@@ -65,3 +65,29 @@ Variable *find_member(STRUCT_INFO *target, const char *const name, const int len
     }
     return NULL;
 }
+
+Node *new_node_struct_member(Node *variable, const char *const name, const int len) {
+    STRUCT_INFO *const struct_info = variable->type->struct_info;
+    // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
+    // 変数宣言時には型情報を持っていないので読み込んでおく
+    load_struct(struct_info);
+    Variable *const member = find_member(struct_info, name, len);
+    if (member == NULL) {
+        error_at(name, "構造体 %.*s にはメンバー %.*s がありません。",
+                 struct_info->name_length,
+                 struct_info->type_name,
+                 len,
+                 name);
+        exit(1);
+    }
+
+    bool is_array = member->type->ty == TYPE_ARRAY; // TODO
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
+    node->type = member->type;
+    node->is_local = variable->is_local;
+    node->name = variable->name; //　TODO
+    node->len = variable->len;
+    node->offset = variable->offset + member->offset;
+    return node;
+}
