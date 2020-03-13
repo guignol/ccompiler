@@ -448,10 +448,15 @@ void generate_global(Global *globals) {
         printf("%.*s:\n", global->label_length, global->label);
         for (Directives *target = global->target; target; target = target->next) {
             switch (target->directive) {
-                // TODO 初期化なしの場合は .zero と .stringだけで足りる
-                case _zero:
+                case _zero: {
+                    Type *const type = target->backwards_struct;
+                    if (type) {
+                        load_struct(type->struct_info);
+                        target->value = get_size(type);
+                    }
                     printf("  .zero %d\n", target->value);
                     break;
+                }
                 case _byte:
                     printf("  .byte %d\n", target->value);
                     break;

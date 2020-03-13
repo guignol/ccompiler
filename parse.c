@@ -140,16 +140,19 @@ Type *consume_base_type() {
     } else if (consume("void")) {
         return shared_void_type();
     } else if (consume("struct")) {
-        Type *base = create_struct_type();
-        Token *t = consume_ident();
+        Type *const base = create_struct_type();
+        Token *const t = consume_ident();
         if (!t) {
-            // TODO エラー（とりあえず、ぬるぽ）
+            error_at(token->str, "構造体の名前がありません");
+            exit(1);
         }
         STRUCT_INFO *structInfo = malloc(sizeof(STRUCT_INFO));
         structInfo->type_name = t->str;
         structInfo->name_length = t->len;
         structInfo->members = NULL;
         base->struct_info = structInfo;
+        // 定義済みの型情報があれば読み込む
+        load_struct(structInfo);
         return base;
     } else {
         return NULL;
@@ -625,13 +628,11 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     // 他のグローバル変数や関数との名前重複チェック
     if (find_global_variable(variable_name->str, variable_name->len)) {
         // TODO 同名で同型のグローバル変数は宣言できる
-        error("グローバル変数の名前が他の");
-        error_at(variable_name->str, "グローバル変数と重複しています");
+        error_at(variable_name->str, "グローバル変数の名前が他のグローバル変数と重複しています");
         exit(1);
     }
     if (find_function(variable_name->str, variable_name->len)) {
-        error("グローバル変数の名前が");
-        error_at(variable_name->str, "関数と重複しています");
+        error_at(variable_name->str, "グローバル変数の名前が関数と重複しています");
         exit(1);
     }
     if (type->ty == TYPE_VOID) {
@@ -730,8 +731,13 @@ void global_variable_declaration(Token *variable_name, Type *type) {
         }
         g->target = calloc(1, sizeof(Directives));
         g->target->directive = _zero;
-        // サイズ分を0で初期化
-        g->target->value = get_size(type);
+        if (type->ty == TYPE_STRUCT && !type->struct_info->members) {
+            // 構造体の定義が前方に無い場合
+            g->target->backwards_struct = type;
+        } else {
+            // サイズ分を0で初期化
+            g->target->value = get_size(type);
+        }
     }
     expect(";");
 }

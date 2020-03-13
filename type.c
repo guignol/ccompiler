@@ -334,6 +334,12 @@ int get_size(Type *type) {
         case TYPE_ARRAY:
             return (int) type->array_size * get_size(type->point_to);
         case TYPE_STRUCT: {
+            if (type->struct_info->members == NULL) {
+                // サイズが不要なグローバル変数の宣言を除くと、
+                // 定義が前方にある必要がある
+                error("構造体の定義がありません\n");
+                exit(1);
+            }
             int max = 0;
             for (Variable *m = type->struct_info->members; m; m = m->next) {
                 if (max < m->offset) {

@@ -17,24 +17,42 @@ void init_struct_registry() {
     registry->capacity = capacity;
 }
 
-void push_struct(STRUCT_INFO *info) {
+STRUCT_INFO *find_struct(const void *name, int len) {
+    for (int i = 0; i < registry->count; ++i) {
+        STRUCT_INFO *s = registry->memory[i];
+        if (s->name_length == len && !memcmp(name, s->type_name, len)) {
+            return s;
+        }
+    }
+    return NULL;
+}
+
+void push_struct(STRUCT_INFO *target) {
+    // 同じ名前のものが来たら
+    const char *const name = target->type_name;
+    const int len = target->name_length;
+    STRUCT_INFO *const same_struct = find_struct(name, len);
+    if (same_struct) {
+        //　TODO 定義が重複する場合
+        if (same_struct->members == NULL) {
+            same_struct->members = target->members;
+        }
+        return;
+    }
+    
     if (registry->count == registry->capacity) {
         registry->memory = realloc(registry->memory, sizeof(STRUCT_INFO *) * registry->capacity * 2);
         registry->capacity *= 2;
     }
-    // TODO 同じ名前のものが来たら
-    registry->memory[registry->count] = info;
+    registry->memory[registry->count] = target;
     registry->count++;
 }
 
 void load_struct(STRUCT_INFO *target) {
     const char *const name = target->type_name;
     const int len = target->name_length;
-    for (int i = 0; i < registry->count; ++i) {
-        STRUCT_INFO *s = registry->memory[i];
-        if (s->name_length == len && !memcmp(name, s->type_name, len)) {
-            target->members = s->members;
-            return;
-        }
+    STRUCT_INFO *const same_struct = find_struct(name, len);
+    if (same_struct) {
+        target->members = same_struct->members;
     }
 }

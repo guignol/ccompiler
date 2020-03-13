@@ -309,6 +309,12 @@ struct Directives {
     int literal_length;
 
     Directives *next;
+
+    /*
+     * 前方に構造体の宣言があればグローバル変数は宣言ができるので、
+     * 後方の構造体の定義からサイズを取得する
+     */
+    Type *backwards_struct;
 };
 
 struct Global {

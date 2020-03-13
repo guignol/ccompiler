@@ -58,16 +58,23 @@ struct Box {
 };
 struct Box box;
 
-//struct A;
-//// グローバル変数は前後のどこかで定義されてればOK
-//struct A a;
-////struct A *a;
-//struct A {
-//    int a;
-//};
-//struct A array[3];
-//
+struct A;
+// グローバル変数の宣言は前後のどこかで定義されてればOK（配列はダメ）
+// ローカル変数はグローバルな構造体も定義が前方にある必要がある
+// 関数の返り値や引数はローカル変数と同じ扱い
+struct A a_s;
+struct A *a_s_p;
+struct A {
+    int a;
+};
+struct A a_a[3];
+
 //void use_struct_1() {
+//    box.a = 1;
+//    a_s.a = 1;
+//}
+
+//void use_struct_2() {
 //    // ローカルで宣言した時点でグローバルの同名構造体は隠蔽される
 //    struct A;
 ////    struct A a;
