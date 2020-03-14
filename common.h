@@ -58,6 +58,7 @@ typedef enum {
     ND_FUNC,        // 関数コール
     ND_NUM,         // 整数 : int
     ND_STR_LITERAL, // 文字列リテラル
+    ND_MEMBER,      // 構造体のメンバーアクセス
     ND_VARIABLE,    // ローカル変数
     ND_VARIABLE_ARRAY, // ローカル変数（配列）
     ND_ADDRESS,     // &a
@@ -100,7 +101,7 @@ struct Node {
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
 
-    // 変数または関数の返り値の型
+    // 変数、関数の返り値、構造体のメンバーの型
     Type *type;
     bool is_local;
     char *name; // 変数名、関数名、構造体のメンバー名
@@ -382,4 +383,4 @@ void push_struct(STRUCT_INFO *info);
 
 void load_struct(Type *type);
 
-Node *new_node_struct_member(Node *variable, const char *name, int len);
+Variable *struct_member(Type *type, const char *name, int len);

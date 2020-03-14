@@ -62,25 +62,22 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "sizeof" unary
 //				| ("+" | "-" | "*"* | "&" )? primary
-// primary    = num
-// 				| literal_char
-// 				| literal_str
-//				| ident ("." ident )*
+// primary    = literal_str
 //				| ident "(" args? ")"
 // 				| "(" expr ")"
 // 				| "({" stmt "})"
-//				| primary ( "(" index ")" )? index*
+//				| (primary | num_char) ( "(" index ")" )? index*
+//				| primary ("." ident )*
 // index      = "[" primary "]"
 // args       = expr ("," expr)*
-// decl_a     = ("int" | "char") "*"* (pointed_id | ident)
-// decl_b     = decl_a ("[" num "]")*
-// decl_c     = decl_a "[]"? ("[" num? "]")* "=" (array_init | expr)
-// decl_g     = decl_a "[]"? ("[" num? "]")* "=" (array_init | equality) // その他、制限あり
+// decl_a     = ("int" | "char" | "struct") "*"* (pointed_id | ident)
+// decl_b     = decl_a ("[" num_char "]")*
+// decl_c     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | expr)
+// decl_g     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | equality) // その他、制限あり
 // pointed_id = "(" "*"* ident ")"
 // ident      =
-// literal_char
 // literal_str
-// num
+// num_char
 
 void global_variable_declaration(Token *variable_name, Type *type);
 
@@ -510,6 +507,34 @@ Node *with_index(Node *left) {
         left->kind = ND_DEREF;
     }
     return left;
+}
+
+Node *with_accessor(Node *left) {
+    // [] access
+    left = with_index(left);
+    // . access
+    Token *const dot = consume(".");
+    if (dot) {
+        Type *type = find_type(left);
+        if (type->ty != TYPE_STRUCT) {
+            error_at(dot->str - 1, "構造体ではありません");
+            exit(1);
+        }
+        Token *const m = consume_ident();
+        if (m == NULL) {
+            error_at(dot->str + 1, "構造体のメンバー名がありません。");
+            exit(1);
+        }
+        Variable *const member = struct_member(type, m->str, m->len);
+        Node *const offset = new_node_num(member->offset - member->type_size);
+        left = new_node(ND_MEMBER, left, offset);
+        left->type = member->type;
+        left->name = member->name;
+        left->len = member->len;
+        return with_accessor(left);
+    } else {
+        return left;
+    }
 }
 
 Node *array_initializer(Node *array_variable, Type *type);
@@ -1392,21 +1417,7 @@ Node *primary() {
             if (!variable) {
                 variable = new_node_global_variable(tok->str, tok->len);
             }
-            // TODO 構造体へのアクセス
-            Token *const dot = consume(".");
-            if (dot) { // TODO 複数
-                if (variable->type->ty != TYPE_STRUCT) {
-                    error_at(token->str, "変数 %.*s は構造体ではありません", variable->len, variable->name);
-                    exit(1);
-                }
-                Token *const m = consume_ident();
-                if (m == NULL) {
-                    error_at(dot->str + 1, "構造体のメンバー名がありません。");
-                    exit(1);
-                }
-                variable = new_node_struct_member(variable, m->str, m->len);
-            }
-            return with_index(variable);
+            return with_accessor(variable);
         }
     }
 
@@ -1444,10 +1455,10 @@ Node *primary() {
         }
         Node *node = expr();
         expect(")");
-        return with_index(node);
+        return with_accessor(node);
     }
 
     // そうでなければ数値のはず
     Node *number = new_node_num(expect_number());
-    return with_index(number);
+    return with_accessor(number);
 }

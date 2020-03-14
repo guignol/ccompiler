@@ -94,8 +94,8 @@ int use_struct_2() {
     a_a[1] = a_1;
     a_a[2] = a_2;
     a_0 = a_a[2];
-//    int a = a_a[1].a;
-    return a_0.b * 2 + a_1.b + a_2.b;
+    int b = a_a[1].b;
+    return a_0.b * 2 + b + a_2.b;
 }
 
 // 55
@@ -103,6 +103,7 @@ int use_struct_3() {
     box.a = 22;
     box.b = 33;
     struct Box b;
+    // ローカル変数にグローバル変数を代入
     b = box;
     printf("b { a: %d, b: %d }\n", b.a, b.b);
     printf("box { a: %d, b: %d }\n", box.a, box.b);
@@ -114,6 +115,7 @@ int use_struct_4() {
     struct Box b;
     b.a = 22;
     b.b = 33;
+    // グローバル変数にローカル変数を代入
     box = b;
     printf("b { a: %d, b: %d }\n", b.a, b.b);
     printf("box { a: %d, b: %d }\n", box.a, box.b);

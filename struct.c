@@ -79,11 +79,11 @@ Variable *find_member(STRUCT_INFO *target, const char *const name, const int len
     return NULL;
 }
 
-Node *new_node_struct_member(Node *variable, const char *const name, const int len) {
-    STRUCT_INFO *const struct_info = variable->type->struct_info;
+Variable *struct_member(Type *type, const char *const name, const int len) {
+    STRUCT_INFO *const struct_info = type->struct_info;
     // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
     // 変数宣言時には型情報を持っていないので読み込んでおく
-    load_struct(variable->type);
+    load_struct(type);
     Variable *const member = find_member(struct_info, name, len);
     if (member == NULL) {
         error_at(name, "構造体 %.*s にはメンバー %.*s がありません。",
@@ -93,20 +93,5 @@ Node *new_node_struct_member(Node *variable, const char *const name, const int l
                  name);
         exit(1);
     }
-
-    bool is_array = member->type->ty == TYPE_ARRAY; // TODO
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
-    node->type = member->type;
-    node->is_local = variable->is_local;
-    //　TODO メンバーの名前が含まれない。ネストした構造体が使えるようになったら改めて考える
-    node->name = variable->name;
-    node->len = variable->len;
-    int start = member->offset - member->type_size;
-    if (node->is_local) {
-        node->offset = variable->offset - start;
-    } else {
-        node->offset = start;
-    }
-    return node;
+    return member;
 }

@@ -135,6 +135,20 @@ void gen_address(Node *node) {
             }
             printf("  push rax\n");
             break;
+        case ND_MEMBER:
+            /*
+             * struct Box b;
+             * b.a = 22;
+             */
+            printf("  # begin: member %.*s\n", node->len, node->name);
+            gen_address(node->lhs);
+            gen(node->rhs);
+            printf("  pop rdi\n");
+            printf("  pop rax\n");
+            printf("  add rax, rdi\n");
+            printf("  push rax\n");
+            printf("  # end: member %.*s\n", node->len, node->name);
+            break;
         case ND_DEREF:
             /*
                 int x = 3;
@@ -307,6 +321,7 @@ void gen(Node *node) {
             printf("  mov rax, OFFSET FLAT:%.*s\n", node->label_length, node->label);
             printf("  push rax\n");
             return;
+        case ND_MEMBER:
         case ND_VARIABLE:
             // 変数のアドレスから、そのアドレスにある値を取り出す
             gen_address(node);
@@ -422,6 +437,7 @@ void gen(Node *node) {
         case ND_DEREF_ARRAY_POINTER:
         case ND_ASSIGN:
         case ND_NOTHING:
+        case ND_MEMBER:
             break;
     }
 
