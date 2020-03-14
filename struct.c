@@ -88,6 +88,10 @@ Node *new_node_struct_member(Node *variable, const char *const name, const int l
     node->is_local = variable->is_local;
     node->name = variable->name; //　TODO
     node->len = variable->len;
-    node->offset = variable->offset + member->offset;
+    if (node->is_local) {
+        node->offset = variable->offset + member->offset;
+    } else {
+        node->offset = member->offset - member->type_size;
+    }
     return node;
 }

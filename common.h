@@ -105,7 +105,9 @@ struct Node {
     bool is_local;
     char *name; // 変数名、関数名、構造体のメンバー名
     int len;
-    int offset;    // ローカル変数のRBPからのオフセット
+    // ローカル変数はベースポインタから（大きい側から）のオフセットで考えるが
+    // グローバル変数はラベルのアドレス（小さい側から）のオフセットで考える
+    int offset;    // RBPまたは構造体の先頭からのオフセット
 
     // 文字列リテラルへの参照
     char *label;
@@ -197,7 +199,8 @@ struct Variable {
     Type *type;      // 型
     char *name;     // 変数の名前
     int len;        // 名前の長さ
-    int offset;     // RBPまたは構造体の先頭からのオフセット
+    int type_size; // TODO 型のサイズ
+    int offset;     // RBPまたは構造体の先頭からのオフセット（+ 型のサイズ）
 
     int index; // 関数の仮引数の場合、何番目か
 

@@ -67,11 +67,14 @@ struct A *a_s_p;
 struct A {
     int a;
 };
-struct A a_a[3];
+struct Box a_a[3];
+struct Box a_0;
+struct Box a_1;
+struct Box a_2;
 
 // 13
 int use_struct_1() {
-//    a.a = 1;
+//    count.a = 1;
 //    box. = 1;
 //    box.c = 1;
     box.a = 13;
@@ -79,7 +82,26 @@ int use_struct_1() {
     return a_s.a;
 }
 
-//void use_struct_2() {
+// 7
+int use_struct_2() {
+    a_0.b = 0;
+    a_1.b = 1;
+    a_2.b = 2;
+    a_a[0] = a_0;
+    a_a[1] = a_1;
+    a_a[2] = a_2;
+    int sum = 0;
+    for (int i = 0; i < sizeof(a_a) / sizeof(int); i = i + 1) {
+//        struct Box b = a_a[i];
+//        sum = sum + b.b;
+////        sum = sum + a_a[i].b;
+    }
+//    return sum + sizeof(struct A);
+    a_0 = a_a[2];
+    return a_0.b * 2 + a_1.b + a_2.b;
+}
+
+//int use_struct_3() {
 //    // ローカルで宣言した時点でグローバルの同名構造体は隠蔽される
 //    struct A;
 ////    struct A a;
@@ -1372,6 +1394,7 @@ int assert_others(void) {
 int main() {
 
     assert("use_struct_1", 13, use_struct_1());
+    assert("use_struct_2", 7, use_struct_2());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

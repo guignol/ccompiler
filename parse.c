@@ -217,7 +217,8 @@ Variable *register_variable(char *str, int len, Type *type) {
     variable->type = type;
     variable->name = str;
     variable->len = len;
-    variable->offset = stack_size = stack_size + get_size(type);
+    variable->type_size = get_size(type);
+    variable->offset = stack_size = stack_size + variable->type_size;
     variable->index = -1;
     if (current_scope->variables) {
         current_scope->tail = current_scope->tail->next = variable;
@@ -233,6 +234,7 @@ void void_arg(char *loc) {
     void_arg->type = shared_void_type();
     void_arg->name = NULL;
     void_arg->len = 0;
+    void_arg->type_size = 0;
     void_arg->offset = 0;
     void_arg->index = -1;
     if (current_scope->variables) {
@@ -1160,7 +1162,8 @@ Node *local_variable_declaration(Type *base) {
             Node *node = array_initializer(variable_node, type);
             if (implicit_size) {
                 // 配列のサイズが決まってからオフセットを再設定する
-                variable->offset = stack_size = stack_size + get_size(type);
+                variable->type_size = get_size(type);
+                variable->offset = stack_size = stack_size + variable->type_size;
                 variable_node->offset = variable->offset;
             }
             expect(";");

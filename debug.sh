@@ -13,3 +13,6 @@
 /usr/bin/cmake --build ./build --target ccompiler -- -j 4
 ./build/ccompiler "--file" "$(pwd)/_test/debug.c" >tmp.s && gcc -static -o tmp tmp.s && ./tmp
 echo "$?"
+
+# アセンブリ修正時
+# gcc -static -o tmp tmp.s && ./tmp ; echo "$?"

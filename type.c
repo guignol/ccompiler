@@ -308,9 +308,7 @@ int get_weight(Node *node) {
             // 配列は代入できないがポインタと同様に演算ができる
             return get_size(type->point_to);
         case TYPE_STRUCT:
-            // TODO
-            error("[type]構造体実装中\n");
-            exit(1);
+            return get_size(type);
     }
 }
 
@@ -340,13 +338,18 @@ int get_size(Type *type) {
                 error("構造体の定義がありません\n");
                 exit(1);
             }
-            int max = 0;
+            int size = 0;
             for (Variable *m = type->struct_info->members; m; m = m->next) {
-                if (max < m->offset) {
-                    max = m->offset;
+                if (size < m->offset) {
+                    size = m->offset;
                 }
             }
-            return max;
+            // TODO 8byte == 64bitを超えると別途対応が必要
+            if (64 < size) {
+                error("レジスタサイズを超える構造体は未対応\n");
+                exit(1);
+            }
+            return size;
         }
     }
 }
@@ -388,6 +391,7 @@ char *base_type_name() {
         case TYPE_INT:
             return "int";
         default:
+            // TODO 構造体はそもそもここ通る？
             error("型が不明です\n");
             exit(1);
     }

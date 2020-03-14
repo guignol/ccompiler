@@ -55,6 +55,7 @@ void load(Node *node) {
         case TYPE_INT:
             printf("  mov eax, DWORD PTR [rax]\n");
             break;
+            // TODO 構造体
         default:
             printf("  mov rax, [rax]\n");
             break;
@@ -66,12 +67,16 @@ void gen_address(Node *node) {
     switch (node->kind) {
         case ND_VARIABLE:
         case ND_VARIABLE_ARRAY:
+            // TODO 構造体のサイズ
             if (node->is_local) {
                 printf("  lea rax, [rbp - %d]\n", node->offset);
                 printf("  push rax # variable [%.*s]\n", node->len, node->name);
             } else {
                 if (node->offset) {
                     // 構造体のメンバーアクセス
+                    // TODO
+                    //  ローカル変数はベースポインタから（大きい側から）のオフセットで考えるが
+                    //  グローバル変数はラベルのアドレス（小さい側から）のオフセットで考える
                     printf("  lea rax, %.*s[rip+%d]\n", node->len, node->name, node->offset);
                 } else {
                     printf("  lea rax, %.*s[rip]\n", node->len, node->name);
@@ -263,24 +268,46 @@ void gen(Node *node) {
             return;
         case ND_ASSIGN:
             ___COMMENT___("assign begin");
-            gen_address(node->lhs);
-            gen(node->rhs);
+            if (node->rhs->kind == ND_NUM) {
+                gen_address(node->lhs);
+                printf("  pop rax\n");
+                // 即値の場合
+                const int imm = node->rhs->val;
+                // 型ごとのサイズ
+                switch (find_type(node)->ty) {
+                    case TYPE_CHAR:
+                        printf("  mov BYTE PTR [rax], %d\n", imm);
+                        break;
+                    case TYPE_INT:
+                        printf("  mov DWORD PTR [rax], %d\n", imm);
+                        break;
+                        // TODO 構造体
+                    default:
+                        printf("  mov QWORD PTR [rax], %d\n", imm);
+                        break;
+                }
+                printf("  push %d\n", imm);
+            } else {
+                gen_address(node->lhs);
+                gen(node->rhs);
 
-            printf("  pop rdi\n");
-            printf("  pop rax\n");
-            // 型ごとのサイズ
-            switch (find_type(node)->ty) {
-                case TYPE_CHAR:
-                    printf("  mov BYTE PTR [rax], dil\n");
-                    break;
-                case TYPE_INT:
-                    printf("  mov DWORD PTR [rax], edi\n");
-                    break;
-                default:
-                    printf("  mov [rax], rdi\n");
-                    break;
+                printf("  pop rdi\n");
+                printf("  pop rax\n");
+                // 型ごとのサイズ
+                switch (find_type(node)->ty) {
+                    case TYPE_CHAR:
+                        printf("  mov BYTE PTR [rax], dil\n");
+                        break;
+                    case TYPE_INT:
+                        printf("  mov DWORD PTR [rax], edi\n");
+                        break;
+                        // TODO 構造体
+                    default:
+                        printf("  mov [rax], rdi\n");
+                        break;
+                }
+                printf("  push rdi\n");
             }
-            printf("  push rdi\n");
             ___COMMENT___("assign end");
             return;
         case ND_ADDRESS:
@@ -387,6 +414,7 @@ void arguments_to_stack(Variable *param) {
             printf("  mov DWORD PTR [rax], %s  # parameter [%.*s]\n", reg, len, name);
             break;
         }
+            // TODO 構造体
         default: {
             char *const reg = registers[param->index];
             printf("  mov [rax], %s  # parameter [%.*s]\n", reg, len, name);
