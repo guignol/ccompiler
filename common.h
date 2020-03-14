@@ -380,6 +380,6 @@ void init_struct_registry();
 
 void push_struct(STRUCT_INFO *info);
 
-void load_struct(STRUCT_INFO *target);
+void load_struct(Type *type);
 
 Node *new_node_struct_member(Node *variable, const char *name, int len);

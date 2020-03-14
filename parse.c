@@ -154,7 +154,7 @@ Type *consume_base_type() {
         structInfo->members = NULL;
         base->struct_info = structInfo;
         // 定義済みの型情報があれば読み込む
-        load_struct(structInfo);
+        load_struct(base);
         return base;
     } else {
         return NULL;
@@ -350,6 +350,7 @@ Node *new_node_local_variable(char *str, int len) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = variable->type;
+    load_struct(node->type);
     node->is_local = true;
     node->name = str;
     node->len = len;
@@ -367,6 +368,7 @@ Node *new_node_global_variable(char *str, int len) {
     bool is_array = variable->type->ty == TYPE_ARRAY;
     node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = variable->type;
+    load_struct(node->type);
     node->is_local = false;
     node->name = variable->label;
     node->len = variable->label_length;
@@ -604,11 +606,9 @@ struct Program *parse(Token *tok) {
             error_at(token->str, "関数名または変数名がありません");
             exit(1);
         }
-        if (type->ty == TYPE_STRUCT) {
-            // TODO グローバル変数では定義が後ろにあっても使える
-            // 構造体の型データを取得
-            load_struct(type->struct_info);
-        }
+        // TODO グローバル変数では定義が後ろにあっても使える
+        // 構造体の型データを取得
+        load_struct(type);
         if (consume("(")) {
             // 関数(宣言の場合はNULLが返ってくる)
             Function *func = function(identifier, type);
@@ -1077,7 +1077,7 @@ Token *consume_type(Type *base, Type **r_type) {
         Scope *parent = current_scope->parent;
         current_scope->parent = NULL; // 現在のスコープのみ
         if (find_local_variable(current_scope, identifier_token->str, identifier_token->len)) {
-            error_at(token->str, "変数名が重複しています");
+            error_at(token->str, "変数名またはメンバー名が重複しています");
             exit(1);
         }
         current_scope->parent = parent;

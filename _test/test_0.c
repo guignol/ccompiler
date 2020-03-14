@@ -54,7 +54,8 @@ void assert(char *name, int expected, int actual) {
 struct Box {
     int a;
     int b;
-//    char a; // TODO エラーメッセージが微妙
+//    char a;
+//    int c;
 };
 struct Box box;
 
@@ -79,6 +80,8 @@ int use_struct_1() {
 //    box.c = 1;
     box.a = 13;
     a_s.a = box.a;
+    a_s_p = &a_s;
+    a_s = *a_s_p;
     return a_s.a;
 }
 
@@ -90,14 +93,8 @@ int use_struct_2() {
     a_a[0] = a_0;
     a_a[1] = a_1;
     a_a[2] = a_2;
-    int sum = 0;
-    for (int i = 0; i < sizeof(a_a) / sizeof(int); i = i + 1) {
-//        struct Box b = a_a[i];
-//        sum = sum + b.b;
-////        sum = sum + a_a[i].b;
-    }
-//    return sum + sizeof(struct A);
     a_0 = a_a[2];
+//    int a = a_a[1].a;
     return a_0.b * 2 + a_1.b + a_2.b;
 }
 

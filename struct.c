@@ -48,12 +48,25 @@ void push_struct(STRUCT_INFO *target) {
     registry->count++;
 }
 
-void load_struct(STRUCT_INFO *target) {
-    const char *const name = target->type_name;
-    const int len = target->name_length;
-    STRUCT_INFO *const same_struct = find_struct(name, len);
-    if (same_struct) {
-        target->members = same_struct->members;
+void load_struct(Type *const type) {
+    switch (type->ty) {
+        case TYPE_POINTER:
+        case TYPE_ARRAY:
+            load_struct(type->point_to);
+            break;
+        case TYPE_STRUCT: {
+            const char *const name = type->struct_info->type_name;
+            const int len = type->struct_info->name_length;
+            STRUCT_INFO *const found = find_struct(name, len);
+            if (found && found->members) {
+                type->struct_info->members = found->members;
+            }
+            break;
+        }
+        case TYPE_VOID:
+        case TYPE_CHAR:
+        case TYPE_INT:
+            break;
     }
 }
 
@@ -70,7 +83,7 @@ Node *new_node_struct_member(Node *variable, const char *const name, const int l
     STRUCT_INFO *const struct_info = variable->type->struct_info;
     // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
     // 変数宣言時には型情報を持っていないので読み込んでおく
-    load_struct(struct_info);
+    load_struct(variable->type);
     Variable *const member = find_member(struct_info, name, len);
     if (member == NULL) {
         error_at(name, "構造体 %.*s にはメンバー %.*s がありません。",
@@ -86,7 +99,8 @@ Node *new_node_struct_member(Node *variable, const char *const name, const int l
     node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     node->type = member->type;
     node->is_local = variable->is_local;
-    node->name = variable->name; //　TODO
+    //　TODO メンバーの名前が含まれない。ネストした構造体が使えるようになったら改めて考える
+    node->name = variable->name;
     node->len = variable->len;
     if (node->is_local) {
         node->offset = variable->offset + member->offset;

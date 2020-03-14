@@ -51,8 +51,8 @@ const char *size_prefix(int size) {
             // 8byte == 64bit
             return "QWORD PTR";
         default:
-            // TODO 構造体
-            return NULL;
+            error("[size_prefix]64bit以上のメモリは扱えません\n");
+            exit(1);
     }
 }
 
@@ -68,8 +68,7 @@ const char *register_name_rax(int size) {
             // 8byte == 64bit
             return "rax";
         default:
-            // TODO 構造体
-            error("[register_name_rax]構造体実装中\n");
+            error("[register_name_rax]64bit以上のメモリは扱えません\n");
             exit(1);
     }
 }
@@ -86,13 +85,10 @@ const char *register_name_for_args(int size, int index) {
             // 8byte == 64bit
             return registers_64[index];
         default:
-            // TODO 構造体
-            error("[register_name_for_args]構造体実装中\n");
+            error("[register_name_for_args]64bit以上のメモリは扱えません\n");
             exit(1);
     }
 }
-
-void gen(Node *node);
 
 void load(Node *node) {
     // アドレスを取り出す
@@ -110,7 +106,6 @@ void load(Node *node) {
             // 4byte == 32bit
             printf("  mov eax, %s [rax]\n", prefix);
             break;
-            // TODO 構造体
         default:
             // 8byte == 64bit
             printf("  mov rax, [rax]\n");
@@ -119,24 +114,27 @@ void load(Node *node) {
     printf("  push rax\n");
 }
 
+void gen(Node *node);
+
 void gen_address(Node *node) {
     switch (node->kind) {
         case ND_VARIABLE:
         case ND_VARIABLE_ARRAY:
-            // TODO 構造体のサイズ
+            printf("  # variable [%.*s]\n", node->len, node->name);
+            // TODO 構造体のサイズは、AST側でどうにかしたほうがよさそう
             if (node->is_local) {
                 printf("  lea rax, [rbp - %d]\n", node->offset);
-                printf("  push rax # variable [%.*s]\n", node->len, node->name);
             } else {
+                printf("  # variable [%.*s]\n", node->len, node->name);
                 if (node->offset) {
                     // 構造体のメンバーアクセス
+                    printf("  # member [%.*s]\n", node->len, node->name);
                     printf("  lea rax, %.*s[rip+%d]\n", node->len, node->name, node->offset);
                 } else {
                     printf("  lea rax, %.*s[rip]\n", node->len, node->name);
                 }
-                // TODO 構造体のメンバー名が表示されない
-                printf("  push rax # variable [%.*s]\n", node->len, node->name);
             }
+            printf("  push rax\n");
             break;
         case ND_DEREF:
             /*
@@ -504,7 +502,7 @@ void generate_global(Global *globals) {
                 case _zero: {
                     Type *const type = target->backwards_struct;
                     if (type) {
-                        load_struct(type->struct_info);
+                        load_struct(type);
                         target->value = get_size(type);
                     }
                     printf("  .zero %d\n", target->value);
