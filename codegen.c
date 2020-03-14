@@ -10,27 +10,24 @@
 // RBX	（特になし）
 // R8	第5引数	✔
 // R9	第6引数	✔
-static char *registers[] = {"rdi",
-                            "rsi",
-                            "rdx",
-                            "rcx",
-                            "r8",
-                            "r9"};
-
-static char *registers_32[] = {"edi",
-                               "esi",
-                               "edx",
-                               "ecx",
-                               "r8d",
-                               "r9d"};
-
-
-static char *registers_8[] = {"DIL",
-                              "SIL",
-                              "DL",
-                              "CL",
-                              "R8B",
-                              "R9B"};
+static const char *const registers_64[] = {"rdi",
+                                           "rsi",
+                                           "rdx",
+                                           "rcx",
+                                           "r8",
+                                           "r9"};
+static const char *const registers_32[] = {"edi",
+                                           "esi",
+                                           "edx",
+                                           "ecx",
+                                           "r8d",
+                                           "r9d"};
+static const char *const registers_8[] = {"DIL",
+                                          "SIL",
+                                          "DL",
+                                          "CL",
+                                          "R8B",
+                                          "R9B"};
 
 void ___COMMENT___(char *format, ...) {
     va_list ap;
@@ -42,21 +39,80 @@ void ___COMMENT___(char *format, ...) {
     va_end(ap);
 }
 
+const char *size_prefix(int size) {
+    switch (size) {
+        case 1:
+            // 1byte == 8bit
+            return "BYTE PTR";
+        case 4:
+            // 4byte == 32bit
+            return "DWORD PTR";
+        case 8:
+            // 8byte == 64bit
+            return "QWORD PTR";
+        default:
+            // TODO 構造体
+            return NULL;
+    }
+}
+
+const char *register_name_rax(int size) {
+    switch (size) {
+        case 1:
+            // 1byte == 8bit
+            return "al";
+        case 4:
+            // 4byte == 32bit
+            return "eax";
+        case 8:
+            // 8byte == 64bit
+            return "rax";
+        default:
+            // TODO 構造体
+            error("[register_name_rax]構造体実装中\n");
+            exit(1);
+    }
+}
+
+const char *register_name_for_args(int size, int index) {
+    switch (size) {
+        case 1:
+            // 1byte == 8bit
+            return registers_8[index];
+        case 4:
+            // 4byte == 32bit
+            return registers_32[index];
+        case 8:
+            // 8byte == 64bit
+            return registers_64[index];
+        default:
+            // TODO 構造体
+            error("[register_name_for_args]構造体実装中\n");
+            exit(1);
+    }
+}
+
 void gen(Node *node);
 
 void load(Node *node) {
     // アドレスを取り出す
     printf("  pop rax\n");
     // アドレスの値を取り出す
-    switch (find_type(node)->ty) {
-        case TYPE_CHAR:
-            printf("  movsx eax, BYTE PTR [rax]\n");
+    Type *const type = find_type(node);
+    const int type_size = get_size(type);
+    const char *const prefix = size_prefix(type_size);
+    switch (type_size) {
+        case 1:
+            // 1byte == 8bit
+            printf("  movsx eax, %s [rax]\n", prefix);
             break;
-        case TYPE_INT:
-            printf("  mov eax, DWORD PTR [rax]\n");
+        case 4:
+            // 4byte == 32bit
+            printf("  mov eax, %s [rax]\n", prefix);
             break;
             // TODO 構造体
         default:
+            // 8byte == 64bit
             printf("  mov rax, [rax]\n");
             break;
     }
@@ -74,9 +130,6 @@ void gen_address(Node *node) {
             } else {
                 if (node->offset) {
                     // 構造体のメンバーアクセス
-                    // TODO
-                    //  ローカル変数はベースポインタから（大きい側から）のオフセットで考えるが
-                    //  グローバル変数はラベルのアドレス（小さい側から）のオフセットで考える
                     printf("  lea rax, %.*s[rip+%d]\n", node->len, node->name, node->offset);
                 } else {
                     printf("  lea rax, %.*s[rip]\n", node->len, node->name);
@@ -126,7 +179,7 @@ void gen(Node *node) {
                     count++;
                 }
                 for (size_t i = 0; i < count; i++) {
-                    printf("  pop %s\n", registers[count - i - 1]);
+                    printf("  pop %s\n", registers_64[count - i - 1]);
                 }
             }
             static bool doAlign = true;
@@ -266,50 +319,30 @@ void gen(Node *node) {
             // 配列変数は不変で、先頭アドレスをそのまま使う
             gen_address(node);
             return;
-        case ND_ASSIGN:
+        case ND_ASSIGN: {
             ___COMMENT___("assign begin");
+            // 型ごとのサイズ
+            const int type_size = get_size(find_type(node));
+            const char *const prefix = size_prefix(type_size);
+            const char *const register_name = register_name_rax(type_size);
             if (node->rhs->kind == ND_NUM) {
                 gen_address(node->lhs);
-                printf("  pop rax\n");
-                // 即値の場合
+                printf("  pop rdi\n");
+                // 即値
                 const int imm = node->rhs->val;
-                // 型ごとのサイズ
-                switch (find_type(node)->ty) {
-                    case TYPE_CHAR:
-                        printf("  mov BYTE PTR [rax], %d\n", imm);
-                        break;
-                    case TYPE_INT:
-                        printf("  mov DWORD PTR [rax], %d\n", imm);
-                        break;
-                        // TODO 構造体
-                    default:
-                        printf("  mov QWORD PTR [rax], %d\n", imm);
-                        break;
-                }
+                printf("  mov %s [rdi], %d\n", prefix, imm);
                 printf("  push %d\n", imm);
             } else {
                 gen_address(node->lhs);
                 gen(node->rhs);
-
-                printf("  pop rdi\n");
                 printf("  pop rax\n");
-                // 型ごとのサイズ
-                switch (find_type(node)->ty) {
-                    case TYPE_CHAR:
-                        printf("  mov BYTE PTR [rax], dil\n");
-                        break;
-                    case TYPE_INT:
-                        printf("  mov DWORD PTR [rax], edi\n");
-                        break;
-                        // TODO 構造体
-                    default:
-                        printf("  mov [rax], rdi\n");
-                        break;
-                }
-                printf("  push rdi\n");
+                printf("  pop rdi\n");
+                printf("  mov %s [rdi], %s\n", prefix, register_name);
+                printf("  push rax\n");
             }
             ___COMMENT___("assign end");
             return;
+        }
         case ND_ADDRESS:
             // 変数のアドレスをスタックに積むだけ
             gen_address(node->lhs);
@@ -403,24 +436,10 @@ void arguments_to_stack(Variable *param) {
     printf("  lea rax, [rbp - %d]\n", param->offset);
     int len = param->len;
     char *name = param->name;
-    switch (param->type->ty) {
-        case TYPE_CHAR: {
-            char *const reg = registers_8[param->index];
-            printf("  mov BYTE PTR [rax], %s  # parameter [%.*s]\n", reg, len, name);
-            break;
-        }
-        case TYPE_INT: {
-            char *const reg = registers_32[param->index];
-            printf("  mov DWORD PTR [rax], %s  # parameter [%.*s]\n", reg, len, name);
-            break;
-        }
-            // TODO 構造体
-        default: {
-            char *const reg = registers[param->index];
-            printf("  mov [rax], %s  # parameter [%.*s]\n", reg, len, name);
-            break;
-        }
-    }
+    const char *const prefix = size_prefix(param->type_size);
+    const char *const reg = register_name_for_args(param->type_size, param->index);
+    printf("  # parameter [%.*s]\n", len, name);
+    printf("  mov %s [rax], %s\n", prefix, reg);
 }
 
 void prepare_stack(int stack_size, Variable *const parameters) {
