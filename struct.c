@@ -102,10 +102,11 @@ Node *new_node_struct_member(Node *variable, const char *const name, const int l
     //　TODO メンバーの名前が含まれない。ネストした構造体が使えるようになったら改めて考える
     node->name = variable->name;
     node->len = variable->len;
+    int start = member->offset - member->type_size;
     if (node->is_local) {
-        node->offset = variable->offset + member->offset;
+        node->offset = variable->offset - start;
     } else {
-        node->offset = member->offset - member->type_size;
+        node->offset = start;
     }
     return node;
 }

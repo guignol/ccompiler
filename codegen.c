@@ -125,7 +125,6 @@ void gen_address(Node *node) {
             if (node->is_local) {
                 printf("  lea rax, [rbp - %d]\n", node->offset);
             } else {
-                printf("  # variable [%.*s]\n", node->len, node->name);
                 if (node->offset) {
                     // 構造体のメンバーアクセス
                     printf("  # member [%.*s]\n", node->len, node->name);

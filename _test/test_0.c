@@ -64,7 +64,7 @@ struct A;
 // ローカル変数はグローバルな構造体も定義が前方にある必要がある
 // 関数の返り値や引数はローカル変数と同じ扱い
 struct A a_s;
-struct A *a_s_p;
+struct A *a_s_p = &a_s;
 struct A {
     int a;
 };
@@ -96,6 +96,28 @@ int use_struct_2() {
     a_0 = a_a[2];
 //    int a = a_a[1].a;
     return a_0.b * 2 + a_1.b + a_2.b;
+}
+
+// 55
+int use_struct_3() {
+    box.a = 22;
+    box.b = 33;
+    struct Box b;
+    b = box;
+    printf("b { a: %d, b: %d }\n", b.a, b.b);
+    printf("box { a: %d, b: %d }\n", box.a, box.b);
+    return b.a + b.b;
+}
+
+// 11
+int use_struct_4() {
+    struct Box b;
+    b.a = 22;
+    b.b = 33;
+    box = b;
+    printf("b { a: %d, b: %d }\n", b.a, b.b);
+    printf("box { a: %d, b: %d }\n", box.a, box.b);
+    return box.b - box.a;
 }
 
 //int use_struct_3() {
@@ -1392,6 +1414,8 @@ int main() {
 
     assert("use_struct_1", 13, use_struct_1());
     assert("use_struct_2", 7, use_struct_2());
+    assert("use_struct_3", 55, use_struct_3());
+    assert("use_struct_4", 11, use_struct_4());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

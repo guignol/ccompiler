@@ -1139,16 +1139,16 @@ Node *local_variable_declaration(Type *base) {
         error_at(token->str, "変数にvoidは使えません");
         exit(1);
     }
-    if (base->ty == TYPE_STRUCT) {
-        // TODO
-        error_at(token->str, "構造体の実装中");
-        exit(1);
-    }
     // 変数の登録
     Type *type;
     Token *const identifier = consume_type(base, &type);
     if (!identifier) {
         error_at(token->str, "変数名がありません");
+        exit(1);
+    }
+    if (base->ty == TYPE_STRUCT && type->struct_info->members == NULL) {
+        // ポインタや配列は、構造体の型が必要になったときに存在しないとエラーになるはず
+        error_at(token->str, "構造体の定義がありません");
         exit(1);
     }
     Variable *variable = register_variable(identifier->str, identifier->len, type);
