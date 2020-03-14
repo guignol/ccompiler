@@ -44,11 +44,10 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 /////////////////////////
 
 // program    = (function | global_var)*
-// global_var = decl_b ";"
+// global_var = (decl_b | decl_c) ";"
 // function   = decl_a "(" decl_a? ("," decl_a)* ")" { stmt* }
 // stmt       = expr ";"
-//              | decl_b ";"
-//              | decl_c ";"
+//              | (decl_b | decl_c) ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
@@ -73,7 +72,6 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // decl_a     = ("int" | "char" | "struct") "*"* (pointed_id | ident)
 // decl_b     = decl_a ("[" num_char "]")*
 // decl_c     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | expr)
-// decl_g     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | equality) // その他、制限あり
 // pointed_id = "(" "*"* ident ")"
 // ident      =
 // literal_str
@@ -122,8 +120,8 @@ Token *consume_ident() {
     return NULL;
 }
 
-Token *consume_number() {
-    if (token->kind == TK_NUM) {
+Token *consume_num_char() {
+    if (token->kind == TK_NUM || token->kind == TK_CHAR_LITERAL) {
         Token *t = token;
         token = token->next;
         return t;
@@ -174,8 +172,8 @@ void expect(char *op) {
 
 // 次のトークンが数値の場合、トークンを1つ読み進めてその数値を返す。
 // それ以外の場合にはエラーを報告する。
-int expect_number() {
-    if (token->kind != TK_NUM) {
+int expect_num_char() {
+    if (token->kind != TK_NUM && token->kind != TK_CHAR_LITERAL) {
         error_at(token->str, "数ではありません");
         exit(1);
     }
@@ -743,7 +741,7 @@ void global_variable_declaration(Token *variable_name, Type *type) {
                 g->target = head.next;
             }
         } else {
-            Node *node = equality();
+            Node *node = expr();
             // 型チェック
             // 暗黙のキャストはできないので
             // int *yy_yy = &x - 4; は通るが
@@ -1131,7 +1129,7 @@ Token *consume_type(Type *base, Type **r_type) {
          * 配列へのポインタ
          * int (*p)[];
          */
-        Token *size_token = consume_number();
+        Token *size_token = consume_num_char();
         if (!size_token) {
             // 最初の[]のみ、初期化式では右辺からサイズを決定できる
             // 配列へのポインタの場合も同様
@@ -1406,6 +1404,11 @@ Node *unary() {
 }
 
 Node *primary() {
+    // 文字列リテラル
+    if (token->kind == TK_STR_LITERAL) {
+        return new_node_string_literal();
+    }
+
     Token *tok = consume_ident();
     if (tok) {
         if (consume("(")) {
@@ -1419,17 +1422,6 @@ Node *primary() {
             }
             return with_accessor(variable);
         }
-    }
-
-    // 文字列リテラル
-    if (token->kind == TK_STR_LITERAL) {
-        return new_node_string_literal();
-    }
-    // 文字リテラル
-    if (token->kind == TK_CHAR_LITERAL) {
-        const int c = token->val;
-        token = token->next;
-        return new_node_num(c);
     }
 
     // 次のトークンが"("なら、"(" expr ")" または "({" stmt "})" または (a[0])[1], (*b)[1]
@@ -1458,7 +1450,7 @@ Node *primary() {
         return with_accessor(node);
     }
 
-    // そうでなければ数値のはず
-    Node *number = new_node_num(expect_number());
+    // そうでなければ数値か文字リテラルのはず
+    Node *number = new_node_num(expect_num_char());
     return with_accessor(number);
 }

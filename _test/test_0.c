@@ -425,13 +425,20 @@ int char_array_and_pointer_9() {
 }
 
 // 3
-int char_calculate_array() {
+int char_calculate_array_1() {
     char x[3];
     x[0] = -1;
     x[1] = 2;
     int y;
     y = 4;
     return x[0] + y;
+}
+
+// 2
+int char_calculate_array_2() {
+    char x['b'] = {'a', 'b', 'c'};
+    'a'[x] = 'd';
+    return 'f' - x['a'];
 }
 
 /////////////////////////////////////////////////
@@ -668,6 +675,18 @@ int global_variable_22() {
     printf("枕草子: %s\n", global_string);
     return global_array_init_2[3] - global_array_init_2[0];
 }
+
+// TODO
+//int equality_1 = 3 == 2;
+//
+//// 9
+//int global_variable_23() {
+//    if (equality_1) {
+//        return 8;
+//    } else {
+//        return 9;
+//    }
+//}
 
 /////////////////////////////////////////////////
 
@@ -1452,7 +1471,9 @@ int main() {
     assert("char_array_and_pointer_7", 8, char_array_and_pointer_7());
     assert("char_array_and_pointer_8", 33, char_array_and_pointer_8());
     assert("char_array_and_pointer_9", 21, char_array_and_pointer_9());
-    assert("char_calculate_array", 3, char_calculate_array());
+
+    assert("char_calculate_array_1", 3, char_calculate_array_1());
+    assert("char_calculate_array_2", 2, char_calculate_array_2());
 
     assert("global_variable_1", 5, global_variable_1());
     assert("global_variable_2", 9, global_variable_2());
