@@ -380,11 +380,9 @@ Node *new_node_global_variable(char *str, int len) {
     }
     Node *node = calloc(1, sizeof(Node));
     bool is_array = variable->type->ty == TYPE_ARRAY;
+    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     if (variable->target && variable->target->directive == _enum) {
-        node->kind = ND_NUM;
         node->val = variable->target->value;
-    } else {
-        node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
     }
     node->type = variable->type;
     load_struct(node->type);

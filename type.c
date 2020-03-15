@@ -219,6 +219,7 @@ Type *find_type(const Node *node) {
                 switch (left->ty) {
                     case TYPE_CHAR:
                     case TYPE_INT:
+                    case TYPE_ENUM:
                         return left;
                     case TYPE_ARRAY:
                     case TYPE_POINTER: {
@@ -243,15 +244,12 @@ Type *find_type(const Node *node) {
                         // TODO
                         error("[type]構造体実装中\n");
                         exit(1);
-                    case TYPE_ENUM:
-                        // TODO
-                        error("[type]enum実装中\n");
-                        exit(1);
                 }
             } else {
                 switch (left->ty) {
                     case TYPE_CHAR:
                     case TYPE_INT:
+                    case TYPE_ENUM:
                         return right;
                     case TYPE_POINTER:
                     case TYPE_ARRAY:
@@ -262,10 +260,6 @@ Type *find_type(const Node *node) {
                     case TYPE_STRUCT:
                         // TODO
                         error("[type]構造体実装中\n");
-                        exit(1);
-                    case TYPE_ENUM:
-                        // TODO
-                        error("[type]enum実装中\n");
                         exit(1);
                 }
             }
@@ -337,6 +331,7 @@ int get_weight(Node *node) {
             exit(1);
         case TYPE_CHAR:
         case TYPE_INT:
+        case TYPE_ENUM:
             return 1;
         case TYPE_POINTER:
         case TYPE_ARRAY:
@@ -344,10 +339,6 @@ int get_weight(Node *node) {
             return get_size(type->point_to);
         case TYPE_STRUCT:
             return get_size(type);
-        case TYPE_ENUM:
-            // TODO
-            error("[type]enum実装中\n");
-            exit(1);
     }
 }
 
@@ -365,6 +356,7 @@ int get_size(Type *type) {
         case TYPE_CHAR:
             return sizeof(char); // 1
         case TYPE_INT:
+        case TYPE_ENUM:
             return sizeof(int); // 4
         case TYPE_POINTER:
             return sizeof(int *); // 8
@@ -390,10 +382,6 @@ int get_size(Type *type) {
             }
             return size;
         }
-        case TYPE_ENUM:
-            // TODO
-            error("[type]enum実装中\n");
-            exit(1);
     }
 }
 

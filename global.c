@@ -280,6 +280,12 @@ Directives *global_initializer(char *const loc, Type *type, Node *const node) {
             // リテラル、sizeof
             target->value = node->val;
             return target;
+        case ND_VARIABLE:
+            if (type->ty == TYPE_ENUM) {
+                target->value = node->val;
+                return target;
+            }
+            goto error_label;
         case ND_ADD:
         case ND_SUB: {
             Node *pointed = NULL;

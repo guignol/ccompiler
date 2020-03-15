@@ -69,12 +69,12 @@ enum Assignable as = CANNOT_ASSIGN;
 int enum_switch_1() {
 //    struct S ss;
 ////    ss.as = CANNOT_ASSIGN;
-//    as = AS_SAME;
+    as = AS_SAME;
 //    switch (as) {
 //        case CANNOT_ASSIGN:
 //            return 10;
 //        case AS_SAME:
-    return 11;
+    return as + 8 + AS_INCOMPATIBLE;
 //        case AS_INCOMPATIBLE:
 //            return 12;
 //    }
@@ -1485,6 +1485,7 @@ int assert_others(void) {
 /////////////////////////////////////////////////
 
 int main() {
+    assert("enum_switch_1", 11, enum_switch_1());
 
     assert("bool_invert_1", 11, bool_invert_1());
 
