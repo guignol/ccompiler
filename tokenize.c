@@ -223,6 +223,15 @@ Token *tokenize(char *p) {
             p++;
             continue;
         }
+        // プリプロセスの名残
+        if (start_with(p, "#")) {
+            p++;
+            while (!start_with(p, "\n")) {
+                p++;
+            }
+            p++;
+            continue;
+        }
         if (start_with(p, "/*")) {
             p += 2;
             while (!start_with(p, "*/")) {

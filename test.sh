@@ -24,3 +24,18 @@ else
   echo "exit code: $?"
   echo "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNG"
 fi
+
+exit 0;
+
+# 1ファイルずつセルフホストを試す
+mkdir -p build_tmp
+FILE_NAME="codegen"
+FILE_NAME="parse"
+FILE_NAME="global"
+FILE_NAME="struct"
+FILE_NAME="main"
+FILE_NAME="type"
+FILE_NAME="tokenize"
+FILE_NAME="function_declare"
+gcc -E ${FILE_NAME}.c | cat -s > build_tmp/${FILE_NAME}_.c
+./build/ccompiler "--file" "$(pwd)/build_tmp/${FILE_NAME}_.c" > build_tmp/${FILE_NAME}_.s

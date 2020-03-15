@@ -1,5 +1,3 @@
-//#ifndef CCOMPILER_STD_ALTERNATIVE_H
-//#define CCOMPILER_STD_ALTERNATIVE_H
 
 /////////////////////////////////////////////////
 //#include <stddef.h>
@@ -81,5 +79,3 @@ void exit(int __status);
 int *__errno_location(void);
 
 /////////////////////////////////////////////////
-
-//#endif //CCOMPILER_STD_ALTERNATIVE_H
