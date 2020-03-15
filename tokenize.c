@@ -32,53 +32,102 @@ int print_with_line_number(const char *loc) {
  * エラー箇所を報告する
  * https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
  */
-void error_at(const char *loc, const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-
+void error_at(const char *loc, const char *message) {
     // エラー箇所を"^"で指し示して、エラーメッセージを表示
     int pos = print_with_line_number(loc);
     fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
     fprintf(stderr, "^ ");
-    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "%s", message);
     fprintf(stderr, "\n");
-    va_end(ap);
+}
+
+void error_at_1(const char *loc, const char *fmt, const char *message) {
+    // エラー箇所を"^"で指し示して、エラーメッセージを表示
+    int pos = print_with_line_number(loc);
+    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+    fprintf(stderr, "^ ");
+    fprintf(stderr, fmt, message);
+    fprintf(stderr, "\n");
+}
+
+void error_at_2_2(const char *loc, const char *fmt,
+                  int len_1, const char *str_1,
+                  int len_2, const char *str_2) {
+    // エラー箇所を"^"で指し示して、エラーメッセージを表示
+    int pos = print_with_line_number(loc);
+    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+    fprintf(stderr, "^ ");
+    fprintf(stderr, fmt, len_1, str_1, len_2, str_2);
+    fprintf(stderr, "\n");
 }
 
 // TODO
 bool warning = false;
 
-void warn_at(const char *loc, const char *fmt, ...) {
+void warn_at(const char *loc, const char *message) {
     if (!warning) {
         return;
     }
-
-    va_list ap;
-    va_start(ap, fmt);
 
     // エラー箇所を"^"で指し示して、エラーメッセージを表示
     int pos = print_with_line_number(loc);
     fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
     fprintf(stderr, "^ ");
-    vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "%s", message);
     fprintf(stderr, "\n");
-    va_end(ap);
+}
+
+void warn_at_with_c(const char *loc, const char *fmt, char c) {
+    if (!warning) {
+        return;
+    }
+
+    // エラー箇所を"^"で指し示して、エラーメッセージを表示
+    int pos = print_with_line_number(loc);
+    fprintf(stderr, "%*s", pos, ""); // pos個の空白を出力
+    fprintf(stderr, "^ ");
+    fprintf(stderr, fmt, c);
+    fprintf(stderr, "\n");
 }
 
 bool start_with(const char *p, const char *str) {
     return strncmp(p, str, strlen(str)) == 0;
 }
 
+//#include <ctype.h>
+// isspace
+// 指定された文字がホワイトスペース、すなわち
+// 空白 (0x20)、
+// 改頁 (0x0c)、
+// 改行 (0x0a)、
+// 復帰 (0x0d)、
+// 水平タブ (0x09) または
+// 垂直タブ (0x0b) かどうか調べます。
+// https://ja.cppreference.com/w/c/string/byte/isspace
+bool is_space(char c) {
+    // cf. man ascii
+    return c == 32 || // 32    20    SPACE
+           c == 12 || // 12    0C    FF  '\f' (form feed)
+           c == 10 || // 10    0A    LF  '\n' (new line)
+           c == 13 || // 13    0D    CR  '\r' (carriage ret)
+           c == 9  || // 9     09    HT  '\t' (horizontal tab)
+           c == 11;   // 11    0B    VT  '\v' (vertical tab)
+}
+
 bool is_alpha(char c) {
     return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || c == '_';
 }
 
+bool is_number(char c) {
+    return ('0' <= c && c <= '9');
+}
+
 bool is_alnum(char c) {
-    return is_alpha(c) || ('0' <= c && c <= '9');
+    return is_alpha(c) || is_number(c);
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, size_t len) {
+Token *new_token(TokenKind kind, Token *cur, char *str, /** size_t */ int len) {
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
@@ -103,7 +152,7 @@ int reserved(const char *p) {
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
-        size_t len = strlen(keyword);
+        /** size_t */ int len = strlen(keyword);
         char next = p[len];
         if (strncmp(p, keyword, len) == 0 && !is_alnum(next))
             return len;
@@ -113,7 +162,7 @@ int reserved(const char *p) {
     static char *ops[] = {"==", "!=", "<=", ">="};
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
-        size_t len = strlen(operator);
+        /** size_t */ int len = strlen(operator);
         if (strncmp(p, operator, len) == 0)
             return len;
     }
@@ -147,7 +196,7 @@ char escaped(char *p) {
         case '0':
             return '\0';
         default:
-            warn_at(p, "Unknown escape sequence: \\%c", c);
+            warn_at_with_c(p, "Unknown escape sequence: \\%c", c);
             return c;
     }
 }
@@ -161,7 +210,7 @@ Token *tokenize(char *p) {
 
     while (*p) {
         // 空白文字をスキップ
-        if (isspace(*p)) {
+        if (is_space(*p)) {
             p++;
             continue;
         }
@@ -238,7 +287,7 @@ Token *tokenize(char *p) {
         }
 
         // Integer literal
-        if (isdigit(*p)) {
+        if (is_number(*p)) {
             cur = new_token(TK_NUM, cur, p, 0);
             char *q = p;
             cur->val = (int) strtol(p, &p, 10);

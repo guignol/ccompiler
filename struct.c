@@ -86,11 +86,11 @@ Variable *struct_member(Type *type, const char *const name, const int len) {
     load_struct(type);
     Variable *const member = find_member(struct_info, name, len);
     if (member == NULL) {
-        error_at(name, "構造体 %.*s にはメンバー %.*s がありません。",
-                 struct_info->name_length,
-                 struct_info->type_name,
-                 len,
-                 name);
+        error_at_2_2(name, "構造体 %.*s にはメンバー %.*s がありません。",
+                     struct_info->name_length,
+                     struct_info->type_name,
+                     len,
+                     name);
         exit(1);
     }
     return member;

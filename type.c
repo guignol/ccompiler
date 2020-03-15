@@ -418,7 +418,7 @@ int count_array(int counts[]) {
     return i;
 }
 
-void print_type(FILE *__stream, Type *type) {
+void print_type(/** FILE */ void *__stream, Type *type) {
     printing = type;
 
     fprintf(__stream, "%s", base_type_name());

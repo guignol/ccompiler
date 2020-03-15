@@ -29,14 +29,14 @@ static const char *const registers_8[] = {"DIL",
                                           "R8B",
                                           "R9B"};
 
-void ___COMMENT___(char *format, ...) {
-    va_list ap;
-    va_start(ap, format);
+void ___COMMENT___(char *message) {
+    printf("  # %s\n", message);
+}
 
+void ___COMMENT___2(const char *fmt, const int arg_1, const char *arg_2) {
     printf("  # ");
-    vfprintf(stdout, format, ap);
+    printf(fmt, arg_1, arg_2);
     printf("\n");
-    va_end(ap);
 }
 
 const char *size_prefix(int size) {
@@ -182,14 +182,14 @@ void gen(Node *node) {
         case ND_NOTHING:
             return;
         case ND_FUNC: {
-            ___COMMENT___("begin function call [%.*s]", node->len, node->name);
+            ___COMMENT___2("begin function call [%.*s]", node->len, node->name);
             int count = 0;
             if (node->args) {
                 for (Node *arg = node->args; arg; arg = arg->args) {
                     gen(arg);
                     count++;
                 }
-                for (size_t i = 0; i < count; i++) {
+                for (int i = 0; i < count; i++) {
                     printf("  pop %s\n", registers_64[count - i - 1]);
                 }
             }
@@ -220,7 +220,7 @@ void gen(Node *node) {
                 printf("  call %.*s\n", node->len, node->name);
                 printf("  push rax\n");
             }
-            ___COMMENT___("end function call [%.*s]", node->len, node->name);
+            ___COMMENT___2("end function call [%.*s]", node->len, node->name);
 
             return;
         }

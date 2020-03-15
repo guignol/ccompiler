@@ -1,22 +1,27 @@
 #include "common.h"
 
-// https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
-
 // 指定されたファイルの内容を返す
+// https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
 char *read_file(char *path) {
     // ファイルを開く
-    FILE *fp = fopen(path, "r");
+    /** FILE */ void *fp = fopen(path, "r");
     if (!fp) {
-        error("cannot open %s: %s", path, strerror(errno));
+        const int err_num = *__errno_location();
+        error_2("cannot open %s: %s", path, strerror(err_num));
+        exit(err_num);
     }
 
     // ファイルの長さを調べる
     if (fseek(fp, 0, SEEK_END) == -1) {
-        error("%s: fseek: %s", path, strerror(errno));
+        const int err_num = *__errno_location();
+        error_2("%s: fseek: %s", path, strerror(err_num));
+        exit(err_num);
     }
-    size_t size = ftell(fp);
+    /** size_t */ int size = ftell(fp);
     if (fseek(fp, 0, SEEK_SET) == -1) {
-        error("%s: fseek: %s", path, strerror(errno));
+        const int err_num = *__errno_location();
+        error_2("%s: fseek: %s", path, strerror(err_num));
+        exit(err_num);
     }
 
     // ファイル内容を読み込む
@@ -50,9 +55,10 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-void error(const char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
+void error(const char *message) {
+    fprintf(stderr, "%s", message);
+}
+
+void error_2(const char *fmt, const char *arg_1, const char *arg_2) {
+    fprintf(stderr, fmt, arg_1, arg_2);
 }

@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 project(ccompiler C)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wno-builtin-declaration-mismatch")
 #set(CMAKE_C_FLAGS  "-Wall -Wextra -Wconversion")
+
 
 include_directories(.)
 
@@ -13,10 +15,10 @@ add_executable(ccompiler
         global.c
         main.c
         parse.c
+        std_alternative.h
         struct.c
         tokenize.c
-        type.c
-        )
+        type.c)
 
 # TODO IDEに認識させるため
 add_executable(test_0

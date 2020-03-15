@@ -164,7 +164,7 @@ void expect(char *op) {
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
         memcmp(token->str, op, token->len) != 0) {
-        error_at(token->str, "'%s'ではありません", op);
+        error_at_1(token->str, "'%s'ではありません", op);
         exit(1);
     }
     token = token->next;
@@ -709,6 +709,7 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     add_globals(g);
     char *loc = token->str;
     if (consume("=")) {
+        // TODO 構造体の初期化 https://ja.cppreference.com/w/c/language/struct_initialization
         if (type->ty == TYPE_ARRAY) {
             if (token->kind == TK_STR_LITERAL) {
                 if (type->point_to->ty != TYPE_CHAR) {
@@ -1177,6 +1178,7 @@ Node *local_variable_declaration(Type *base) {
     Variable *variable = register_variable(identifier->str, identifier->len, type);
     // 初期化
     if (consume("=")) {
+        // TODO 構造体の初期化 https://ja.cppreference.com/w/c/language/struct_initialization
         // RBPへのオフセットが決定しない場合がある
         const bool implicit_size = type->array_size == 0;
         Node *const variable_node = new_node_local_variable(variable->name, variable->len);
