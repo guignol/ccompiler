@@ -66,6 +66,7 @@ void load_struct(Type *const type) {
         case TYPE_VOID:
         case TYPE_CHAR:
         case TYPE_INT:
+        case TYPE_ENUM:
             break;
     }
 }

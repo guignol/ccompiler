@@ -143,13 +143,20 @@ Type *consume_base_type() {
             error_at(token->str, "構造体の名前がありません");
             exit(1);
         }
-        STRUCT_INFO *structInfo = malloc(sizeof(STRUCT_INFO));
-        structInfo->type_name = t->str;
-        structInfo->name_length = t->len;
-        structInfo->members = NULL;
-        base->struct_info = structInfo;
+        base->struct_info = malloc(sizeof(STRUCT_INFO));
+        base->struct_info->type_name = t->str;
+        base->struct_info->name_length = t->len;
+        base->struct_info->members = NULL;
         // 定義済みの型情報があれば読み込む
         load_struct(base);
+        return base;
+    } else if (consume("enum")) {
+        Type *const base = create_enum_type();
+        Token *const t = consume_ident();
+        base->enum_info = malloc(sizeof(ENUM_INFO));
+        base->enum_info->type_name = t ? t->str : NULL;
+        base->enum_info->name_length = t ? t->len : 0;
+        base->enum_info->members = create_enum_member(5);
         return base;
     } else {
         return NULL;
@@ -267,6 +274,10 @@ void assert_indexable(Node *left, Node *right) {
                     // TODO
                     error("[parse]構造体実装中\n");
                     exit(1);
+                case TYPE_ENUM:
+                    // TODO
+                    error("[parse]enum実装中\n");
+                    exit(1);
             }
             break;
         }
@@ -288,12 +299,20 @@ void assert_indexable(Node *left, Node *right) {
                     // TODO
                     error("[parse]構造体実装中\n");
                     exit(1);
+                case TYPE_ENUM:
+                    // TODO
+                    error("[parse]enum実装中\n");
+                    exit(1);
             }
             break;
         }
         case TYPE_STRUCT:
             // TODO
             error("[parse]構造体実装中\n");
+            exit(1);
+        case TYPE_ENUM:
+            // TODO
+            error("[parse]enum実装中\n");
             exit(1);
     }
 }
@@ -361,7 +380,12 @@ Node *new_node_global_variable(char *str, int len) {
     }
     Node *node = calloc(1, sizeof(Node));
     bool is_array = variable->type->ty == TYPE_ARRAY;
-    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
+    if (variable->target && variable->target->directive == _enum) {
+        node->kind = ND_NUM;
+        node->val = variable->target->value;
+    } else {
+        node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
+    }
     node->type = variable->type;
     load_struct(node->type);
     node->is_local = false;
@@ -397,6 +421,10 @@ Node *new_node_dereference(Node *operand) {
         case TYPE_STRUCT:
             // TODO
             error("[parse]構造体実装中\n");
+            exit(1);
+        case TYPE_ENUM:
+            // TODO
+            error("[parse]enum実装中\n");
             exit(1);
     }
 }
@@ -603,6 +631,48 @@ bool consume_struct_def_or_dec(Type *base) {
     return false;
 }
 
+bool consume_enum_def(Type *base) {
+    if (base->ty == TYPE_ENUM) {
+        // enumの定義
+        if (consume("{")) {
+            int count = 0;
+            do {
+                Token *const member = consume_ident();
+                if (member == NULL) {
+                    if (count == 0) {
+                        error_at(token->str, "enumのメンバーがありません");
+                        exit(1);
+                    }
+                    // 末尾に , はアリ
+                    break;
+                }
+                if (consume("=")) {
+                    count = expect_num_char();
+                }
+                // https://docs.microsoft.com/ja-jp/cpp/c-language/c-enumeration-declarations?view=vs-2019
+                //　TODO enumのメンバーはグローバル変数相当の定数で、
+                //  同じ名前はグローバルスコープで宣言できず、ローカルでは可能
+                Global *g = calloc(1, sizeof(Global));
+                g->type = shared_int_type();
+                g->label = member->str;
+                g->label_length = member->len;
+                g->target = calloc(1, sizeof(Directives));
+                g->target->directive = _enum;
+                g->target->value = count++;
+                // TODO 重複チェック
+                add_globals(g);
+                // enumのメンバーとして登録
+                push_enum_member(base->enum_info->members, g);
+
+            } while (consume(","));
+            expect("}");
+            expect(";");
+            return true;
+        }
+    }
+    return false;
+}
+
 struct Program *parse(Token *tok) {
     token = tok;
     init_globals();
@@ -621,6 +691,10 @@ struct Program *parse(Token *tok) {
         }
         // 構造体の定義または宣言
         if (consume_struct_def_or_dec(base)) {
+            continue;
+        }
+        // enumの定義
+        if (consume_enum_def(base)) {
             continue;
         }
         Type *type;

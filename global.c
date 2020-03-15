@@ -255,6 +255,8 @@ enum DIRECTIVE type_to_directive(Type *type) {
             }
             return type_to_directive(pointed);
         }
+        case TYPE_ENUM:
+            return _enum;
         default:
             error_at(loc__, "どおおおおおおおおおおおおおお\n");
             exit(1);

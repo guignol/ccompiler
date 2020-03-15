@@ -1,4 +1,6 @@
 
+#include <signal.h>
+
 int printf();
 
 void exit();
@@ -47,6 +49,35 @@ void assert(char *name, int expected, int actual) {
         printf("=> %d expected but got %d\n", expected, actual);
         exit(1);
     }
+}
+
+/////////////////////////////////////////////////
+
+enum Assignable {
+    CANNOT_ASSIGN = 0,
+    AS_SAME,
+    AS_INCOMPATIBLE,
+};
+
+enum Assignable as = CANNOT_ASSIGN;
+
+//struct S {
+//    enum Assignable as;
+//};
+
+// 11
+int enum_switch_1() {
+//    struct S ss;
+////    ss.as = CANNOT_ASSIGN;
+//    as = AS_SAME;
+//    switch (as) {
+//        case CANNOT_ASSIGN:
+//            return 10;
+//        case AS_SAME:
+    return 11;
+//        case AS_INCOMPATIBLE:
+//            return 12;
+//    }
 }
 
 /////////////////////////////////////////////////

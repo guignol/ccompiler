@@ -110,7 +110,7 @@ bool is_space(char c) {
            c == 12 || // 12    0C    FF  '\f' (form feed)
            c == 10 || // 10    0A    LF  '\n' (new line)
            c == 13 || // 13    0D    CR  '\r' (carriage ret)
-           c == 9  || // 9     09    HT  '\t' (horizontal tab)
+           c == 9 || // 9     09    HT  '\t' (horizontal tab)
            c == 11;   // 11    0B    VT  '\v' (vertical tab)
 }
 
@@ -150,6 +150,8 @@ int reserved(const char *p) {
             "void",
             "struct",
             "enum",
+            "switch",
+            "case",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
@@ -169,7 +171,7 @@ int reserved(const char *p) {
     }
 
     // Single-letter punctuator
-    if (strchr("+-*/()<>;={},&[].!\"", *p))
+    if (strchr("+-*/()<>;={},&[].!:\"", *p))
         return 1;
 
     return 0;
@@ -287,6 +289,17 @@ Token *tokenize(char *p) {
             p += len;
             continue;
         }
+
+        // TODO
+//        if (start_with(p, "const")) {
+//            char *s = p + 5;
+//            // 空白文字かどうか確認
+//            if (is_space(*s)) {
+//                s++;
+//                p = s;
+//                continue;
+//            }
+//        }
 
         if (is_alpha(*p)) {
             char *q = p++;

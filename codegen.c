@@ -572,6 +572,8 @@ void generate_global(Global *globals) {
                     printf("  .string \"%.*s\"\n", target->literal_length, target->literal);
                     break;
                 }
+                case _enum:
+                    break;
             }
         }
     }

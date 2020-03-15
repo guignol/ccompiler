@@ -132,6 +132,7 @@ typedef struct {
 /////////////////////////////////////////////////
 
 typedef struct STRUCT_INFO STRUCT_INFO;
+typedef struct ENUM_INFO ENUM_INFO;
 
 struct Type {
     enum {
@@ -141,6 +142,7 @@ struct Type {
         TYPE_POINTER, // 8byte
         TYPE_ARRAY, // array_size * sizeof(point_to) byte
         TYPE_STRUCT,
+        TYPE_ENUM,
     } ty;
     Type *point_to;
 
@@ -156,6 +158,8 @@ struct Type {
 
     // 構造体の情報
     STRUCT_INFO *struct_info;
+    // enumの情報
+    ENUM_INFO *enum_info;
 };
 
 /////////////////////////////////////////////////
@@ -173,6 +177,8 @@ Type *shared_char_type();
 Type *shared_int_type();
 
 Type *create_struct_type();
+
+Type *create_enum_type();
 
 Type *create_pointer_type(Type *point_to);
 
@@ -299,6 +305,7 @@ enum DIRECTIVE {
     _long, // (4 byte) int
     _quad, // (8 byte) pointer or size_t
     _string,
+    _enum, // TODO 何もしないけど値は保持する
 };
 
 typedef struct Directives Directives;
@@ -306,7 +313,7 @@ typedef struct Directives Directives;
 struct Directives {
     enum DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
 
-    // _zero, _byte, _long
+    // _zero, _byte, _long, _enum
     int value;
     // _quad
     char *reference;
@@ -376,7 +383,7 @@ void add_function_declaration(Type *returnType,
 struct STRUCT_INFO {
     const char *type_name;
     int name_length;
-    // 定義のみ場合は空
+    // 宣言のみの時点では空
     Variable *members;
 };
 
@@ -387,3 +394,22 @@ void push_struct(STRUCT_INFO *info);
 void load_struct(Type *type);
 
 Variable *struct_member(Type *type, const char *name, int len);
+
+/////////////////////////////////////////////////
+
+typedef struct {
+    Global **memory;
+    int count;
+    int capacity;
+} EnumMembers;
+
+struct ENUM_INFO {
+    const char *type_name;
+    int name_length;
+    // 宣言のみの時点では空（だけど定義必須にしておいてもいいかも）
+    EnumMembers *members;
+};
+
+EnumMembers *create_enum_member(int capacity);
+
+EnumMembers *push_enum_member(EnumMembers *members, Global *new);

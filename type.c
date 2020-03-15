@@ -37,6 +37,13 @@ Type *create_struct_type() {
     return struct_type;
 }
 
+Type *create_enum_type() {
+    Type *enum_type = calloc(1, sizeof(Type));
+    enum_type->ty = TYPE_ENUM;
+    enum_type->point_to = NULL;
+    return enum_type;
+}
+
 Type *create_pointer_type(Type *point_to) {
     Type *type = calloc(1, sizeof(Type));
     type->ty = TYPE_POINTER;
@@ -87,6 +94,14 @@ Type *create_array_type(Type *element_type, int array_size) {
 
 bool are_same_type(Type *left, Type *right) {
     if (left->ty != right->ty) {
+        if (left->ty == TYPE_ENUM) {
+            // サイズ固定
+            return right->ty == TYPE_INT;
+        }
+        if (right->ty == TYPE_ENUM) {
+            // サイズ固定
+            return left->ty == TYPE_INT;
+        }
         return false;
     }
     switch (left->ty) {
@@ -95,6 +110,10 @@ bool are_same_type(Type *left, Type *right) {
             return length == right->struct_info->name_length &&
                    !memcmp(left->struct_info->type_name, left->struct_info->type_name, length);
         }
+        case TYPE_ENUM:
+            // TODO
+            error("[type]enum実装中\n");
+            exit(1);
         case TYPE_VOID:
         case TYPE_CHAR:
         case TYPE_INT:
@@ -224,6 +243,10 @@ Type *find_type(const Node *node) {
                         // TODO
                         error("[type]構造体実装中\n");
                         exit(1);
+                    case TYPE_ENUM:
+                        // TODO
+                        error("[type]enum実装中\n");
+                        exit(1);
                 }
             } else {
                 switch (left->ty) {
@@ -239,6 +262,10 @@ Type *find_type(const Node *node) {
                     case TYPE_STRUCT:
                         // TODO
                         error("[type]構造体実装中\n");
+                        exit(1);
+                    case TYPE_ENUM:
+                        // TODO
+                        error("[type]enum実装中\n");
                         exit(1);
                 }
             }
@@ -271,6 +298,10 @@ Type *find_type(const Node *node) {
                     case TYPE_STRUCT:
                         // TODO
                         error("[type]構造体実装中\n");
+                        exit(1);
+                    case TYPE_ENUM:
+                        // TODO
+                        error("[type]enum実装中\n");
                         exit(1);
                 }
             }
@@ -313,6 +344,10 @@ int get_weight(Node *node) {
             return get_size(type->point_to);
         case TYPE_STRUCT:
             return get_size(type);
+        case TYPE_ENUM:
+            // TODO
+            error("[type]enum実装中\n");
+            exit(1);
     }
 }
 
@@ -355,6 +390,10 @@ int get_size(Type *type) {
             }
             return size;
         }
+        case TYPE_ENUM:
+            // TODO
+            error("[type]enum実装中\n");
+            exit(1);
     }
 }
 
@@ -374,6 +413,10 @@ int get_element_count(Type *type) {
         case TYPE_STRUCT:
             // TODO
             error("[type]構造体実装中\n");
+            exit(1);
+        case TYPE_ENUM:
+            // TODO
+            error("[type]enum実装中\n");
             exit(1);
     }
 }
@@ -395,7 +438,7 @@ char *base_type_name() {
         case TYPE_INT:
             return "int";
         default:
-            // TODO 構造体はそもそもここ通る？
+            // TODO 構造体やenumはそもそもここ通る？
             error("型が不明です\n");
             exit(1);
     }

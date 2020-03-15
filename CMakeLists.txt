@@ -11,6 +11,7 @@ include_directories(.)
 add_executable(ccompiler
         common.h
         codegen.c
+        enum.c
         function_declare.c
         global.c
         main.c
