@@ -240,7 +240,7 @@ int reduce_int(Node *node, Node **pointed) {
     }
 }
 
-DIRECTIVE type_to_directive(Type *type) {
+enum DIRECTIVE type_to_directive(Type *type) {
     switch (type->ty) {
         case TYPE_CHAR:
             return _byte;

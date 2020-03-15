@@ -18,7 +18,7 @@ else
   ./tmp
 fi
 
-if [ $? == 0 ]; then
+if [ $? ]; then
   echo "OK"
 else
   echo "exit code: $?"
@@ -31,11 +31,11 @@ exit 0;
 mkdir -p build_tmp
 FILE_NAME="codegen"
 FILE_NAME="parse"
-FILE_NAME="global"
-FILE_NAME="struct"
-FILE_NAME="main"
-FILE_NAME="type"
-FILE_NAME="tokenize"
 FILE_NAME="function_declare"
+FILE_NAME="tokenize"
+FILE_NAME="type"
+FILE_NAME="main"
+FILE_NAME="struct"
+FILE_NAME="global"
 gcc -E ${FILE_NAME}.c | cat -s > build_tmp/${FILE_NAME}_.c
 ./build/ccompiler "--file" "$(pwd)/build_tmp/${FILE_NAME}_.c" > build_tmp/${FILE_NAME}_.s

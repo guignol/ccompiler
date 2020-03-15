@@ -110,7 +110,7 @@ bool are_same_type(Type *left, Type *right) {
     }
 }
 
-Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
+enum Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
     if (left->ty == TYPE_ARRAY) {
         // 配列型の変数には代入できない。初期化のみ。 https://stackoverflow.com/a/41889579
         return CANNOT_ASSIGN;

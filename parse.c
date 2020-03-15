@@ -320,7 +320,7 @@ void assert_assignable(char *loc,
 
 //////////////////////////////////////////////////////////////////
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node(enum NodeKind kind, Node *lhs, Node *rhs) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->lhs = lhs;
@@ -446,7 +446,7 @@ Node *new_node_function_call(const Token *tok) {
     return node;
 }
 
-Node *pointer_calc(NodeKind kind, Node *left, Node *right) {
+Node *pointer_calc(enum NodeKind kind, Node *left, Node *right) {
     const int weight_l = get_weight(left);
     const int weight_r = get_weight(right);
     if (weight_l == weight_r) {
@@ -481,7 +481,7 @@ Node *new_node_assign(char *loc, Node *const lhs, Node *const rhs) {
     return new_node(ND_ASSIGN, lhs, rhs);
 }
 
-Node *new_node_array_index(Node *const left, Node *const right, const NodeKind kind) {
+Node *new_node_array_index(Node *const left, Node *const right, const enum NodeKind kind) {
     // int a[2];
     // a[1] = 3;
     // は

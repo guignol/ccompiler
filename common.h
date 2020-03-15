@@ -17,20 +17,20 @@ void warn_at(const char *loc, const char *message);
 extern bool warning;
 
 // トークンの種類
-typedef enum {
+enum TokenKind {
     TK_RESERVED,    // 記号
     TK_IDENT,       // 識別子
     TK_CHAR_LITERAL, // 文字
     TK_STR_LITERAL, // 文字列
     TK_NUM,         // 整数トークン
     TK_EOF,         // 入力の終わりを表すトークン
-} TokenKind;
+};
 
 typedef struct Token Token;
 
 // トークン型
 struct Token {
-    TokenKind kind; // トークンの型
+    enum TokenKind kind; // トークンの型
     Token *next;    // 次の入力トークン
     int val;        // kindがTK_NUMの場合、その数値
     char *str;        // トークン文字列
@@ -42,7 +42,7 @@ Token *tokenize(char *p);
 /////////////////////////////////////////////////
 
 // 抽象構文木のノードの種類
-typedef enum {
+enum NodeKind {
     ND_ADD,         // +
     ND_SUB,         // -
     ND_MUL,         // *
@@ -92,14 +92,14 @@ typedef enum {
     ND_ASSIGN,      // =
     ND_INVERT,      // !
     ND_NOTHING,      // 変数宣言（初期化なし）
-} NodeKind;
+};
 
 typedef struct Node Node;
 typedef struct Type Type;
 
 // 抽象構文木のノードの型
 struct Node {
-    NodeKind kind; // ノードの種別
+    enum NodeKind kind; // ノードの種別
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
     int val;       // kindがND_NUMの場合のみ使う
@@ -160,11 +160,11 @@ struct Type {
 
 /////////////////////////////////////////////////
 
-typedef enum {
+enum Assignable {
     CANNOT_ASSIGN = 0,
     AS_SAME,
     AS_INCOMPATIBLE,
-} Assignable;
+};
 
 Type *shared_void_type();
 
@@ -180,7 +180,7 @@ Type *create_array_type(Type *element_type, int array_size);
 
 bool are_same_type(Type *left, Type *right);
 
-Assignable are_assignable_type(Type *left, Type *right, bool r_zero);
+enum Assignable are_assignable_type(Type *left, Type *right, bool r_zero);
 
 Type *find_type(const Node *node);
 
@@ -268,7 +268,7 @@ void generate(struct Program *program);
 // .LC1:
 //  .string "%s"
 
-typedef enum {
+enum DIRECTIVE {
     /*
      * -fno-commonが無いと、gccやclangは .zero ではなく .comm を使うらしい
      *   -fno-common
@@ -299,12 +299,12 @@ typedef enum {
     _long, // (4 byte) int
     _quad, // (8 byte) pointer or size_t
     _string,
-} DIRECTIVE;
+};
 
 typedef struct Directives Directives;
 
 struct Directives {
-    DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
+    enum DIRECTIVE directive; // http://web.mit.edu/gnu/doc/html/as_7.html
 
     // _zero, _byte, _long
     int value;

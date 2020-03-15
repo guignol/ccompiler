@@ -127,7 +127,7 @@ bool is_alnum(char c) {
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, size_t len) {
+Token *new_token(enum TokenKind kind, Token *cur, char *str, size_t len) {
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
@@ -149,6 +149,7 @@ int reserved(const char *p) {
             "char",
             "void",
             "struct",
+            "enum",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
