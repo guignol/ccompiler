@@ -111,9 +111,6 @@ bool are_same_type(Type *left, Type *right) {
                    !memcmp(left->struct_info->type_name, left->struct_info->type_name, length);
         }
         case TYPE_ENUM:
-            // TODO
-            error("[type]enum実装中\n");
-            exit(1);
         case TYPE_VOID:
         case TYPE_CHAR:
         case TYPE_INT:
