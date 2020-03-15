@@ -2,29 +2,36 @@
 //#define CCOMPILER_STD_ALTERNATIVE_H
 
 /////////////////////////////////////////////////
+//#include <stddef.h>
+// TODO
+#define size_t int
+
+/////////////////////////////////////////////////
 //#include <string.h>
 
 #define NULL ((void *)0)
 
 char *strerror(int __errnum);
 
-int memcmp(const void *__s1, const void *__s2, /** size_t */ int __n);
+int memcmp(const void *__s1, const void *__s2, size_t __n);
 
-int strncmp(const char *__s1, const char *__s2, /** size_t */ int __n);
+int strncmp(const char *__s1, const char *__s2, size_t __n);
 
-char *strncpy(char *__dest, const char *__src, /** size_t */ int __n);
+char *strncpy(char *__dest, const char *__src, size_t __n);
 
-char *strndup(const char *__string, /** size_t */ int __n);
+char *strndup(const char *__string, size_t __n);
 
 char *strchr(const char *__s, int __c);
 
-/** size_t */ int strlen(const char *__s);
+size_t strlen(const char *__s);
 
 /////////////////////////////////////////////////
 //#include <stdio.h>
+// TODO
+#define FILE void
 
 //extern /** struct _IO_FILE */ void *stdin;		/* Standard input stream.  */
-extern /** struct _IO_FILE */ void *stdout;        /* Standard output stream.  */
+//extern /** struct _IO_FILE */ void *stdout;        /* Standard output stream.  */
 extern /** struct _IO_FILE */ void *stderr;        /* Standard error output stream.  */
 
 // -Wbuiltin-declaration-mismatchはCMAKEでオフにしている
@@ -35,28 +42,28 @@ int fprintf(); // int fprintf(FILE *__stream, const char *__format, ...);
 
 int sprintf(); // int sprintf (char *__s, const char *__format, ...)
 
-/** FILE */ void *fopen(const char *__filename, const char *__modes);
+FILE *fopen(const char *__filename, const char *__modes);
 
 #define SEEK_SET    0    /* Seek from beginning of file.  */
 //#define SEEK_CUR	1	/* Seek from current position.  */
 #define SEEK_END    2    /* Seek from end of file.  */
 
-int fseek(/** FILE */ void *__stream, /** long int */ int __off, int __whence);
+int fseek(FILE *__stream, /** long int */ int __off, int __whence);
 
-/* TODO */ long int ftell(/** FILE */ void *__stream);
+/** long int */ int ftell(FILE *__stream);
 
-/** size_t */ int fread(void *__ptr, /** size_t */ int __size, /** size_t */ int __n, /** FILE */ void *__stream);
+size_t fread(void *__ptr, size_t __size, size_t __n, FILE *__stream);
 
-int fclose(/** FILE */ void *__stream);
+int fclose(FILE *__stream);
 
 /////////////////////////////////////////////////
 //#include <stdlib.h>
 
-void *malloc(/** size_t */ int __size);
+void *malloc(size_t __size);
 
-void *calloc(/** size_t */ int __nmemb, /** size_t */ int __size);
+void *calloc(size_t __nmemb, size_t __size);
 
-void *realloc(void *__ptr, /** size_t */ int __size);
+void *realloc(void *__ptr, size_t __size);
 
 /** long int */ int strtol(const char *__nptr, char **__endptr, int __base);
 

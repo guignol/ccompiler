@@ -127,7 +127,7 @@ bool is_alnum(char c) {
 }
 
 // 新しいトークンを作成してcurに繋げる
-Token *new_token(TokenKind kind, Token *cur, char *str, /** size_t */ int len) {
+Token *new_token(TokenKind kind, Token *cur, char *str, size_t len) {
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
     tok->str = str;
@@ -152,7 +152,7 @@ int reserved(const char *p) {
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
-        /** size_t */ int len = strlen(keyword);
+        size_t len = strlen(keyword);
         char next = p[len];
         if (strncmp(p, keyword, len) == 0 && !is_alnum(next))
             return len;
@@ -162,7 +162,7 @@ int reserved(const char *p) {
     static char *ops[] = {"==", "!=", "<=", ">="};
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
-        /** size_t */ int len = strlen(operator);
+        size_t len = strlen(operator);
         if (strncmp(p, operator, len) == 0)
             return len;
     }

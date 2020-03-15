@@ -34,7 +34,7 @@ struct Token {
     Token *next;    // 次の入力トークン
     int val;        // kindがTK_NUMの場合、その数値
     char *str;        // トークン文字列
-    /** size_t */ int len;        // トークンの長さ
+    size_t len;        // トークンの長さ
 };
 
 Token *tokenize(char *p);
@@ -151,7 +151,7 @@ struct Type {
      * Cの[]は、ポインタ経由で配列の要素にアクセスするための簡便な記法にすぎないのです。
      * https://www.sigbus.info/compilerbook#%E3%82%B9%E3%83%86%E3%83%83%E3%83%9721-%E9%85%8D%E5%88%97%E3%82%92%E5%AE%9F%E8%A3%85%E3%81%99%E3%82%8B
      */
-    /** size_t */ int array_size;
+    size_t array_size;
 
     // 構造体の情報
     STRUCT_INFO *struct_info;
@@ -189,7 +189,7 @@ int get_size(Type *type);
 
 int get_element_count(Type *type);
 
-void print_type(/** FILE */ void *__stream, Type *type);
+void print_type(FILE *__stream, Type *type);
 
 void warn_incompatible_type(Type *left, Type *right);
 

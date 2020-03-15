@@ -4,7 +4,7 @@
 // https://www.sigbus.info/compilerbook#ステップ26-入力をファイルから読む
 char *read_file(char *path) {
     // ファイルを開く
-    /** FILE */ void *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "r");
     if (!fp) {
         const int err_num = *__errno_location();
         error_2("cannot open %s: %s", path, strerror(err_num));
@@ -17,7 +17,7 @@ char *read_file(char *path) {
         error_2("%s: fseek: %s", path, strerror(err_num));
         exit(err_num);
     }
-    /** size_t */ int size = ftell(fp);
+    size_t size = ftell(fp);
     if (fseek(fp, 0, SEEK_SET) == -1) {
         const int err_num = *__errno_location();
         error_2("%s: fseek: %s", path, strerror(err_num));
