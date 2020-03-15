@@ -90,6 +90,7 @@ typedef enum {
      */
     ND_DEREF_ARRAY_POINTER, // *a
     ND_ASSIGN,      // =
+    ND_INVERT,      // !
     ND_NOTHING,      // 変数宣言（初期化なし）
 } NodeKind;
 

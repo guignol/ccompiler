@@ -359,6 +359,30 @@ void gen(Node *node) {
             // 変数のアドレスをスタックに積むだけ
             gen_address(node->lhs);
             return;
+        case ND_INVERT: {
+            gen(node->lhs);
+            // TODO godbolt.orgは
+            //  intやsize_tの反転だと
+            //   test eax, eax
+            //  boolの反転だと
+            //   test eax, eax
+            //   に加えて何やら複雑なことをしてる
+            //   （boolが1バイトだから？）
+            //  testは論理積が0ならzeroフラグを立てる
+            /*
+             * TESTはANDと同じ、ただし第一オペランドが変化しない
+             * CMPはSUBと同じ、ただし第一オペランドが変化しない
+             */
+            ___COMMENT___("!");
+            // 0と比較して
+            printf("  cmp rax, 0\n");
+//            printf("  test rax, rax\n");
+            // 等しければ1をセット
+            printf("  sete al\n");
+            printf("  movzb rax, al\n");
+            printf("  push rax\n");
+            return;
+        }
         case ND_DEREF:
             gen(node->lhs); // ポインタ変数の値（アドレス）をスタックに積む
             load(node); // それをロードする
@@ -398,26 +422,26 @@ void gen(Node *node) {
             printf("  idiv rdi\n");
             break;
         case ND_EQL:
-            printf("  cmp rax, rdi");
             ___COMMENT___("==");
+            printf("  cmp rax, rdi\n");
             printf("  sete al\n");
             printf("  movzb rax, al\n");
             break;
         case ND_NOT:
-            printf("  cmp rax, rdi");
             ___COMMENT___("!=");
+            printf("  cmp rax, rdi\n");
             printf("  setne al\n");
             printf("  movzb rax, al\n");
             break;
         case ND_LESS:
-            printf("  cmp rax, rdi");
             ___COMMENT___("<");
+            printf("  cmp rax, rdi\n");
             printf("  setl al\n");
             printf("  movzb rax, al\n");
             break;
         case ND_LESS_EQL:
-            printf("  cmp rax, rdi");
             ___COMMENT___("<=");
+            printf("  cmp rax, rdi\n");
             printf("  setle al\n");
             printf("  movzb rax, al\n");
             break;
@@ -433,6 +457,7 @@ void gen(Node *node) {
         case ND_VARIABLE:
         case ND_VARIABLE_ARRAY:
         case ND_ADDRESS:
+        case ND_INVERT:
         case ND_DEREF:
         case ND_DEREF_ARRAY_POINTER:
         case ND_ASSIGN:

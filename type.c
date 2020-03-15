@@ -253,6 +253,8 @@ Type *find_type(const Node *node) {
                 Type *operand_type = find_type(node->lhs);
                 return create_pointer_type(operand_type);
             }
+            case ND_INVERT:
+                return shared_int_type();
             case ND_DEREF:
             case ND_DEREF_ARRAY_POINTER: {
                 // オペランドがポインタ型または配列型であることは検証済みの前提

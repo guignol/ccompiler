@@ -60,7 +60,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = "sizeof" unary
-//				| ("+" | "-" | "*"* | "&" )? primary
+//				| ("+" | "-" | "*"* | "&" | "!")? primary
 // primary    = literal_str
 //				| ident "(" args? ")"
 // 				| "(" expr ")"
@@ -1400,6 +1400,9 @@ Node *unary() {
     } else if (consume("&")) {
         Node *operand = primary();
         return new_node(ND_ADDRESS, operand, NULL);
+    } else if (consume("!")) {
+        Node *operand = primary();
+        return new_node(ND_INVERT, operand, NULL);
     } else {
         return primary();
     }

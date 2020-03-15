@@ -51,6 +51,28 @@ void assert(char *name, int expected, int actual) {
 
 /////////////////////////////////////////////////
 
+// 11
+int bool_invert_1() {
+    int a = 0;
+    int b = 123;
+    int *c = &a;
+    if (!a) {
+        if (b) {
+            if (!c) {
+                return 10;
+            } else {
+                return 11;
+            }
+        } else {
+            return 0;
+        }
+    } else {
+        return 5;
+    }
+}
+
+/////////////////////////////////////////////////
+
 struct Box {
     int a;
     int b;
@@ -1432,6 +1454,8 @@ int assert_others(void) {
 /////////////////////////////////////////////////
 
 int main() {
+
+    assert("bool_invert_1", 11, bool_invert_1());
 
     assert("use_struct_1", 13, use_struct_1());
     assert("use_struct_2", 7, use_struct_2());
