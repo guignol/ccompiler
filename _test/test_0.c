@@ -44,7 +44,7 @@ void assert(char *, int expected, int);
 
 void assert(char *name, int expected, int actual) {
     count = count + 1;
-    printf("%d: %s\n", count, name);
+    printf("%d: \"%s\"\n", count, name);
     if (expected != actual) {
         printf("=> %d expected but got %d\n", expected, actual);
         exit(1);
@@ -1246,7 +1246,7 @@ int function_9() {
 
 // 13
 int function_10() {
-    printf("moji: %i", 13);
+    printf("moji: %i\n", 13);
     return 13;
 }
 
@@ -1254,7 +1254,7 @@ int function_10() {
 int function_11() {
     int a;
     a = 13;
-    printf("moji: %i", 13);
+    printf("moji: %i\n", 13);
     return a;
 }
 

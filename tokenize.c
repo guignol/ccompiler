@@ -277,7 +277,14 @@ Token *tokenize(char *p) {
             p++;
             char *start = p;
             while (!start_with(p, DOUBLE_QUOTE)) {
-                p++;
+                if (*p == '\\') {
+                    // TODO エスケープできない文字
+                    p++;
+                    p++;
+                } else {
+                    p++;
+                }
+
             }
             cur = new_token(TK_STR_LITERAL, cur, start, p - start);
             p++;
@@ -292,15 +299,15 @@ Token *tokenize(char *p) {
         }
 
         // TODO
-//        if (start_with(p, "const")) {
-//            char *s = p + 5;
-//            // 空白文字かどうか確認
-//            if (is_space(*s)) {
-//                s++;
-//                p = s;
-//                continue;
-//            }
-//        }
+        if (start_with(p, "const")) {
+            char *s = p + 5;
+            // 空白文字かどうか確認
+            if (is_space(*s)) {
+                s++;
+                p = s;
+                continue;
+            }
+        }
 
         if (is_alpha(*p)) {
             char *q = p++;
