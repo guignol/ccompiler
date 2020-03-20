@@ -164,12 +164,11 @@ int reserved(const char *p) {
     }
 
     // Multi-letter punctuator
-    static char *ops[] = {"==", "!=", "<=", ">="};
+    static char *ops[] = {"==", "!=", "<=", ">=", "||"};
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
-        size_t len = strlen(operator);
-        if (strncmp(p, operator, len) == 0)
-            return len;
+        if (strncmp(p, operator, 2) == 0)
+            return 2;
     }
 
     // Single-letter punctuator

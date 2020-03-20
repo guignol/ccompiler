@@ -62,7 +62,8 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 //				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
 //				| "switch" "(" expr ")" "{" ("case" ident ":" stmt)* "}" // TODO {}は必須ではないけど
 // expr       = assign
-// assign     = equality ("=" assign)?
+// assign     = logical ("=" assign)?
+// logical    = equality ("||" equality | "&&" equality)*
 // equality   = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
@@ -94,6 +95,8 @@ Node *stmt(void);
 Node *expr(void);
 
 Node *assign(void);
+
+Node *logical(void);
 
 Node *equality(void);
 
@@ -386,12 +389,12 @@ Node *new_node_global_variable(char *str, int len) {
         error_at(str, "変数の宣言がありません。");
         exit(1);
     }
+    if (variable->target && variable->target->directive == _enum) {
+        return new_node_num(variable->target->value);
+    }
     Node *node = calloc(1, sizeof(Node));
     bool is_array = variable->type->ty == TYPE_ARRAY;
     node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
-    if (variable->target && variable->target->directive == _enum) {
-        node->val = variable->target->value;
-    }
     node->type = variable->type;
     load_struct(node->type);
     node->is_local = false;
@@ -639,43 +642,41 @@ bool consume_struct_def_or_dec(Type *base) {
 }
 
 bool consume_enum_def(Type *base) {
-    if (base->ty == TYPE_ENUM) {
-        // enumの定義
-        if (consume("{")) {
-            int count = 0;
-            do {
-                Token *const member = consume_ident();
-                if (member == NULL) {
-                    if (count == 0) {
-                        error_at(token->str, "enumのメンバーがありません");
-                        exit(1);
-                    }
-                    // 末尾に , はアリ
-                    break;
+    // enumの定義
+    if (base->ty == TYPE_ENUM && consume("{")) {
+        int count = 0;
+        do {
+            Token *const member = consume_ident();
+            if (member == NULL) {
+                if (count == 0) {
+                    error_at(token->str, "enumのメンバーがありません");
+                    exit(1);
                 }
-                if (consume("=")) {
-                    count = expect_num_char();
-                }
-                // https://docs.microsoft.com/ja-jp/cpp/c-language/c-enumeration-declarations?view=vs-2019
-                //　TODO enumのメンバーはグローバル変数相当の定数で、
-                //  同じ名前はグローバルスコープで宣言できず、ローカルでは可能
-                Global *g = calloc(1, sizeof(Global));
-                g->type = shared_int_type();
-                g->label = member->str;
-                g->label_length = member->len;
-                g->target = calloc(1, sizeof(Directives));
-                g->target->directive = _enum;
-                g->target->value = count++;
-                // TODO 重複チェック
-                add_globals(g);
-                // enumのメンバーとして登録
-                push_enum_member(base->enum_info->members, g);
+                // 末尾に , はアリ
+                break;
+            }
+            if (consume("=")) {
+                count = expect_num_char();
+            }
+            // https://docs.microsoft.com/ja-jp/cpp/c-language/c-enumeration-declarations?view=vs-2019
+            //　TODO enumのメンバーはグローバル変数相当の定数で、
+            //  同じ名前はグローバルスコープで宣言できず、ローカルでは可能
+            Global *g = calloc(1, sizeof(Global));
+            g->type = shared_int_type();
+            g->label = member->str;
+            g->label_length = member->len;
+            g->target = calloc(1, sizeof(Directives));
+            g->target->directive = _enum;
+            g->target->value = count++;
+            // TODO 重複チェック
+            add_globals(g);
+            // enumのメンバーとして登録
+            push_enum_member(base->enum_info->members, g);
 
-            } while (consume(","));
-            expect("}");
-            expect(";");
-            return true;
-        }
+        } while (consume(","));
+        expect("}");
+        expect(";");
+        return true;
     }
     return false;
 }
@@ -1429,7 +1430,7 @@ Node *stmt(void) {
         node->contextual_suffix = context++;
         node->kind = ND_SWITCH;
         expect("(");
-        node->condition = expr();
+        node->lhs = expr();
         expect(")");
         expect("{");
         struct Case head;
@@ -1481,8 +1482,8 @@ Node *expr() {
     return assign();
 }
 
-Node *assign() {
-    Node *node = equality();
+Node *assign(void) {
+    Node *node = logical();
     if (consume("=")) {
         char *loc = token->str;
         node = new_node_assign(loc, node, assign());
@@ -1490,7 +1491,21 @@ Node *assign() {
     return node;
 }
 
-Node *equality() {
+Node *logical(void) {
+    Node *node = equality();
+    for (;;) {
+        if (consume("||")) {
+            node = new_node(ND_LOGICAL_OR, node, equality());
+            node->contextual_suffix = context++;
+        }
+//        else if (consume("&&"))
+//            node = new_node(ND_NOT, ND_LOGICAL_AND, equality());
+        else
+            return node;
+    }
+}
+
+Node *equality(void) {
     Node *node = relational();
 
     for (;;) {
@@ -1611,7 +1626,7 @@ Node *primary() {
             // 関数呼び出し
             return new_node_function_call(tok);
         } else {
-            // 変数
+            // 変数アクセス
             Node *variable = new_node_local_variable(tok->str, tok->len);
             if (!variable) {
                 variable = new_node_global_variable(tok->str, tok->len);

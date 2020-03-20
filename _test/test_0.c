@@ -69,15 +69,15 @@ struct S {
 int enum_switch_1() {
 //    break;
     as = AS_SAME;
-    switch (as) {
-        case 45:
-        case CANNOT_ASSIGN:
-            return 10;
-        case 1:
+//    switch (as) {
+////        case 45:
+//        case CANNOT_ASSIGN:
+//            return 10;
+//        case 1:
             return as + 8 + AS_INCOMPATIBLE;
-        case AS_INCOMPATIBLE:
-            return 12;
-    }
+//        case AS_INCOMPATIBLE:
+//            return 12;
+//    }
 }
 
 // 9
@@ -769,17 +769,26 @@ int global_variable_22() {
     return global_array_init_2[3] - global_array_init_2[0];
 }
 
-// TODO
-//int equality_1 = 3 == 2;
-//
-//// 9
-//int global_variable_23() {
-//    if (equality_1) {
-//        return 8;
-//    } else {
-//        return 9;
-//    }
-//}
+int equality_1 = 3 == 2;
+int equality_2 = 3 != 2;
+
+// 9
+int global_variable_23() {
+    if (equality_1) {
+        return 8;
+    } else {
+        return 9;
+    }
+}
+
+// 8
+int global_variable_24() {
+    if (equality_1 || equality_2) {
+        return 8;
+    } else {
+        return 9;
+    }
+}
 
 /////////////////////////////////////////////////
 
@@ -1597,6 +1606,8 @@ int main() {
     assert("global_variable_20", 10, global_variable_20());
     assert("global_variable_21", 16, global_variable_21());
     assert("global_variable_22", 39, global_variable_22());
+    assert("global_variable_23", 9, global_variable_23());
+    assert("global_variable_24", 8, global_variable_24());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

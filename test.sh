@@ -18,7 +18,7 @@ else
   ./tmp
 fi
 
-if [ $? ]; then
+if [ $? == 0 ]; then
   echo "OK"
 else
   echo "exit code: $?"

@@ -232,15 +232,16 @@ void gen(Node *node) {
             return;
         }
         case ND_BREAK: {
-            printf("  jmp  .Lbreak%d\n", node->contextual_suffix);
+            const int context = node->contextual_suffix;
+            printf("  jmp  .Lbreak%d\n", context);
             return;
         }
         case ND_SWITCH: {
             ___COMMENT___("switch begin");
             // 条件式の右辺を評価してスタックに積む
-            gen(node->condition);
+            gen(node->lhs);
             int count = 0;
-            int context = node->contextual_suffix;
+            const int context = node->contextual_suffix;
             // 条件式の右辺をスタックから降ろす
             printf("  pop rax\n");
             bool has_default = false;
@@ -256,6 +257,9 @@ void gen(Node *node) {
             if (has_default) {
                 // 全部当てはまらなかったらdefaultラベルへ
                 printf("  je .Lcase%d_default\n", context);
+            } else {
+                // defaultラベルも無ければ終了
+                printf("  jmp  .Lbreak%d\n",context);
             }
             count = 0;
             for (struct Case *c = node->cases; c; c = c->next) {
@@ -339,10 +343,35 @@ void gen(Node *node) {
                 gen(node->condition);
                 printf("  pop rax\n");
                 printf("  cmp rax, 0\n");
-                printf("  je  .Lend%d\n", context);
+                printf("  je .Lend%d\n", context);
                 gen(node->lhs);
                 printf(".Lend%d:\n", context);
             }
+            return;
+        }
+        case ND_LOGICAL_OR: {
+            ___COMMENT___("|| begin");
+            // 短絡評価
+            int context = node->contextual_suffix;
+            // 左辺
+            gen(node->lhs);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  jne .Ltrue%d\n", context);
+            // 右辺
+            gen(node->rhs);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  jne .Ltrue%d\n", context);
+            // どちらもfalse
+            printf("  mov rax, 0\n");
+            printf("  jmp .Lend%d\n", context);
+            // true
+            printf(".Ltrue%d:\n", context);
+            printf("  mov rax, 1\n");
+            printf(".Lend%d:\n", context);
+            printf("  push rax\n");
+            ___COMMENT___("|| end");
             return;
         }
         case ND_EXPR_STMT:
@@ -486,6 +515,7 @@ void gen(Node *node) {
             printf("  setle al\n");
             printf("  movzb rax, al\n");
             break;
+        case ND_LOGICAL_OR:
         case ND_RETURN:
         case ND_EXPR_STMT:
         case ND_IF:
@@ -575,6 +605,9 @@ void generate_function(Function *func) {
 
 void generate_global(Global *globals) {
     for (Global *global = globals; global; global = global->next) {
+        if (global->target->directive == _enum) {
+            continue;
+        }
         // ラベル
         printf("%.*s:\n", global->label_length, global->label);
         for (Directives *target = global->target; target; target = target->next) {

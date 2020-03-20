@@ -226,6 +226,18 @@ int reduce_int(Node *node, Node **pointed) {
         }
         case ND_LESS_EQL:
             return reduce_compare(node, FUNC_LESS_EQL);
+        case ND_EQL: {
+            // TODO ポインタのことは未確認
+            int left = reduce_int(node->lhs, NULL);
+            int right = reduce_int(node->rhs, NULL);
+            return left == right ? 1 : 0;
+        }
+        case ND_NOT: {
+            // TODO ポインタのことは未確認
+            int left = reduce_int(node->lhs, NULL);
+            int right = reduce_int(node->rhs, NULL);
+            return left != right ? 1 : 0;
+        }
         case ND_ADDRESS: {
             Node *const referred = node->lhs;
             switch (referred->kind) {
@@ -254,6 +266,7 @@ enum DIRECTIVE type_to_directive(Type *type) {
         case TYPE_CHAR:
             return _byte;
         case TYPE_INT:
+        case TYPE_ENUM:
             return _long;
         case TYPE_POINTER:
             return _quad;
@@ -264,8 +277,6 @@ enum DIRECTIVE type_to_directive(Type *type) {
             }
             return type_to_directive(pointed);
         }
-        case TYPE_ENUM:
-            return _enum;
         default:
             error_at(loc__, "どおおおおおおおおおおおおおお\n");
             exit(1);
@@ -277,10 +288,6 @@ Directives *global_initializer(char *const loc, Type *type, Node *const node) {
     Directives *const target = calloc(1, sizeof(Directives));
     target->directive = type_to_directive(type);
     switch (node->kind) {
-        case ND_EQL:
-        case ND_NOT:
-            error_at(loc, "TODO: グローバル変数の初期化は未実装");
-            exit(1);
         case ND_STR_LITERAL:
             target->reference = node->label;
             target->reference_length = node->label_length;
@@ -314,7 +321,9 @@ Directives *global_initializer(char *const loc, Type *type, Node *const node) {
         case ND_MUL:
         case ND_DIV:
         case ND_LESS:
-        case ND_LESS_EQL: {
+        case ND_LESS_EQL:
+        case ND_EQL:
+        case ND_NOT: {
             int sum = reduce_int(node, NULL);
             target->value = sum;
             return target;
