@@ -109,7 +109,7 @@ typedef struct Type Type;
 struct Case;
 struct Case {
     bool default_;
-    bool value;
+    int value;
     Node *statement;
     struct Case *next;
 };

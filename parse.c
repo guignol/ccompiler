@@ -203,6 +203,16 @@ int expect_num_char() {
     return val;
 }
 
+bool check(char *op) {
+    Token *const consumed = consume(op);
+    if (consumed) {
+        token = consumed;
+        return true;
+    }
+    return false;
+}
+
+
 bool at_eof() {
     return token->kind == TK_EOF;
 }
@@ -1310,18 +1320,32 @@ Token *consume_case_or_default() {
     return NULL;
 }
 
+Node *consume_case_statement() {
+    Node head;
+    head.statement = NULL;
+    Node *tail = &head;
+    // caseやdefaultが続く場合がある
+    Token *no_statement = consume_case_or_default();
+    while (no_statement == NULL) {
+        // 末尾チェック
+        if (check("}")) {
+            break;
+        }
+        tail = tail->statement = stmt();
+        no_statement = consume_case_or_default();
+    }
+    if (no_statement) {
+        token = no_statement;
+    }
+    return head.statement;
+}
+
 struct Case *consume_default() {
     if (consume("default")) {
         struct Case *const case_ = malloc(sizeof(struct Case *));
         case_->default_ = true;
         expect(":");
-        // caseやdefaultが続く場合がある
-        Token *const no_statement = consume_case_or_default();
-        if (no_statement) {
-            token = no_statement;
-        } else {
-            case_->statement = stmt();
-        }
+        case_->statement = consume_case_statement();
         return case_;
     }
     return NULL;
@@ -1345,16 +1369,8 @@ struct Case *consume_case() {
             case_->value = expect_num_char();
         }
         expect(":");
-        // caseやdefaultが続く場合がある
-        Token *const no_statement = consume_case_or_default();
-        if (no_statement) {
-            token = no_statement;
-        } else {
-            case_->statement = stmt();
-        }
+        case_->statement = consume_case_statement();
         return case_;
-        // TODO target == case 1
-        // TODO ラベルと処理を作ってから条件分岐
     }
     return NULL;
 }

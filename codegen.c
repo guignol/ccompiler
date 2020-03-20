@@ -270,8 +270,8 @@ void gen(Node *node) {
                     printf(".Lcase%d_%d:\n", context, count++);
                 }
                 // caseまたはdefaultが続いていて、statementが無い場合もある
-                if (c->statement) {
-                    gen(c->statement);
+                for (Node *s = c->statement; s; s = s->statement) {
+                    gen(s);
                 }
             }
             // end:

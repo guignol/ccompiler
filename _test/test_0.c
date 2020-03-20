@@ -69,15 +69,18 @@ struct S {
 int enum_switch_1() {
 //    break;
     as = AS_SAME;
-//    switch (as) {
-////        case 45:
-//        case CANNOT_ASSIGN:
-//            return 10;
-//        case 1:
+    switch (as) {
+        case 45:
+        case CANNOT_ASSIGN:
+            printf("first\n");
+            return 10;
+        case 1:
+            printf("second\n");
             return as + 8 + AS_INCOMPATIBLE;
-//        case AS_INCOMPATIBLE:
-//            return 12;
-//    }
+        case AS_INCOMPATIBLE:
+            printf("third\n");
+            return 12;
+    }
 }
 
 // 9
