@@ -22,6 +22,7 @@ struct Scope {
 
 // 現在のスコープ
 Scope *current_scope;
+Token *function_name;
 
 /////////////////////////
 
@@ -86,7 +87,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 
 void global_variable_declaration(Token *variable_name, Type *type);
 
-Function *function(Token *function_name, Type *return_type);
+Function *function(Type *return_type);
 
 Node *stmt(void);
 
@@ -714,7 +715,8 @@ struct Program *parse(Token *tok) {
         load_struct(type);
         if (consume("(")) {
             // 関数(宣言の場合はNULLが返ってくる)
-            Function *func = function(identifier, type);
+            function_name = identifier;
+            Function *func = function(type);
             if (func) {
                 tail_f = tail_f->next = func;
             }
@@ -914,7 +916,7 @@ NodeArray *function_body() {
     return nodeArray;
 }
 
-Function *function(Token *function_name, Type *return_type) {
+Function *function(Type *return_type) {
     // 他の関数との重複チェックは、宣言か定義かを確認する必要があるためもう少し先で
     // 他のグローバル変数や関数との名前重複チェック
     if (find_global_variable(function_name->str, function_name->len)) {
@@ -955,6 +957,7 @@ Function *function(Token *function_name, Type *return_type) {
     function->stack_size = stack_size;
 
     current_scope = NULL;
+    function_name = NULL;
     stack_size = 0;
 
     return function;
@@ -1393,11 +1396,14 @@ Node *stmt(void) {
             expect(":");
         }
         expect("}");
-        
+        return node;
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+        // returnする関数名
+        node->name = function_name->str;
+        node->len = function_name->len;
         expect(";");
         return node;
     } else if (consume("break")) {

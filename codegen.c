@@ -174,8 +174,6 @@ void gen_address(Node *node) {
     }
 }
 
-char *function_name; // TODO これもparserへ動かす
-
 void gen(Node *node) {
     switch (node->kind) {
         case ND_NOTHING:
@@ -315,7 +313,7 @@ void gen(Node *node) {
         case ND_RETURN:
             gen(node->lhs);
             printf("  pop rax\n");
-            printf("  jmp .Lreturn.%s\n", function_name);
+            printf("  jmp .Lreturn.%.*s\n", node->len, node->name);
             return;
         case ND_NUM:
             printf("  push %d\n", node->val);
@@ -507,9 +505,8 @@ void prepare_stack(int stack_size, Variable *const parameters) {
 }
 
 void generate_function(Function *func) {
-    function_name = func->name;
-    printf(".global %s\n", function_name);
-    printf("%s:\n", function_name);
+    printf(".global %s\n", func->name);
+    printf("%s:\n", func->name);
 
     // プロローグ
     printf("  push rbp\n");
@@ -527,12 +524,10 @@ void generate_function(Function *func) {
 
     // エピローグ
     // 最後の式の結果がRAXに残っているのでそれが返り値になる
-    printf(".Lreturn.%s:\n", function_name);
+    printf(".Lreturn.%s:\n", func->name);
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
-
-    function_name = NULL;
 
     if (func->next) generate_function(func->next);
 }
