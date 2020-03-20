@@ -103,6 +103,14 @@ enum NodeKind {
 typedef struct Node Node;
 typedef struct Type Type;
 
+struct Case;
+struct Case {
+    bool default_;
+    bool value;
+    Node *statement;
+    struct Case *next;
+};
+
 // 抽象構文木のノードの型
 struct Node {
     int contextual_suffix; // codegenで使うラベルのsuffix
@@ -128,6 +136,9 @@ struct Node {
     Node *execution; // for (;;) statement
     Node *statement; // { ...statement }
     Node *args;         // function( ...args )
+
+    // switch
+    struct Case *cases;
 };
 
 typedef struct {

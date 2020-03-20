@@ -69,14 +69,15 @@ struct S {
 int enum_switch_1() {
 //    break;
     as = AS_SAME;
-//    switch (as) {
-//        case CANNOT_ASSIGN:
-//            return 10;
-//        case AS_SAME:
-    return as + 8 + AS_INCOMPATIBLE;
-//        case AS_INCOMPATIBLE:
-//            return 12;
-//    }
+    switch (as) {
+        case 45:
+        case CANNOT_ASSIGN:
+            return 10;
+        case 1:
+            return as + 8 + AS_INCOMPATIBLE;
+        case AS_INCOMPATIBLE:
+            return 12;
+    }
 }
 
 // 9
@@ -86,6 +87,20 @@ int enum_switch_2() {
     ss.as = as;
     as = AS_SAME;
     return 4 * ss.as + as;
+}
+
+// 10
+int enum_switch_3() {
+    as = 3;
+    switch (as) {
+        default:
+        case CANNOT_ASSIGN:
+            return 10;
+        case AS_SAME:
+            return as + 8 + AS_INCOMPATIBLE;
+        case AS_INCOMPATIBLE:
+            return 12;
+    }
 }
 
 /////////////////////////////////////////////////
@@ -1512,6 +1527,7 @@ int assert_others(void) {
 int main() {
     assert("enum_switch_1", 11, enum_switch_1());
     assert("enum_switch_2", 9, enum_switch_2());
+    assert("enum_switch_3", 10, enum_switch_3());
 
     assert("bool_invert_1", 11, bool_invert_1());
 

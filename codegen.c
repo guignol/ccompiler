@@ -235,6 +235,46 @@ void gen(Node *node) {
             printf("  jmp  .Lbreak%d\n", node->contextual_suffix);
             return;
         }
+        case ND_SWITCH: {
+            ___COMMENT___("switch begin");
+            // 条件式の右辺を評価してスタックに積む
+            gen(node->condition);
+            int count = 0;
+            int context = node->contextual_suffix;
+            // 条件式の右辺をスタックから降ろす
+            printf("  pop rax\n");
+            bool has_default = false;
+            for (struct Case *c = node->cases; c; c = c->next) {
+                if (c->default_) {
+                    count++;
+                    has_default = true;
+                } else {
+                    printf("  cmp rax, %d\n", c->value);
+                    printf("  je .Lcase%d_%d\n", context, count++);
+                }
+            }
+            if (has_default) {
+                // 全部当てはまらなかったらdefaultラベルへ
+                printf("  je .Lcase%d_default\n", context);
+            }
+            count = 0;
+            for (struct Case *c = node->cases; c; c = c->next) {
+                if (c->default_) {
+                    count++;
+                    printf(".Lcase%d_default:\n", context);
+                } else {
+                    printf(".Lcase%d_%d:\n", context, count++);
+                }
+                // caseまたはdefaultが続いていて、statementが無い場合もある
+                if (c->statement) {
+                    gen(c->statement);
+                }
+            }
+            // end:
+            printf(".Lbreak%d:\n", context);
+            ___COMMENT___("switch end");
+            return;
+        }
         case ND_FOR: {
             ___COMMENT___("for begin");
             int context = node->contextual_suffix;
@@ -451,6 +491,7 @@ void gen(Node *node) {
         case ND_IF:
         case ND_WHILE:
         case ND_FOR:
+        case ND_SWITCH:
         case ND_BREAK:
         case ND_BLOCK:
         case ND_FUNC:

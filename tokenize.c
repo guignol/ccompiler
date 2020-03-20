@@ -153,6 +153,7 @@ int reserved(const char *p) {
             "switch",
             "case",
             "break",
+            "default",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];

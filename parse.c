@@ -1294,6 +1294,67 @@ Node *local_variable_declaration(Type *base) {
     }
 }
 
+Token *consume_case_or_default() {
+    Token *const c = consume("case");
+    if (c) {
+        return c;
+    }
+    Token *const d = consume("default");
+    if (d) {
+        return d;
+    }
+    return NULL;
+}
+
+struct Case *consume_default() {
+    if (consume("default")) {
+        struct Case *const case_ = malloc(sizeof(struct Case *));
+        case_->default_ = true;
+        expect(":");
+        // caseやdefaultが続く場合がある
+        Token *const no_statement = consume_case_or_default();
+        if (no_statement) {
+            token = no_statement;
+        } else {
+            case_->statement = stmt();
+        }
+        return case_;
+    }
+    return NULL;
+}
+
+struct Case *consume_case() {
+    if (consume("case")) {
+        Token *const var = consume_ident();
+        struct Case *const case_ = malloc(sizeof(struct Case *));
+        case_->default_ = false;
+        if (var) {
+            Global *const member = find_enum_member(var->str, var->len);
+            // TODO 定数なら使えるけど、他に定数はまだ無いはず？
+            // TODO 1 + 2 とかも定数扱いになるっぽい？
+            if (member == NULL) {
+                error_at(var->str, "定数ではありません");
+                exit(1);
+            }
+            case_->value = member->target->value;
+        } else {
+            case_->value = expect_num_char();
+        }
+        expect(":");
+        // caseやdefaultが続く場合がある
+        Token *const no_statement = consume_case_or_default();
+        if (no_statement) {
+            token = no_statement;
+        } else {
+            case_->statement = stmt();
+        }
+        return case_;
+        // TODO target == case 1
+        // TODO ラベルと処理を作ってから条件分岐
+    }
+    return NULL;
+}
+
 Node *stmt(void) {
     Type *base = consume_base_type();
     if (base) {
@@ -1364,37 +1425,30 @@ Node *stmt(void) {
         current_scope = disposable.parent;
         return node;
     } else if (consume("switch")) {
-        // TODO
         Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = context++;
         node->kind = ND_SWITCH;
         expect("(");
-        // TODO 評価は一度だけ
-        node->lhs = expr();
+        node->condition = expr();
         expect(")");
         expect("{");
-        while (consume("case")) {
-            // TODO
-            Token *const var = consume_ident();
-            if (var) {
-                Global *const member = find_enum_member(var->str, var->len);
-                // TODO 定数なら使えるけど、他に定数はまだ無いはず？
-                if (member == NULL) {
-                    error_at(var->str, "定数ではありません");
-                    exit(1);
-                }
-                const int value = member->target->value;
-            } else {
-                expect_num_char();
+        struct Case head;
+        head.next = NULL;
+        struct Case *tail = &head;
+        while (true) {
+            struct Case *const c = consume_case();
+            if (c) {
+                tail = tail->next = c;
+                continue;
             }
-            expect(":");
-            // TODO target == case 1
-            // TODO 値を先に取り出して、ラベルを作る
-            //  いや、ラベルと処理を作ってから条件分岐でもいいか
-            //  左辺に値、右辺に処理
+            struct Case *const d = consume_default();
+            if (d) {
+                tail = tail->next = d;
+                continue;
+            }
+            break;
         }
-        if (consume("default")) {
-            expect(":");
-        }
+        node->cases = head.next;
         expect("}");
         return node;
     } else if (consume("return")) {

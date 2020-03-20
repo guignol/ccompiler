@@ -76,7 +76,7 @@ Global *find_global_variable(char *name, int len) {
 
 Global *find_enum_member(char *name, int len) {
     Global *const enum_m = find_global_variable(name, len);
-    if (enum_m && enum_m->type->ty == TYPE_ENUM) {
+    if (enum_m && enum_m->target->directive == _enum) {
         return enum_m;
     }
     return NULL;
