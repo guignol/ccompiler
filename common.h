@@ -326,7 +326,7 @@ enum DIRECTIVE {
     _long, // (4 byte) int
     _quad, // (8 byte) pointer or size_t
     _string,
-    _enum, // TODO 何もしないけど値は保持する
+    _enum, // 何もしないけど値は保持する
 };
 
 typedef struct Directives Directives;
@@ -360,20 +360,6 @@ struct Global {
 
     Global *next;
 };
-
-void init_globals();
-
-void add_globals(Global *next);
-
-Global *get_globals();
-
-Global *get_string_literal(char *name, int len);
-
-Global *find_global_variable(char *name, int len);
-
-Global *find_enum_member(char *name, int len);
-
-Directives *global_initializer(char *loc, Type *type, Node *node);
 
 /////////////////////////////////////////////////
 

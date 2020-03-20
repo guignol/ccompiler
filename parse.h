@@ -1,5 +1,6 @@
 #include "common.h"
 
+extern Token *token;
 
 ///////////////////////// https://en.wikipedia.org/wiki/Order_of_operations
 
@@ -41,8 +42,6 @@
 // literal_str
 // num_char
 
-void global_variable_declaration(Token *variable_name, Type *type);
-
 Function *function(Type *return_type);
 
 Node *stmt(void);
@@ -79,6 +78,38 @@ void expect(char *op);
 int expect_num_char();
 
 bool check(char *op);
+
+//////////////////////////////////////////////////////////////////
+
+Node *new_node(enum NodeKind kind, Node *lhs, Node *rhs);
+
+Node *new_node_num(int val);
+
+void assert_assignable(char *loc,
+                       Type *left_type,
+                       Node *rhs);
+
+Node *array_initializer(Node *array_variable, Type *type);
+
+////////////////////////////////////////////////////////////////// global.c
+
+void init_globals();
+
+void add_globals(Global *next);
+
+Global *get_globals();
+
+Global *find_global_variable(char *name, int len);
+
+Global *find_enum_member(char *name, int len);
+
+Directives *global_initializer(char *loc, Type *type, Node *node);
+
+Node *new_node_string_literal();
+
+Node *new_node_global_variable(char *str, int len);
+
+void global_variable_declaration(Token *variable_name, Type *type);
 
 ////////////////////////////////////////////////////////////////// switch.c
 

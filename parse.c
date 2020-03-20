@@ -329,37 +329,6 @@ Node *new_node_local_variable(char *str, int len) {
     return node;
 }
 
-Node *new_node_global_variable(char *str, int len) {
-    Global *variable = find_global_variable(str, len);
-    if (!variable) {
-        error_at(str, "変数の宣言がありません。");
-        exit(1);
-    }
-    if (variable->target && variable->target->directive == _enum) {
-        return new_node_num(variable->target->value);
-    }
-    Node *node = calloc(1, sizeof(Node));
-    bool is_array = variable->type->ty == TYPE_ARRAY;
-    node->kind = is_array ? ND_VARIABLE_ARRAY : ND_VARIABLE;
-    node->type = variable->type;
-    load_struct(node->type);
-    node->is_local = false;
-    node->name = variable->label;
-    node->len = variable->label_length;
-    node->offset = 0;
-    return node;
-}
-
-Node *new_node_string_literal() {
-    Global *g = get_string_literal(token->str, token->len);
-    // ラベルを指すnodeを作る
-    Node *const node = new_node(ND_STR_LITERAL, NULL, NULL);
-    node->label = g->label;
-    node->label_length = g->label_length;
-    token = token->next;
-    return node;
-}
-
 Node *new_node_dereference(Node *operand) {
     Type *type = find_type(operand);
     switch (type->ty) {
@@ -519,8 +488,6 @@ Node *with_accessor(Node *left) {
     }
 }
 
-Node *array_initializer(Node *array_variable, Type *type);
-
 //////////////////////////////////////////////////////////////////
 
 Variable *consume_member() {
@@ -679,125 +646,6 @@ struct Program *parse(Token *tok) {
     prog->functions = head_f.next;
     prog->globals = get_globals();
     return prog;
-}
-
-void global_variable_declaration(Token *variable_name, Type *type) {
-    // 他のグローバル変数や関数との名前重複チェック
-    if (find_global_variable(variable_name->str, variable_name->len)) {
-        // TODO 同名で同型のグローバル変数は宣言できる
-        error_at(variable_name->str, "グローバル変数の名前が他のグローバル変数と重複しています");
-        exit(1);
-    }
-    if (find_function(variable_name->str, variable_name->len)) {
-        error_at(variable_name->str, "グローバル変数の名前が関数と重複しています");
-        exit(1);
-    }
-    if (type->ty == TYPE_VOID) {
-        error_at(token->str, "変数にvoidは使えません");
-        exit(1);
-    }
-    /*
-     * グローバル変数の初期化に使えるもの
-     *
-     * 【定数式】
-     *  （OK）
-     *  int a[] = {2, 0, 3};
-     *  int moshi = 1 < 2 ? 3 : sizeof(a);
-     *  (NG)
-     * 　int n = ({3;});
-     *  int x = *y;
-     *  int x = c = 9;
-     *
-     *  三項演算子は使えるが、コンパイル時に解決される
-     *
-     * 【グローバル変数や関数のアドレス】
-     *  (OK)
-     *  int(*n)[2] = &m;
-     *  int *y     = &m;
-     *  size_t m[] = {(size_t)&a, 3};
-     *  size_t m[] = {&a, 3};
-     *  (NG)
-     *  size_t m[] = {(int)&a, 3};
-     *  int m[]    = {(int)&a, 3};
-     *  int m[]    = {&a, 3};
-     *
-     *  ポインタのintへのキャストなし代入
-     *   => error （ローカルではwarning）
-     *  ポインタのintへのキャスト
-     *   => error （ローカルではwarning）
-     *
-     *  現在のところキャストもsize_tも実装してないので、単に型チェックするだけで良いはず
-     *
-     * 【グローバル変数や関数のアドレスに定数を足したもの】
-     *  引いたものもOK
-     */
-    Global *g = calloc(1, sizeof(Global));
-    g->type = type;
-    g->label = variable_name->str;
-    g->label_length = variable_name->len;
-    add_globals(g);
-    char *loc = token->str;
-    if (consume("=")) {
-        // TODO 構造体の初期化 https://ja.cppreference.com/w/c/language/struct_initialization
-        if (type->ty == TYPE_ARRAY) {
-            if (token->kind == TK_STR_LITERAL) {
-                if (type->point_to->ty != TYPE_CHAR) {
-                    error_at(loc, "error: 代入式の左右の型が異なります。");
-                    exit(1);
-                }
-                g->target = calloc(1, sizeof(Directives));
-                g->target->directive = _string;
-                g->target->literal = token->str;
-                g->target->literal_length = type->array_size = token->len;
-                token = token->next;
-            } else {
-                // 配列の初期化
-                Node *const variable_node = new_node_global_variable(variable_name->str, variable_name->len);
-                // 型チェックはここでできてるはず
-                // 配列のサイズが明示されていない場合は、type変数が更新されるが
-                // それ以外はそのままで問題無いはず
-                Node *block = array_initializer(variable_node, type);
-
-                Directives head;
-                head.next = NULL;
-                Directives *tail = &head;
-                for (Node *next = block->statement;
-                     next;
-                     next = next->statement) {
-                    // 代入式の右辺
-                    Node *right = next->rhs;
-                    tail = tail->next = global_initializer(loc, type, right);
-                }
-                g->target = head.next;
-            }
-        } else {
-            Node *node = expr();
-            // 型チェック
-            // 暗黙のキャストはできないので
-            // int *yy_yy = &x - 4; は通るが
-            // int yy_yy = &x - 4; はエラーになる
-            // 0は特別扱い
-            // 暗黙のキャストだけどエラーにならないパターンもある
-            // int *a = 55;
-            assert_assignable(loc, type, node);
-            g->target = global_initializer(loc, type, node);
-        }
-    } else {
-        if (type->ty == TYPE_ARRAY && type->array_size == 0) {
-            error_at(loc, "配列のサイズが指定されていません。");
-            exit(1);
-        }
-        g->target = calloc(1, sizeof(Directives));
-        g->target->directive = _zero;
-        if (type->ty == TYPE_STRUCT && !type->struct_info->members) {
-            // 構造体の定義が前方に無い場合
-            g->target->backwards_struct = type;
-        } else {
-            // サイズ分を0で初期化
-            g->target->value = get_size(type);
-        }
-    }
-    expect(";");
 }
 
 void consume_function_parameter() {
