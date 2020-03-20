@@ -47,7 +47,7 @@ NodeArray *push_node(NodeArray *array, Node *node) {
     return array;
 }
 
-/////////////////////////
+///////////////////////// https://en.wikipedia.org/wiki/Order_of_operations
 
 // program    = (function | global_var)*
 // global_var = (decl_b | decl_c) ";"
@@ -62,7 +62,8 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 //				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
 //				| "switch" "(" expr ")" "{" ("case" ident ":" stmt)* "}" // TODO {}は必須ではないけど
 // expr       = assign
-// assign     = logical ("=" assign)?
+// assign     = ternary ("=" assign)?
+// ternary    = logical ("?" expr ":" expr)?
 // logical    = equality ("||" equality | "&&" equality)*
 // equality   = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
@@ -95,6 +96,8 @@ Node *stmt(void);
 Node *expr(void);
 
 Node *assign(void);
+
+Node *ternary(void);
 
 Node *logical(void);
 
@@ -1360,7 +1363,12 @@ Node *stmt(void) {
     Type *base = consume_base_type();
     if (base) {
         // 変数宣言および初期化
-        return local_variable_declaration(base);
+        Node *const node = local_variable_declaration(base);
+        if (node->kind == ND_ASSIGN) {
+            return new_node(ND_EXPR_STMT, node, NULL);
+        } else {
+            return node;
+        }
     } else if (consume("{")) {
         return block_statement();
     } else if (consume("if")) {
@@ -1483,10 +1491,30 @@ Node *expr() {
 }
 
 Node *assign(void) {
-    Node *node = logical();
+    Node *node = ternary();
     if (consume("=")) {
         char *loc = token->str;
         node = new_node_assign(loc, node, assign());
+    }
+    return node;
+}
+
+Node *ternary(void) {
+    Node *node = logical();
+    if (consume("?")) {
+        Node *const ternary = calloc(1, sizeof(Node));
+        ternary->contextual_suffix = context++;
+        ternary->kind = ND_IF;
+        ternary->condition = node;
+        ternary->lhs = expr();
+        char *const loc = token->str;
+        expect(":");
+        ternary->rhs = expr();
+        // 型チェック
+        Type *const type = find_type(ternary->lhs);
+        assert_assignable(loc, type, ternary->rhs);
+        ternary->type = type;
+        return ternary;
     }
     return node;
 }

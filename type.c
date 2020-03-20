@@ -309,6 +309,11 @@ Type *find_type(const Node *node) {
                 Type *type = find_type(last);
                 return type;
             }
+            case ND_IF:
+                if (node->type) {
+                    // 三項演算子
+                    return node->type;
+                }
             default: {
                 error("値を返さないはずです？\n");
                 exit(1);
