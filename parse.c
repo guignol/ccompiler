@@ -5,6 +5,11 @@ Token *token;
 
 /////////////////////////
 
+int context = 0;
+int_stack *break_stack = NULL;
+
+/////////////////////////
+
 int stack_size = 0;
 
 typedef struct Scope Scope;
@@ -438,6 +443,7 @@ Node *new_node_function_call(const Token *tok) {
     }
     // 関数呼び出し
     Node *node = calloc(1, sizeof(Node));
+    node->contextual_suffix = context++;
     node->kind = ND_FUNC;
     node->type = declaration->return_type;
     if (!consume(")")) {
@@ -1294,6 +1300,7 @@ Node *stmt(void) {
         return block_statement();
     } else if (consume("if")) {
         Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = context++;
         node->kind = ND_IF;
         expect("(");
         node->condition = expr();
@@ -1303,6 +1310,7 @@ Node *stmt(void) {
         return node;
     } else if (consume("while")) {
         Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = context++;
         node->kind = ND_WHILE;
         expect("(");
         node->condition = expr();
@@ -1311,6 +1319,9 @@ Node *stmt(void) {
         return node;
     } else if (consume("for")) {
         Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = context++;
+        // break先をスタックに積む
+        push_int(&break_stack, node->contextual_suffix);
         node->kind = ND_FOR;
         expect("(");
         // 使い捨てるのでallocしない
@@ -1344,6 +1355,8 @@ Node *stmt(void) {
             expect(")");
         }
         node->execution = stmt();
+        // break先をスタックから降ろす
+        pop_int(&break_stack);
         // スコープを戻す
         current_scope = disposable.parent;
         return node;
@@ -1375,9 +1388,6 @@ Node *stmt(void) {
             // TODO 値を先に取り出して、ラベルを作る
             //  いや、ラベルと処理を作ってから条件分岐でもいいか
             //  左辺に値、右辺に処理
-            // TODO breakのbreak先ラベルをどうやって・・・
-            //  returnはfunctionの名前でラベルが分かる
-            //  まずfor文で実践してみるか
         }
         if (consume("default")) {
             expect(":");
@@ -1392,6 +1402,11 @@ Node *stmt(void) {
         return node;
     } else if (consume("break")) {
         Node *const node = calloc(1, sizeof(Node));
+        if (break_stack == NULL) {
+            error_at(token->str, "ここではbreakできません");
+            exit(1);
+        }
+        node->contextual_suffix = peek_int(&break_stack);
         node->kind = ND_BREAK;
         expect(";");
         return node;

@@ -174,9 +174,7 @@ void gen_address(Node *node) {
     }
 }
 
-int labelseq = 0;
-int_stack *break_stack = NULL;
-char *function_name;
+char *function_name; // TODO これもparserへ動かす
 
 void gen(Node *node) {
     switch (node->kind) {
@@ -202,19 +200,19 @@ void gen(Node *node) {
                 // We need to align RSP to a 16 byte boundary before
                 // calling a function because it is an ABI requirement.
                 // RAX is set to 0 for variadic function.
-                int seq = labelseq++;
+                int context = node->contextual_suffix;
                 printf("  mov rax, rsp\n");
                 printf("  and rax, 0xF\n");
-                printf("  jnz .Lcall%d\n", seq);
+                printf("  jnz .Lcall%d\n", context);
                 printf("  mov rax, 0\n");
                 printf("  call %.*s\n", node->len, node->name);
-                printf("  jmp .Lend%d\n", seq);
-                printf(".Lcall%d:\n", seq);
+                printf("  jmp .Lend%d\n", context);
+                printf(".Lcall%d:\n", context);
                 printf("  sub rsp, 8\n");
                 printf("  mov rax, 0\n");
                 printf("  call %.*s\n", node->len, node->name);
                 printf("  add rsp, 8\n");
-                printf(".Lend%d:\n", seq);
+                printf(".Lend%d:\n", context);
                 printf("  push rax\n");
             } else {
                 printf("  mov rax, %i\n", count);
@@ -236,28 +234,24 @@ void gen(Node *node) {
             return;
         }
         case ND_BREAK: {
-            // TODO breakできない場所であることをできればparse時に知りたい
-            int break_seq = peek_int(&break_stack);
-            printf("  jmp  .Lbreak%d\n", break_seq);
+            printf("  jmp  .Lbreak%d\n", node->contextual_suffix);
             return;
         }
         case ND_FOR: {
             ___COMMENT___("for begin");
-            int seq = labelseq++;
-            // break先をスタックに積む
-            push_int(&break_stack, seq);
+            int context = node->contextual_suffix;
             // init
             if (node->lhs)
                 gen(node->lhs);
             // begin
-            printf(".Lbegin%d:\n", seq);
+            printf(".Lbegin%d:\n", context);
             // condition
             if (node->condition) {
                 gen(node->condition);
                 printf("  pop rax\n");
                 printf("  cmp rax, 0\n");
                 // if 0, goto end
-                printf("  je  .Lbreak%d\n", seq);
+                printf("  je .Lbreak%d\n", context);
             }
             // execute
             gen(node->execution);
@@ -266,52 +260,50 @@ void gen(Node *node) {
                 gen(node->rhs);
             }
             // goto begin
-            printf("  jmp .Lbegin%d\n", seq);
+            printf("  jmp .Lbegin%d\n", context);
             // end:
-            printf(".Lbreak%d:\n", seq);
-            // break先をスタックから降ろす
-            pop_int(&break_stack);
+            printf(".Lbreak%d:\n", context);
             ___COMMENT___("for end");
             return;
         }
         case ND_WHILE: {
             ___COMMENT___("while begin");
-            int seq = labelseq++;
+            int context = node->contextual_suffix;
             // begin:
-            printf(".Lbegin%d:\n", seq);
+            printf(".Lbegin%d:\n", context);
             // condition
             gen(node->condition);
             printf("  pop rax\n");
             printf("  cmp rax, 0\n");
             // if 0, goto end
-            printf("  je  .Lend%d\n", seq);
+            printf("  je  .Lend%d\n", context);
             // execute & goto begin
             gen(node->lhs);
-            printf("  jmp .Lbegin%d\n", seq);
+            printf("  jmp .Lbegin%d\n", context);
             // end:
-            printf(".Lend%d:\n", seq);
+            printf(".Lend%d:\n", context);
             ___COMMENT___("while end");
             return;
         }
         case ND_IF: {
-            int seq = labelseq++;
+            int context = node->contextual_suffix;
             if (node->rhs) {
                 gen(node->condition);
                 printf("  pop rax\n");
                 printf("  cmp rax, 0\n");
-                printf("  je  .Lelse%d\n", seq);
+                printf("  je  .Lelse%d\n", context);
                 gen(node->lhs);
-                printf("  jmp .Lend%d\n", seq);
-                printf(".Lelse%d:\n", seq);
+                printf("  jmp .Lend%d\n", context);
+                printf(".Lelse%d:\n", context);
                 gen(node->rhs);
-                printf(".Lend%d:\n", seq);
+                printf(".Lend%d:\n", context);
             } else {
                 gen(node->condition);
                 printf("  pop rax\n");
                 printf("  cmp rax, 0\n");
-                printf("  je  .Lend%d\n", seq);
+                printf("  je  .Lend%d\n", context);
                 gen(node->lhs);
-                printf(".Lend%d:\n", seq);
+                printf(".Lend%d:\n", context);
             }
             return;
         }

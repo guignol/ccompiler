@@ -67,6 +67,7 @@ struct S {
 
 // 11
 int enum_switch_1() {
+//    break;
     as = AS_SAME;
 //    switch (as) {
 //        case CANNOT_ASSIGN:

@@ -105,10 +105,11 @@ typedef struct Type Type;
 
 // 抽象構文木のノードの型
 struct Node {
+    int contextual_suffix; // codegenで使うラベルのsuffix
     enum NodeKind kind; // ノードの種別
     Node *lhs;     // 左辺
     Node *rhs;     // 右辺
-    int val;       // kindがND_NUMの場合のみ使う
+    int val;       // kindがND_NUMまたはenum定数の場合のみ使う
 
     // 変数、関数の返り値、構造体のメンバーの型
     Type *type;
