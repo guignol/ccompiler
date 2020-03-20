@@ -464,6 +464,7 @@ void gen(Node *node) {
         case ND_SUB:
         case ND_MUL:
         case ND_DIV:
+        case ND_MOD:
         case ND_EQL:
         case ND_NOT:
         case ND_LESS:
@@ -488,8 +489,16 @@ void gen(Node *node) {
             printf("  imul rax, rdi\n");
             break;
         case ND_DIV:
+            // cqo命令を使うと、RAXに入っている64ビットの値を128ビットに伸ばしてRDXとRAXにセットする
+            printf("  cqo\n");
+            // idivは暗黙のうちにRDXとRAXを取って、それを合わせたものを128ビット整数とみなして、
+            // それを引数のレジスタの64ビットの値で割り、商をRAXに、余りをRDXにセットする
+            printf("  idiv rdi\n");
+            break;
+        case ND_MOD:
             printf("  cqo\n");
             printf("  idiv rdi\n");
+            printf("  mov rax, rdx\n");
             break;
         case ND_EQL:
             ___COMMENT___("==");

@@ -198,6 +198,7 @@ Type *find_type(const Node *node) {
             return node->type;
         case ND_MUL:
         case ND_DIV:
+        case ND_MOD:
         case ND_EQL:
         case ND_NOT:
         case ND_LESS:

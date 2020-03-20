@@ -42,6 +42,8 @@ test_self_compile() {
   if [ -e build_tmp/${FILE_NAME}_.s ]; then
     echo "success!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   fi
+  # 検索の邪魔なので削除しておく
+  rm -f build_tmp/${FILE_NAME}_.c
 }
 
 test_self_compile "codegen"

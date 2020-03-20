@@ -51,6 +51,7 @@ enum NodeKind {
     ND_SUB,         // -
     ND_MUL,         // *
     ND_DIV,         // /
+    ND_MOD,         // %
     ND_EQL,         // ==
     ND_NOT,         // !=
     ND_LESS,        // <
