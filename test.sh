@@ -48,6 +48,7 @@ test_self_compile() {
   rm -f build_tmp/${FILE_NAME}_.c
 }
 
+test_self_compile "array"
 test_self_compile "codegen"
 test_self_compile "collection"
 test_self_compile "enum"

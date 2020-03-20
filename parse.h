@@ -85,11 +85,42 @@ Node *new_node(enum NodeKind kind, Node *lhs, Node *rhs);
 
 Node *new_node_num(int val);
 
+Node *pointer_calc(enum NodeKind kind, Node *left, Node *right);
+
+Node *new_node_assign(char *loc, Node *lhs, Node *rhs);
+
 void assert_assignable(char *loc,
                        Type *left_type,
                        Node *rhs);
 
 Node *array_initializer(Node *array_variable, Type *type);
+
+////////////////////////////////////////////////////////////////// array.c
+
+NodeArray *create_node_array(int capacity);
+
+NodeArray *push_node(NodeArray *array, Node *node);
+
+Node *with_index(Node *left);
+
+////////////////////////////////////////////////////////////////// enum.c
+
+typedef struct {
+    Global **memory;
+    int count;
+    int capacity;
+} EnumMembers;
+
+struct ENUM_INFO {
+    const char *type_name;
+    int name_length;
+    // 宣言のみの時点では空（だけど定義必須にしておいてもいいかも）
+    EnumMembers *members;
+};
+
+EnumMembers *create_enum_member(int capacity);
+
+bool consume_enum_def(Type *base);
 
 ////////////////////////////////////////////////////////////////// global.c
 
@@ -110,6 +141,14 @@ Node *new_node_string_literal();
 Node *new_node_global_variable(char *str, int len);
 
 void global_variable_declaration(Token *variable_name, Type *type);
+
+////////////////////////////////////////////////////////////////// struct.c
+
+void init_struct_registry();
+
+void push_struct(STRUCT_INFO *info);
+
+Variable *find_struct_member(Type *type, const char *name, int len);
 
 ////////////////////////////////////////////////////////////////// switch.c
 

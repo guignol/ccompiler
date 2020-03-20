@@ -2,13 +2,14 @@ cmake_minimum_required(VERSION 3.10)
 project(ccompiler C)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wno-builtin-declaration-mismatch")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-builtin-declaration-mismatch")
 #set(CMAKE_C_FLAGS  "-Wall -Wextra -Wconversion")
 
 
 include_directories(.)
 
 add_executable(ccompiler
+        array.c
         codegen.c
         common.h
         collection.c
@@ -29,7 +30,7 @@ add_executable(ccompiler
 add_executable(test_0
         _test/test_0.c
         _test/debug.c
-)
+        )
 
 #enable_testing()
 #

@@ -1,4 +1,4 @@
-#include "common.h"
+#include "parse.h"
 
 struct STRUCT_REGISTRY {
     STRUCT_INFO **memory;
@@ -80,7 +80,7 @@ Variable *find_member(STRUCT_INFO *target, const char *const name, const int len
     return NULL;
 }
 
-Variable *struct_member(Type *type, const char *const name, const int len) {
+Variable *find_struct_member(Type *type, const char *name, int len) {
     STRUCT_INFO *const struct_info = type->struct_info;
     // 構造体の宣言の後、定義の前に宣言されたグローバル変数の場合、
     // 変数宣言時には型情報を持っていないので読み込んでおく

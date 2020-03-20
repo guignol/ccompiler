@@ -153,6 +153,7 @@ typedef struct {
 /////////////////////////////////////////////////
 
 typedef struct STRUCT_INFO STRUCT_INFO;
+
 typedef struct ENUM_INFO ENUM_INFO;
 
 struct Type {
@@ -396,31 +397,8 @@ struct STRUCT_INFO {
     Variable *members;
 };
 
-void init_struct_registry();
-
-void push_struct(STRUCT_INFO *info);
-
 void load_struct(Type *type);
 
-Variable *struct_member(Type *type, const char *name, int len);
-
 /////////////////////////////////////////////////
-
-typedef struct {
-    Global **memory;
-    int count;
-    int capacity;
-} EnumMembers;
-
-struct ENUM_INFO {
-    const char *type_name;
-    int name_length;
-    // 宣言のみの時点では空（だけど定義必須にしておいてもいいかも）
-    EnumMembers *members;
-};
-
-EnumMembers *create_enum_member(int capacity);
-
-EnumMembers *push_enum_member(EnumMembers *members, Global *new);
 
 #endif //CCOMPILER_COMMON_H
