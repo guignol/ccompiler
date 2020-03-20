@@ -170,7 +170,7 @@ void add_function_declaration(Type *returnType,
             // （宣言が重複した場合の唯一の副作用）
             old_d->type_only = new_d->type_only;
         }
-        old_d->defined |= new_d->defined;
+        old_d->defined = old_d->defined || new_d->defined;
     } else {
         ___add_function_declaration(new_d);
     }

@@ -25,7 +25,9 @@ else
   echo "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNG"
 fi
 
-exit 0;
+if [ "$1" != "self" ]; then
+  exit 0
+fi
 
 # 1ファイルずつセルフホストを試す
 mkdir -p build_tmp
@@ -34,10 +36,10 @@ test_self_compile() {
   FILE_NAME="$1"
   echo ${FILE_NAME}.c
   # プリプロセス
-  gcc -E ${FILE_NAME}.c | cat -s > build_tmp/${FILE_NAME}_.c
+  gcc -E ${FILE_NAME}.c | cat -s >build_tmp/${FILE_NAME}_.c
   # コンパイルに成功するまでファイルを吐かない
   t=$(mktemp)
-  ./build/ccompiler "--file" "$(pwd)/build_tmp/${FILE_NAME}_.c" >$t && cat $t > build_tmp/${FILE_NAME}_.s
+  ./build/ccompiler "--file" "$(pwd)/build_tmp/${FILE_NAME}_.c" >$t && cat $t >build_tmp/${FILE_NAME}_.s
   rm -f $t
   if [ -e build_tmp/${FILE_NAME}_.s ]; then
     echo "success!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
