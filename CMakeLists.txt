@@ -18,10 +18,12 @@ add_executable(ccompiler
         global.c
         main.c
         parse.c
+        parse.h
         std_alternative.h
         struct.c
+        switch.c
         tokenize.c
-        type.c )
+        type.c)
 
 # TODO IDEに認識させるため
 add_executable(test_0

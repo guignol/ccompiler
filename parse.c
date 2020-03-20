@@ -1,4 +1,4 @@
-#include "common.h"
+#include "parse.h"
 
 // 現在着目しているトークン
 Token *token;
@@ -46,72 +46,6 @@ NodeArray *push_node(NodeArray *array, Node *node) {
     array->count++;
     return array;
 }
-
-///////////////////////// https://en.wikipedia.org/wiki/Order_of_operations
-
-// program    = (function | global_var)*
-// global_var = (decl_b | decl_c) ";"
-// function   = decl_a "(" decl_a? ("," decl_a)* ")" { stmt* }
-// stmt       = expr ";"
-//              | (decl_b | decl_c) ";"
-//				| "{" stmt* "}"
-//				| "return" expr ";"
-//				| "break" ";"
-//				| "if" "(" expr ")" stmt ("else" stmt)?
-//		        | "while" "(" expr ")" stmt
-//				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
-//				| "switch" "(" expr ")" "{" ("case" ident ":" stmt)* "}" // TODO {}は必須ではないけど
-// expr       = assign
-// assign     = ternary ("=" assign)?
-// ternary    = logical ("?" expr ":" expr)?
-// logical    = equality ("||" equality | "&&" equality)*
-// equality   = relational ("==" relational | "!=" relational)*
-// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-// add        = mul ("+" mul | "-" mul)*
-// mul        = unary ("*" unary | "/" unary　| "%" unary)*
-// unary      = "sizeof" unary
-//				| ("+" | "-" | "*"* | "&" | "!")? primary
-// primary    = literal_str
-//				| ident "(" args? ")"
-// 				| "(" expr ")"
-// 				| "({" stmt "})"
-//				| (primary | num_char) ( "(" index ")" )? index*
-//				| primary ("." ident )*
-// index      = "[" primary "]"
-// args       = expr ("," expr)*
-// decl_a     = ("int" | "char" | "struct" | "enum") "*"* (pointed_id | ident)
-// decl_b     = decl_a ("[" num_char "]")* TODO 構造体とenumの宣言
-// decl_c     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | expr)
-// pointed_id = "(" "*"* ident ")"
-// ident      =
-// literal_str
-// num_char
-
-void global_variable_declaration(Token *variable_name, Type *type);
-
-Function *function(Type *return_type);
-
-Node *stmt(void);
-
-Node *expr(void);
-
-Node *assign(void);
-
-Node *ternary(void);
-
-Node *logical(void);
-
-Node *equality(void);
-
-Node *relational(void);
-
-Node *add(void);
-
-Node *mul(void);
-
-Node *unary(void);
-
-Node *primary(void);
 
 //////////////////////////////////////////////////////////////////
 
@@ -211,7 +145,6 @@ bool check(char *op) {
     }
     return false;
 }
-
 
 bool at_eof() {
     return token->kind == TK_EOF;
@@ -1308,73 +1241,6 @@ Node *local_variable_declaration(Type *base) {
     }
 }
 
-Token *consume_case_or_default() {
-    Token *const c = consume("case");
-    if (c) {
-        return c;
-    }
-    Token *const d = consume("default");
-    if (d) {
-        return d;
-    }
-    return NULL;
-}
-
-Node *consume_case_statement() {
-    Node head;
-    head.statement = NULL;
-    Node *tail = &head;
-    // caseやdefaultが続く場合がある
-    Token *no_statement = consume_case_or_default();
-    while (no_statement == NULL) {
-        // 末尾チェック
-        if (check("}")) {
-            break;
-        }
-        tail = tail->statement = stmt();
-        no_statement = consume_case_or_default();
-    }
-    if (no_statement) {
-        token = no_statement;
-    }
-    return head.statement;
-}
-
-struct Case *consume_default() {
-    if (consume("default")) {
-        struct Case *const case_ = malloc(sizeof(struct Case *));
-        case_->default_ = true;
-        expect(":");
-        case_->statement = consume_case_statement();
-        return case_;
-    }
-    return NULL;
-}
-
-struct Case *consume_case() {
-    if (consume("case")) {
-        Token *const var = consume_ident();
-        struct Case *const case_ = malloc(sizeof(struct Case *));
-        case_->default_ = false;
-        if (var) {
-            Global *const member = find_enum_member(var->str, var->len);
-            // TODO 定数なら使えるけど、他に定数はまだ無いはず？
-            // TODO 1 + 2 とかも定数扱いになるっぽい？
-            if (member == NULL) {
-                error_at(var->str, "定数ではありません");
-                exit(1);
-            }
-            case_->value = member->target->value;
-        } else {
-            case_->value = expect_num_char();
-        }
-        expect(":");
-        case_->statement = consume_case_statement();
-        return case_;
-    }
-    return NULL;
-}
-
 Node *stmt(void) {
     Type *base = consume_base_type();
     if (base) {
@@ -1457,23 +1323,7 @@ Node *stmt(void) {
         node->lhs = expr();
         expect(")");
         expect("{");
-        struct Case head;
-        head.next = NULL;
-        struct Case *tail = &head;
-        while (true) {
-            struct Case *const c = consume_case();
-            if (c) {
-                tail = tail->next = c;
-                continue;
-            }
-            struct Case *const d = consume_default();
-            if (d) {
-                tail = tail->next = d;
-                continue;
-            }
-            break;
-        }
-        node->cases = head.next;
+        node->cases = consume_case();
         expect("}");
         return node;
     } else if (consume("return")) {
