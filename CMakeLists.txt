@@ -9,8 +9,10 @@ set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -Wno-builtin-declaration-mismatch")
 include_directories(.)
 
 add_executable(ccompiler
-        common.h
         codegen.c
+        common.h
+        collection.c
+        collection.h
         enum.c
         function_declare.c
         global.c
@@ -19,7 +21,7 @@ add_executable(ccompiler
         std_alternative.h
         struct.c
         tokenize.c
-        type.c)
+        type.c )
 
 # TODO IDEに認識させるため
 add_executable(test_0

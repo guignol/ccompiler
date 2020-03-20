@@ -223,6 +223,23 @@ int scope_for_2() {
     return a + i;
 }
 
+// 45
+int scope_for_3() {
+    int temp = 0;
+    int sum = 0;
+    for (int i = 0; i < 10; i = i + 1) {
+        for (int j = 0; j < 10; j = j + 1) {
+            temp = j;
+//            printf("i: %d, j: %d\n", i, j);
+            if (i == j) {
+                break;
+            }
+        }
+        sum = sum + temp;
+    }
+    return sum;
+}
+
 // 1
 int scoped_1() {
     int a_0; // 4

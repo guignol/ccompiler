@@ -50,9 +50,11 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 //              | (decl_b | decl_c) ";"
 //				| "{" stmt* "}"
 //				| "return" expr ";"
+//				| "break" ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
 //		        | "while" "(" expr ")" stmt
 //				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
+//				| "switch" "(" expr ")" "{" ("case" ident ":" stmt)* "}" // TODO {}は必須ではないけど
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -69,8 +71,8 @@ NodeArray *push_node(NodeArray *array, Node *node) {
 //				| primary ("." ident )*
 // index      = "[" primary "]"
 // args       = expr ("," expr)*
-// decl_a     = ("int" | "char" | "struct") "*"* (pointed_id | ident)
-// decl_b     = decl_a ("[" num_char "]")*
+// decl_a     = ("int" | "char" | "struct" | "enum") "*"* (pointed_id | ident)
+// decl_b     = decl_a ("[" num_char "]")* TODO 構造体とenumの宣言
 // decl_c     = decl_a "[]"? ("[" num_char? "]")* "=" (array_init | expr)
 // pointed_id = "(" "*"* ident ")"
 // ident      =
@@ -1345,10 +1347,52 @@ Node *stmt(void) {
         // スコープを戻す
         current_scope = disposable.parent;
         return node;
+    } else if (consume("switch")) {
+        // TODO
+        Node *const node = calloc(1, sizeof(Node));
+        node->kind = ND_SWITCH;
+        expect("(");
+        // TODO 評価は一度だけ
+        node->lhs = expr();
+        expect(")");
+        expect("{");
+        while (consume("case")) {
+            // TODO
+            Token *const var = consume_ident();
+            if (var) {
+                Global *const member = find_enum_member(var->str, var->len);
+                // TODO 定数なら使えるけど、他に定数はまだ無いはず？
+                if (member == NULL) {
+                    error_at(var->str, "定数ではありません");
+                    exit(1);
+                }
+                const int value = member->target->value;
+            } else {
+                expect_num_char();
+            }
+            expect(":");
+            // TODO target == case 1
+            // TODO 値を先に取り出して、ラベルを作る
+            //  いや、ラベルと処理を作ってから条件分岐でもいいか
+            //  左辺に値、右辺に処理
+            // TODO breakのbreak先ラベルをどうやって・・・
+            //  returnはfunctionの名前でラベルが分かる
+            //  まずfor文で実践してみるか
+        }
+        if (consume("default")) {
+            expect(":");
+        }
+        expect("}");
+        
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
         node->lhs = expr();
+        expect(";");
+        return node;
+    } else if (consume("break")) {
+        Node *const node = calloc(1, sizeof(Node));
+        node->kind = ND_BREAK;
         expect(";");
         return node;
     } else {

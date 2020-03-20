@@ -1,3 +1,5 @@
+#ifndef CCOMPILER_STD_ALTERNATIVE_H
+#define CCOMPILER_STD_ALTERNATIVE_H
 
 /////////////////////////////////////////////////
 //#include <stddef.h>
@@ -63,6 +65,8 @@ void *calloc(size_t __nmemb, size_t __size);
 
 void *realloc(void *__ptr, size_t __size);
 
+void free (void *__ptr);
+
 /** long int */ int strtol(const char *__nptr, char **__endptr, int __base);
 
 void exit(int __status);
@@ -79,3 +83,5 @@ void exit(int __status);
 int *__errno_location(void);
 
 /////////////////////////////////////////////////
+
+#endif //CCOMPILER_STD_ALTERNATIVE_H

@@ -175,6 +175,7 @@ void gen_address(Node *node) {
 }
 
 int labelseq = 0;
+int_stack *break_stack = NULL;
 char *function_name;
 
 void gen(Node *node) {
@@ -234,9 +235,17 @@ void gen(Node *node) {
             ___COMMENT___("block end");
             return;
         }
+        case ND_BREAK: {
+            // TODO breakできない場所であることをできればparse時に知りたい
+            int break_seq = peek_int(&break_stack);
+            printf("  jmp  .Lbreak%d\n", break_seq);
+            return;
+        }
         case ND_FOR: {
             ___COMMENT___("for begin");
             int seq = labelseq++;
+            // break先をスタックに積む
+            push_int(&break_stack, seq);
             // init
             if (node->lhs)
                 gen(node->lhs);
@@ -248,7 +257,7 @@ void gen(Node *node) {
                 printf("  pop rax\n");
                 printf("  cmp rax, 0\n");
                 // if 0, goto end
-                printf("  je  .Lend%d\n", seq);
+                printf("  je  .Lbreak%d\n", seq);
             }
             // execute
             gen(node->execution);
@@ -259,7 +268,9 @@ void gen(Node *node) {
             // goto begin
             printf("  jmp .Lbegin%d\n", seq);
             // end:
-            printf(".Lend%d:\n", seq);
+            printf(".Lbreak%d:\n", seq);
+            // break先をスタックから降ろす
+            pop_int(&break_stack);
             ___COMMENT___("for end");
             return;
         }
@@ -450,6 +461,7 @@ void gen(Node *node) {
         case ND_IF:
         case ND_WHILE:
         case ND_FOR:
+        case ND_BREAK:
         case ND_BLOCK:
         case ND_FUNC:
         case ND_NUM:

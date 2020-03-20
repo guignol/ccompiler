@@ -152,6 +152,7 @@ int reserved(const char *p) {
             "enum",
             "switch",
             "case",
+            "break",
     };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];

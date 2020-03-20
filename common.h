@@ -1,4 +1,8 @@
+#ifndef CCOMPILER_COMMON_H
+#define CCOMPILER_COMMON_H
+
 #include "std_alternative.h"
+#include "collection.h"
 
 void error(const char *message);
 
@@ -56,6 +60,8 @@ enum NodeKind {
     ND_IF,          // if
     ND_WHILE,       // while
     ND_FOR,         // for
+    ND_SWITCH,      // switch
+    ND_BREAK,       // break
     ND_BLOCK,       // { }
     ND_FUNC,        // 関数コール
     ND_NUM,         // 整数 : int
@@ -350,6 +356,8 @@ Global *get_string_literal(char *name, int len);
 
 Global *find_global_variable(char *name, int len);
 
+Global *find_enum_member(char *name, int len);
+
 Directives *global_initializer(char *loc, Type *type, Node *node);
 
 /////////////////////////////////////////////////
@@ -413,3 +421,5 @@ struct ENUM_INFO {
 EnumMembers *create_enum_member(int capacity);
 
 EnumMembers *push_enum_member(EnumMembers *members, Global *new);
+
+#endif //CCOMPILER_COMMON_H
