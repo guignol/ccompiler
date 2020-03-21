@@ -1,7 +1,8 @@
 #include "common.h"
 
+Type *void_type;
+
 Type *shared_void_type() {
-    static Type *void_type;
     if (!void_type) {
         void_type = calloc(1, sizeof(Type));
         void_type->ty = TYPE_VOID;
@@ -10,8 +11,9 @@ Type *shared_void_type() {
     return void_type;
 }
 
+Type *char_type;
+
 Type *shared_char_type() {
-    static Type *char_type;
     if (!char_type) {
         char_type = calloc(1, sizeof(Type));
         char_type->ty = TYPE_CHAR;
@@ -19,8 +21,9 @@ Type *shared_char_type() {
     return char_type;
 }
 
+Type *bool_type;
+
 Type *shared_bool_type() {
-    static Type *bool_type;
     if (!bool_type) {
         bool_type = calloc(1, sizeof(Type));
         bool_type->ty = TYPE_BOOL;
@@ -28,8 +31,9 @@ Type *shared_bool_type() {
     return bool_type;
 }
 
+Type *int_type;
+
 Type *shared_int_type() {
-    static Type *int_type;
     if (!int_type) {
         int_type = calloc(1, sizeof(Type));
         int_type->ty = TYPE_INT;

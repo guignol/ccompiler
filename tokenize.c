@@ -136,28 +136,32 @@ Token *new_token(enum TokenKind kind, Token *cur, char *str, size_t len) {
     return tok;
 }
 
+// Keyword
+char *kws[] = {
+        "sizeof",
+        "return",
+        "if",
+        "else",
+        "while",
+        "for",
+        "int",
+        "char",
+        "void",
+        "_Bool",
+        "struct",
+        "enum",
+        "switch",
+        "case",
+        "break",
+        "default",
+        "extern",
+        "typedef",
+};
+
+// Multi-letter punctuator
+char *ops[] = {"==", "!=", "<=", ">=", "||"};
+
 int reserved(const char *p) {
-    // Keyword
-    static char *kws[] = {
-            "sizeof",
-            "return",
-            "if",
-            "else",
-            "while",
-            "for",
-            "int",
-            "char",
-            "void",
-            "_Bool",
-            "struct",
-            "enum",
-            "switch",
-            "case",
-            "break",
-            "default",
-            "extern",
-            "typedef",
-    };
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
         char *keyword = kws[i];
         size_t len = strlen(keyword);
@@ -166,8 +170,6 @@ int reserved(const char *p) {
             return len;
     }
 
-    // Multi-letter punctuator
-    static char *ops[] = {"==", "!=", "<=", ">=", "||"};
     for (int i = 0; i < sizeof(ops) / sizeof(*ops); i++) {
         char *operator = ops[i];
         if (strncmp(p, operator, 2) == 0)
@@ -208,6 +210,9 @@ char escaped(char *p) {
     }
 }
 
+char *const SINGLE_QUOTE = "'";
+char *const DOUBLE_QUOTE = "\"";
+
 // 入力文字列pをトークナイズしてそれを返す
 Token *tokenize(char *p) {
     user_input = p;
@@ -247,8 +252,6 @@ Token *tokenize(char *p) {
             p += 2;
             continue;
         }
-
-        static char *const SINGLE_QUOTE = "'";
         if (start_with(p, SINGLE_QUOTE)) {
             char *const start = ++p;
             while (!start_with(p + 1, SINGLE_QUOTE)) {
@@ -275,7 +278,6 @@ Token *tokenize(char *p) {
             exit(1);
         }
 
-        static char *const DOUBLE_QUOTE = "\"";
         if (start_with(p, DOUBLE_QUOTE)) {
             p++;
             char *start = p;

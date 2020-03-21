@@ -25,10 +25,10 @@ void add_globals(Global *next) {
     globals->tail = globals->tail->next = next;
 }
 
+int label_count = 0;
 char *new_label() {
-    static int cnt = 0;
     char buf[20];
-    sprintf(buf, ".LC.%d", cnt++);
+    sprintf(buf, ".LC.%d", label_count++);
     return strndup(buf, 20);
 }
 
@@ -96,7 +96,7 @@ Global *find_enum_member(char *name, int len) {
 
 //////////////////////////////////////////////////////////////////
 
-static char *loc__ = NULL;
+char *loc__ = NULL;
 
 int get_pointer(Node *node, Node **pointed) {
     if (!pointed) {

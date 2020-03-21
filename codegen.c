@@ -10,24 +10,24 @@
 // RBX	（特になし）
 // R8	第5引数	✔
 // R9	第6引数	✔
-static const char *const registers_64[] = {"rdi",
-                                           "rsi",
-                                           "rdx",
-                                           "rcx",
-                                           "r8",
-                                           "r9"};
-static const char *const registers_32[] = {"edi",
-                                           "esi",
-                                           "edx",
-                                           "ecx",
-                                           "r8d",
-                                           "r9d"};
-static const char *const registers_8[] = {"DIL",
-                                          "SIL",
-                                          "DL",
-                                          "CL",
-                                          "R8B",
-                                          "R9B"};
+const char *const registers_64[] = {"rdi",
+                                    "rsi",
+                                    "rdx",
+                                    "rcx",
+                                    "r8",
+                                    "r9"};
+const char *const registers_32[] = {"edi",
+                                    "esi",
+                                    "edx",
+                                    "ecx",
+                                    "r8d",
+                                    "r9d"};
+const char *const registers_8[] = {"DIL",
+                                   "SIL",
+                                   "DL",
+                                   "CL",
+                                   "R8B",
+                                   "R9B"};
 
 void ___COMMENT___(char *message) {
     printf("  # %s\n", message);
@@ -190,7 +190,7 @@ void gen(Node *node) {
                     printf("  pop %s\n", registers_64[count - i - 1]);
                 }
             }
-            static bool doAlign = true;
+            bool doAlign = true;
             // RSPはpushやpopで64bit(=8bytes)ずつ動く
             // 関数のプロローグで32bit(=4bytes)ずつ動くこともあるが、それについては調整済み
             if (doAlign) {
@@ -259,7 +259,7 @@ void gen(Node *node) {
                 printf("  je .Lcase%d_default\n", context);
             } else {
                 // defaultラベルも無ければ終了
-                printf("  jmp  .Lbreak%d\n",context);
+                printf("  jmp  .Lbreak%d\n", context);
             }
             count = 0;
             for (struct Case *c = node->cases; c; c = c->next) {
