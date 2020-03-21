@@ -75,11 +75,6 @@ Type *consume_base_type() {
     } else if (consume("struct")) {
         Type *const base = create_struct_type();
         Token *const t = consume_ident();
-//        if (!t) {
-//            // TODO 名前無くても良いはず
-//            error_at(token->str, "構造体の名前がありません");
-//            exit(1);
-//        }
         base->struct_info = malloc(sizeof(STRUCT_INFO));
         base->struct_info->type_name = t ? t->str : NULL;
         base->struct_info->name_length = t ? t->len : 0;

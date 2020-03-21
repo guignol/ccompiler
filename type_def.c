@@ -16,6 +16,7 @@ struct TypeDef *create_type_def(Type *type, char *alias, int alias_len) {
     type_def->type = type;
     type_def->alias = alias;
     type_def->alias_length = alias_len;
+    type_def->next = NULL;
     return type_def;
 }
 

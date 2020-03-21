@@ -18,6 +18,10 @@ void init_struct_registry() {
 }
 
 STRUCT_INFO *find_struct(const char *const name, const int len) {
+    if (len <= 0) {
+        // 名前の無い構造体
+        return NULL;
+    }
     for (int i = 0; i < registry->count; ++i) {
         STRUCT_INFO *s = registry->memory[i];
         if (s->name_length == len && !memcmp(name, s->type_name, len)) {
