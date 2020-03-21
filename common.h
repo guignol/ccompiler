@@ -115,6 +115,12 @@ struct Case {
     struct Case *next;
 };
 
+enum Increment {
+    NONE = 0,
+    PRE,
+    POST,
+};
+
 // 抽象構文木のノードの型
 struct Node {
     int contextual_suffix; // codegenで使うラベルのsuffix
@@ -143,6 +149,8 @@ struct Node {
 
     // switch
     struct Case *cases;
+
+    enum Increment incr;
 };
 
 typedef struct {

@@ -324,6 +324,17 @@ Type *find_type(const Node *node) {
                 }
             }
             case ND_BLOCK: {
+                // 前置および後置インクリメント
+                switch (node->incr) {
+                    case PRE:
+                        // 計算後の値が必要
+                        return find_type(node->statement->statement);
+                    case POST:
+                        // 計算前の値が必要
+                        return find_type(node->statement);
+                    case NONE:
+                        break;
+                }
                 Node *last;
                 for (last = node->statement;;) {
                     if (last->statement) {
@@ -335,6 +346,9 @@ Type *find_type(const Node *node) {
                 Type *type = find_type(last);
                 return type;
             }
+            case ND_LOGICAL_OR:
+            case ND_LOGICAL_AND:
+                return shared_bool_type();
             case ND_IF:
                 if (node->type) {
                     // 三項演算子

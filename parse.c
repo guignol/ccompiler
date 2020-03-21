@@ -1088,6 +1088,7 @@ Node *unary() {
         Node *const node = primary();
         Node *const block = calloc(1, sizeof(Node));
         block->kind = ND_BLOCK;
+        block->incr = PRE;
         // インクリメントする計算
         Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
         // 変数に代入
@@ -1154,6 +1155,7 @@ Node *primary() {
             if (consume("++")) {
                 Node *const block = calloc(1, sizeof(Node));
                 block->kind = ND_BLOCK;
+                block->incr = POST;
                 // スタックに現在の値を積む
                 block->statement = variable;
                 // インクリメントする計算
