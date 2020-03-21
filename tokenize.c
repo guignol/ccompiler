@@ -7,7 +7,7 @@ int print_with_line_number(const char *loc) {
     // locが含まれている行の開始地点と終了地点を取得
     const char *line_begin = loc;
     while (user_input < line_begin && line_begin[-1] != '\n') {
-        line_begin--;
+        line_begin = line_begin - 1;
     }
     const char *line_end = loc;
     while (*line_end != '\n') {

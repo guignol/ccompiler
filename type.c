@@ -502,7 +502,7 @@ void print_type(FILE *__stream, Type *type) {
     // 配列型を代入する場合は、配列の先頭要素へのポインタを表示する
     const bool point_to_first_element = contains_array && !point_to_array;
 
-    for (int i = 0; i < pointers_outer; --i) {
+    for (int i = 0; i < pointers_outer; i = i -1) {
         fprintf(__stream, "*");
     }
 
