@@ -902,8 +902,11 @@ Node *stmt(void) {
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
-        // TODO voidの場合
-        node->lhs = expr();
+        node->type = find_function(function_name->str, function_name->len)->return_type;
+        if (node->type->ty != TYPE_VOID) {
+            // void以外の場合
+            node->lhs = expr();
+        }
         // returnする関数名
         node->name = function_name->str;
         node->len = function_name->len;

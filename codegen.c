@@ -380,8 +380,11 @@ void gen(Node *node) {
             printf("  add rsp, 8\n");
             return;
         case ND_RETURN:
-            gen(node->lhs);
-            printf("  pop rax\n");
+            if (node->type->ty != TYPE_VOID) {
+                // void以外の場合
+                gen(node->lhs);
+                printf("  pop rax\n");
+            }
             printf("  jmp .Lreturn.%.*s\n", node->len, node->name);
             return;
         case ND_NUM:

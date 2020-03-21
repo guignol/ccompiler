@@ -52,6 +52,7 @@ void assert(char *name, int expected, int actual) {
         exit(1);
     } else {
         printf("%d: \"%s\"\n", count, name);
+        return;
     }
 }
 
@@ -458,6 +459,13 @@ int string_literal_char_array_4() {
 }
 
 void replace_string(char **str_p) {
+    if (!str_p) {
+        return;
+    }
+    if (*str_p == 0) {
+        *str_p = "NULL";
+        return;
+    }
     *str_p = "置き換えました";
 }
 
@@ -467,6 +475,15 @@ int strlen(const char *__s);
 int string_literal_char_array_5() {
     char *moji;
     moji = "プレイスホルダー";
+    replace_string(&moji);
+//    fprintf(stderr, "%s\n", moji);
+    printf("%s\n", moji);
+    return strlen(moji);
+}
+
+// 4
+int string_literal_char_array_6() {
+    char *moji = 0;
     replace_string(&moji);
 //    fprintf(stderr, "%s\n", moji);
     printf("%s\n", moji);
@@ -1672,6 +1689,7 @@ int main() {
     assert("string_literal_char_array_3", 106, string_literal_char_array_3());
     assert("string_literal_char_array_4", 5, string_literal_char_array_4());
     assert("string_literal_char_array_5", 21, string_literal_char_array_5());
+    assert("string_literal_char_array_6", 4, string_literal_char_array_6());
 
     assert("char_literal_1", 5, char_literal_1());
     assert("char_literal_2", 6, char_literal_2());
