@@ -36,16 +36,22 @@ int foo() {
     return bar(11);
 }
 
+int fprintf();
+
+extern void *stderr; // 使われているかどうかは 2>/dev/null で確認
+
 int count;
 
 void assert(char *, int expected, int);
 
 void assert(char *name, int expected, int actual) {
     count = count + 1;
-    printf("%d: \"%s\"\n", count, name);
     if (expected != actual) {
-        printf("=> %d expected but got %d\n", expected, actual);
+        fprintf(stderr, "%d: \"%s\"\n", count, name);
+        fprintf(stderr, "=> %d expected but got %d\n", expected, actual);
         exit(1);
+    } else {
+        printf("%d: \"%s\"\n", count, name);
     }
 }
 

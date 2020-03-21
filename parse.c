@@ -573,8 +573,8 @@ struct Program *parse(Token *tok) {
         // 構造体の型データを取得
         load_struct(type);
 
-        // TODO
         if (extern_) {
+            expect(";");
             Global *g = calloc(1, sizeof(Global));
             g->type = type;
             g->label = identifier->str;
