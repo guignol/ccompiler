@@ -173,6 +173,24 @@ int bool_invert_2() {
     }
 }
 
+_Bool dont_call() {
+    fprintf(stderr, "dont_call!!!!!!!!!!!!!!!!!\n");
+    exit(1);
+}
+
+// 3
+int bool_invert_3() {
+    _Bool a = 0;
+    _Bool b = 1;
+    if (a && dont_call()) {
+        return 0;
+    }
+    if (!a && !!b) {
+        return 3;
+    }
+    return 5;
+}
+
 /////////////////////////////////////////////////
 
 struct Box {
@@ -1662,6 +1680,7 @@ int main() {
 
     assert("bool_invert_1", 11, bool_invert_1());
     assert("bool_invert_2", 11, bool_invert_2());
+    assert("bool_invert_3", 3, bool_invert_3());
 
     assert("use_struct_1", 13, use_struct_1());
     assert("use_struct_2", 7, use_struct_2());

@@ -57,7 +57,7 @@ enum NodeKind {
     ND_LESS,        // <
     ND_LESS_EQL,    // <=
     ND_LOGICAL_OR,  // ||
-//    ND_LOGICAL_AND, // &&
+    ND_LOGICAL_AND, // &&
     ND_RETURN,      // return
     ND_EXPR_STMT,   // 式文
     ND_IF,          // if または 三項演算子

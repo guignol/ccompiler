@@ -968,11 +968,12 @@ Node *logical(void) {
         if (consume("||")) {
             node = new_node(ND_LOGICAL_OR, node, equality());
             node->contextual_suffix = context++;
-        }
-//        else if (consume("&&"))
-//            node = new_node(ND_NOT, ND_LOGICAL_AND, equality());
-        else
+        } else if (consume("&&")) {
+            node = new_node(ND_LOGICAL_AND, node, equality());
+            node->contextual_suffix = context++;
+        } else {
             return node;
+        }
     }
 }
 
@@ -1081,8 +1082,15 @@ Node *unary() {
         return new_node(ND_ADDRESS, operand, NULL);
     } else if (consume("!")) {
         // TODO 非ポインターの構造体は使えない。他は不明
-        Node *operand = primary();
-        return new_node(ND_INVERT, operand, NULL);
+        int count = 1;
+        while (consume("!")) {
+            count++;
+        }
+        Node *node = primary();
+        for (int i = 0; i < count; ++i) {
+            node = new_node(ND_INVERT, node, NULL);
+        }
+        return node;
     } else {
         return primary();
     }

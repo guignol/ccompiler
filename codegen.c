@@ -349,6 +349,31 @@ void gen(Node *node) {
             }
             return;
         }
+        case ND_LOGICAL_AND: {
+            ___COMMENT___("&& begin");
+            // 短絡評価
+            int context = node->contextual_suffix;
+            // 左辺
+            gen(node->lhs);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  je .Lfalse%d\n", context);
+            // 右辺
+            gen(node->rhs);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            printf("  je .Lfalse%d\n", context);
+            // どちらもtrue
+            printf("  mov rax, 1\n");
+            printf("  jmp .Lend%d\n", context);
+            // false
+            printf(".Lfalse%d:\n", context);
+            printf("  mov rax, 0\n");
+            printf(".Lend%d:\n", context);
+            printf("  push rax\n");
+            ___COMMENT___("&& end");
+            return;
+        }
         case ND_LOGICAL_OR: {
             ___COMMENT___("|| begin");
             // 短絡評価
@@ -536,6 +561,7 @@ void gen(Node *node) {
             printf("  movzb rax, al\n");
             break;
         case ND_LOGICAL_OR:
+        case ND_LOGICAL_AND:
         case ND_RETURN:
         case ND_EXPR_STMT:
         case ND_IF:
