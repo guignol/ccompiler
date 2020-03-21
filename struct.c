@@ -50,7 +50,7 @@ void push_struct(STRUCT_INFO *target) {
 
     if (registry->count == registry->capacity) {
         registry->memory = realloc(registry->memory, sizeof(STRUCT_INFO) * registry->capacity * 2);
-        registry->capacity *= 2;
+        registry->capacity = registry->capacity * 2;
     }
     registry->memory[registry->count] = target;
     registry->count++;

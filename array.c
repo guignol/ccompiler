@@ -14,7 +14,7 @@ NodeArray *create_node_array(int capacity) {
 NodeArray *push_node(NodeArray *array, Node *node) {
     if (array->count == array->capacity) {
         array->memory = realloc(array->memory, sizeof(Node) * array->capacity * 2);
-        array->capacity *= 2;
+        array->capacity = array->capacity * 2;
     }
     array->memory[array->count] = node;
     array->count++;
