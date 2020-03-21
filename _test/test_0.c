@@ -132,6 +132,27 @@ int bool_invert_1() {
     }
 }
 
+_Bool global_bool = 22;
+
+// 11
+int bool_invert_2() {
+    int a = !global_bool;
+    _Bool c = &a;
+    if (!a) {
+        if (global_bool) {
+            if (!c) {
+                return 10;
+            } else {
+                return 11;
+            }
+        } else {
+            return 0;
+        }
+    } else {
+        return 5;
+    }
+}
+
 /////////////////////////////////////////////////
 
 struct Box {
@@ -1597,6 +1618,7 @@ int main() {
     assert("enum_switch_3", 10, enum_switch_3());
 
     assert("bool_invert_1", 11, bool_invert_1());
+    assert("bool_invert_2", 11, bool_invert_2());
 
     assert("use_struct_1", 13, use_struct_1());
     assert("use_struct_2", 7, use_struct_2());

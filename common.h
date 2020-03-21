@@ -160,6 +160,7 @@ struct Type {
     enum {
         TYPE_VOID,
         TYPE_CHAR, // 1byte
+        TYPE_BOOL, // 1byte
         TYPE_INT, // 4byte
         TYPE_POINTER, // 8byte
         TYPE_ARRAY, // array_size * sizeof(point_to) byte
@@ -195,6 +196,8 @@ enum Assignable {
 Type *shared_void_type();
 
 Type *shared_char_type();
+
+Type *shared_bool_type();
 
 Type *shared_int_type();
 

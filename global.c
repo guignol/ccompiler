@@ -275,6 +275,7 @@ int reduce_int(Node *node, Node **pointed) {
 enum DIRECTIVE type_to_directive(Type *type) {
     switch (type->ty) {
         case TYPE_CHAR:
+        case TYPE_BOOL:
             return _byte;
         case TYPE_INT:
         case TYPE_ENUM:

@@ -404,7 +404,8 @@ void gen(Node *node) {
         case ND_ASSIGN: {
             ___COMMENT___("assign begin");
             // 型ごとのサイズ
-            const int type_size = get_size(find_type(node));
+            Type *const type = find_type(node);
+            const int type_size = get_size(type);
             const char *const prefix = size_prefix(type_size);
             const char *const register_name = register_name_rax(type_size);
             if (node->rhs->kind == ND_NUM) {
@@ -419,6 +420,13 @@ void gen(Node *node) {
                 gen(node->rhs);
                 printf("  pop rax\n");
                 printf("  pop rdi\n");
+                if (type->ty == TYPE_BOOL) {
+                    // 代入時と反転時はちゃんと1にする
+                    printf("  cmp rax, 0\n");
+                    // 0じゃなければ1をセット
+                    printf("  setne al\n");
+                    printf("  movzb rax, al\n");
+                }
                 printf("  mov %s [rdi], %s\n", prefix, register_name);
                 printf("  push rax\n");
             }
@@ -444,10 +452,10 @@ void gen(Node *node) {
              * CMPはSUBと同じ、ただし第一オペランドが変化しない
              */
             ___COMMENT___("!");
+            printf("  pop rax\n");
             // 0と比較して
             printf("  cmp rax, 0\n");
-//            printf("  test rax, rax\n");
-            // 等しければ1をセット
+            // 等しければ1、そうでなければ0となってるZFをセット
             printf("  sete al\n");
             printf("  movzb rax, al\n");
             printf("  push rax\n");

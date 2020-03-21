@@ -148,6 +148,7 @@ int reserved(const char *p) {
             "int",
             "char",
             "void",
+            "_Bool",
             "struct",
             "enum",
             "switch",

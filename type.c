@@ -15,9 +15,17 @@ Type *shared_char_type() {
     if (!char_type) {
         char_type = calloc(1, sizeof(Type));
         char_type->ty = TYPE_CHAR;
-        char_type->point_to = NULL;
     }
     return char_type;
+}
+
+Type *shared_bool_type() {
+    static Type *bool_type;
+    if (!bool_type) {
+        bool_type = calloc(1, sizeof(Type));
+        bool_type->ty = TYPE_BOOL;
+    }
+    return bool_type;
 }
 
 Type *shared_int_type() {
@@ -25,7 +33,6 @@ Type *shared_int_type() {
     if (!int_type) {
         int_type = calloc(1, sizeof(Type));
         int_type->ty = TYPE_INT;
-        int_type->point_to = NULL;
     }
     return int_type;
 }
@@ -33,14 +40,12 @@ Type *shared_int_type() {
 Type *create_struct_type() {
     Type *struct_type = calloc(1, sizeof(Type));
     struct_type->ty = TYPE_STRUCT;
-    struct_type->point_to = NULL;
     return struct_type;
 }
 
 Type *create_enum_type() {
     Type *enum_type = calloc(1, sizeof(Type));
     enum_type->ty = TYPE_ENUM;
-    enum_type->point_to = NULL;
     return enum_type;
 }
 
@@ -113,6 +118,7 @@ bool are_same_type(Type *left, Type *right) {
         case TYPE_ENUM:
         case TYPE_VOID:
         case TYPE_CHAR:
+        case TYPE_BOOL:
         case TYPE_INT:
             return true;
         case TYPE_POINTER:
@@ -134,10 +140,10 @@ enum Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
     if (are_same_type(left, right)) {
         return AS_SAME;
     }
-    if (left->ty == TYPE_CHAR && right->ty == TYPE_INT) {
-        return AS_SAME;
-    }
-    if (left->ty == TYPE_INT && right->ty == TYPE_CHAR) {
+    bool left_is_number = left->ty == TYPE_CHAR || left->ty == TYPE_BOOL || left->ty == TYPE_INT;
+    bool right_is_number = right->ty == TYPE_CHAR || right->ty == TYPE_BOOL || right->ty == TYPE_INT;
+    if (left_is_number && right_is_number) {
+        // implicit conversion loses integer precisionの場合もある
         return AS_SAME;
     }
     if (left->ty == TYPE_POINTER &&
@@ -185,13 +191,19 @@ enum Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
     // ポインタ型にはあらゆる整数型が入るっぽいので通す
     if (left->ty == TYPE_POINTER &&
         (right->ty == TYPE_INT ||
-         right->ty == TYPE_CHAR)) {
+         right->ty == TYPE_CHAR ||
+         right->ty == TYPE_BOOL)) {
         if (r_zero) {
             // 0の場合は型は一致していると見なせる
             return AS_SAME;
         }
         return AS_INCOMPATIBLE;
     }
+    if (left->ty == TYPE_BOOL) {
+        // TODO たぶんこれでいいはず
+        return AS_INCOMPATIBLE;
+    }
+
     return CANNOT_ASSIGN;
 }
 
@@ -223,6 +235,7 @@ Type *find_type(const Node *node) {
             if (left->ty == right->ty) {
                 switch (left->ty) {
                     case TYPE_CHAR:
+                    case TYPE_BOOL:
                     case TYPE_INT:
                     case TYPE_ENUM:
                         return left;
@@ -253,6 +266,7 @@ Type *find_type(const Node *node) {
             } else {
                 switch (left->ty) {
                     case TYPE_CHAR:
+                    case TYPE_BOOL:
                     case TYPE_INT:
                     case TYPE_ENUM:
                         return right;
@@ -288,6 +302,7 @@ Type *find_type(const Node *node) {
                 switch (type->ty) {
                     case TYPE_VOID:
                     case TYPE_CHAR:
+                    case TYPE_BOOL:
                     case TYPE_INT:
                         error("ポインタ型ではありません\n");
                         exit(1);
@@ -340,6 +355,7 @@ int get_weight(Node *node) {
             error("voidで計算？\n");
             exit(1);
         case TYPE_CHAR:
+        case TYPE_BOOL:
         case TYPE_INT:
         case TYPE_ENUM:
             return 1;
@@ -364,6 +380,7 @@ int get_size(Type *type) {
             error("voidのサイズ？\n");
             exit(1);
         case TYPE_CHAR:
+        case TYPE_BOOL:
             return sizeof(char); // 1
         case TYPE_INT:
         case TYPE_ENUM:
@@ -403,6 +420,7 @@ int get_element_count(Type *type) {
     switch (type->ty) {
         case TYPE_VOID:
         case TYPE_CHAR:
+        case TYPE_BOOL:
         case TYPE_INT:
         case TYPE_POINTER:
             return 1;
@@ -433,6 +451,8 @@ char *base_type_name() {
             return "void";
         case TYPE_CHAR:
             return "char";
+        case TYPE_BOOL:
+            return "bool";
         case TYPE_INT:
             return "int";
         default:

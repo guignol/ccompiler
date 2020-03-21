@@ -68,6 +68,8 @@ Type *consume_base_type() {
         return shared_int_type();
     } else if (consume("char")) {
         return shared_char_type();
+    } else if (consume("_Bool")) {
+        return shared_bool_type();
     } else if (consume("void")) {
         return shared_void_type();
     } else if (consume("struct")) {
@@ -336,6 +338,7 @@ Node *new_node_dereference(Node *operand) {
     switch (type->ty) {
         case TYPE_VOID:
         case TYPE_CHAR:
+        case TYPE_BOOL:
         case TYPE_INT:
             return NULL;
         case TYPE_POINTER:
@@ -1063,6 +1066,7 @@ Node *unary() {
         Node *operand = primary();
         return new_node(ND_ADDRESS, operand, NULL);
     } else if (consume("!")) {
+        // TODO 非ポインターの構造体は使えない。他は不明
         Node *operand = primary();
         return new_node(ND_INVERT, operand, NULL);
     } else {
