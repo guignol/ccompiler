@@ -1117,7 +1117,21 @@ Node *primary() {
             if (!variable) {
                 variable = new_node_global_variable(tok->str, tok->len);
             }
-            return with_accessor(variable);
+            variable = with_accessor(variable);
+            if (consume("++")) {
+                Node *const block = calloc(1, sizeof(Node));
+                block->kind = ND_BLOCK;
+                // スタックに現在の値を積む
+                block->statement = variable;
+                // インクリメントする計算
+                Node *const incremented = pointer_calc(ND_ADD, variable, new_node_num(1));
+                // 変数に代入
+                Node *const assign = new_node_assign(tok->str, variable, incremented);
+                // 代入式の値をスタックに残さない
+                variable->statement = new_node(ND_EXPR_STMT, assign, NULL);
+                return block;
+            }
+            return variable;
         }
     }
 

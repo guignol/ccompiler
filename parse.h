@@ -28,6 +28,7 @@ extern Token *token;
 //				| ("+" | "-" | "*"* | "&" | "!")? primary
 // primary    = literal_str
 //				| ident "(" args? ")"
+//				| ident ("++")?
 // 				| "(" expr ")"
 // 				| "({" stmt "})"
 //				| (primary | num_char) ( "(" index ")" )? index*

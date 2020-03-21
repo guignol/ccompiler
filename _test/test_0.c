@@ -315,6 +315,17 @@ int use_struct_6() {
     return s->a + s->c;
 }
 
+// 3
+int use_struct_7() {
+    test_s s_;
+    test_s *s = &s_;
+    s->a = 0;
+    s->a++;
+    s->a++;
+    s->a++;
+    return s->a;
+}
+
 /////////////////////////////////////////////////
 
 // 11
@@ -332,7 +343,7 @@ int scope_for_1() {
 int scope_for_2() {
     int a = 0;
     int i = 3;
-    for (int i = 0; i < 10; i = i + 1) {
+    for (int i = 0; i < 10; i++) {
         a = i;
     }
     return a + i;
@@ -342,8 +353,8 @@ int scope_for_2() {
 int scope_for_3() {
     int temp = 0;
     int sum = 0;
-    for (int i = 0; i < 10; i = i + 1) {
-        for (int j = 0; j < 10; j = j + 1) {
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
             temp = j;
 //            printf("i: %d, j: %d\n", i, j);
             if (i == j) {
@@ -390,7 +401,7 @@ int scoped_2() {
 // 55
 int scoped_3() {
     int sum = 0;
-    for (int i = 0; i < 10; i = i + 1) {
+    for (int i = 0; i < 10; i++) {
         int a = 0;
         while (1) {
             a = a + 1;
@@ -640,9 +651,9 @@ int char_array_and_pointer_8() {
                     {61, 62, 63},
             },
     };
-    for (int i = 0; i < 2; i = i + 1) {
-        for (int j = 0; j < 3; j = j + 1) {
-            for (int k = 0; k < 4; k = k + 1) {
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 4; k++) {
                 printf("%d, ", charata[i][j][k]);
                 if (k == 3) {
                     printf("\n");
@@ -659,7 +670,7 @@ int char_array_and_pointer_9() {
     int array[][2] = {{1, 2},
                       {3, 4},
                       {5, 6}};
-    for (int i = 0; i < sizeof(array) / sizeof(int); i = i + 1) {
+    for (int i = 0; i < sizeof(array) / sizeof(int); i++) {
         a = a + array[0][i];
     }
     return a;
@@ -906,7 +917,7 @@ int global_variable_21() {
 
 // 39
 int global_variable_22() {
-    for (int i = 0; i < sizeof(global_string) / sizeof(char); i = i + 1) {
+    for (int i = 0; i < sizeof(global_string) / sizeof(char); i++) {
         int a = i;
         while (26 <= a) {
             a = a - 26;
@@ -1384,7 +1395,7 @@ int function_8() { if (0) return 3; else return 12; }
 // 1
 int function_9() {
     int i;
-    for (i = 0; i < 10; i = i + 1) {
+    for (i = 0; i < 10; i++) {
         hoge(i, fibonacci(i));
     }
     return 1;
@@ -1469,7 +1480,7 @@ int block_1() {
     int b;
     b = 1;
     int i;
-    for (i = 0; i < 100; i = i + 1) {
+    for (i = 0; i < 100; i++) {
         a = a + 1;
         b = a + 1;
         if (a == 10) return a;
@@ -1520,7 +1531,7 @@ int block_5() {
     int i;
     a = 0;
     b = 1;
-    for (i = 0; i < 10; i = i + 1) {
+    for (i = 0; i < 10; i++) {
         a = a + 1;
         b = a + 1;
     }
@@ -1534,7 +1545,7 @@ int block_6() {
     int i;
     a = 0;
     b = 1;
-    for (i = 0; i < 10; i = i + 1) {
+    for (i = 0; i < 10; i++) {
         a = a + 1;
         b = a + 1;
     }
@@ -1546,7 +1557,7 @@ int block_7() {
     int value;
     int i;
     value = 0;
-    for (i = 0; i < 10; i = i + 1) { value = value + 1; }
+    for (i = 0; i < 10; i++) { value = value + 1; }
     return value;
 }
 
@@ -1584,14 +1595,14 @@ int assert_others(void) {
         int a;
         a = 0;
         int i;
-        for (i = 0; i < 10; i = i + 1) a = a + 1;
+        for (i = 0; i < 10; i++) a = a + 1;
         99;
     }));
     assert("", 10, ({
         int a;
         a = 0;
         int i;
-        for (i = 0; i < 10; i = i + 1) a = a + 1;
+        for (i = 0; i < 10; i++) a = a + 1;
         a;
     }));
     assert("", 10, ({
@@ -1704,6 +1715,7 @@ int main() {
     assert("use_struct_4", 11, use_struct_4());
     assert("use_struct_5", 5, use_struct_5());
     assert("use_struct_6", 49, use_struct_6());
+    assert("use_struct_7", 3, use_struct_7());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

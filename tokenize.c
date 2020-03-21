@@ -159,7 +159,7 @@ char *kws[] = {
 };
 
 // two-letter punctuator
-char *ops[] = {"==", "!=", "<=", ">=", "||", "&&", "->"};
+char *ops[] = {"==", "!=", "<=", ">=", "||", "&&", "->", "++"};
 
 int reserved(const char *p) {
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
@@ -235,7 +235,7 @@ Token *tokenize(char *p) {
             p++;
             continue;
         }
-        // プリプロセスの名残
+        // プリプロセスの名残を無視する
         if (start_with(p, "#")) {
             p++;
             while (!start_with(p, "\n")) {
