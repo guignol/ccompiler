@@ -75,13 +75,14 @@ Type *consume_base_type() {
     } else if (consume("struct")) {
         Type *const base = create_struct_type();
         Token *const t = consume_ident();
-        if (!t) {
-            error_at(token->str, "構造体の名前がありません");
-            exit(1);
-        }
+//        if (!t) {
+//            // TODO 名前無くても良いはず
+//            error_at(token->str, "構造体の名前がありません");
+//            exit(1);
+//        }
         base->struct_info = malloc(sizeof(STRUCT_INFO));
-        base->struct_info->type_name = t->str;
-        base->struct_info->name_length = t->len;
+        base->struct_info->type_name = t ? t->str : NULL;
+        base->struct_info->name_length = t ? t->len : 0;
         base->struct_info->members = NULL;
         // 定義済みの型情報があれば読み込む
         load_struct(base);
@@ -526,17 +527,25 @@ bool consume_struct_def_or_dec(Type *base) {
             current_scope = saved_scope;
             stack_size = saved_stack;
 
-            expect(";");
             push_struct(base->struct_info);
             return true;
         }
         // 構造体の宣言
-        if (consume(";")) {
+        if (check(";")) {
             push_struct(base->struct_info);
             return true;
         }
     }
     return false;
+}
+
+void consume_type_def(Type *base) {
+    Type *type = base;
+    while (consume("*")) {
+        type = create_pointer_type(type);
+    }
+    Token *alias = consume_ident();
+    register_type_def(type, alias);
 }
 
 struct Program *parse(Token *tok) {
@@ -559,6 +568,10 @@ struct Program *parse(Token *tok) {
         }
         // 構造体の定義または宣言
         if (consume_struct_def_or_dec(base)) {
+            if (typedef_) {
+                consume_type_def(base);
+            }
+            expect(";");
             continue;
         }
         // enumの定義
@@ -566,14 +579,8 @@ struct Program *parse(Token *tok) {
             continue;
         }
         if (typedef_) {
-            // TODO 構造体やenumは宣言ではなく定義の場合もある
-            Type *type = base;
-            while (consume("*")) {
-                type = create_pointer_type(type);
-            }
-            Token *alias = consume_ident();
+            consume_type_def(base);
             expect(";");
-            register_type_def(type, alias);
             continue;
         }
         Type *type;

@@ -255,15 +255,15 @@ void *malloc(int /* TODO size_t */ __size);
 
 void free(void *__ptr);
 
-struct test_s {
+typedef struct {
     int a;
     char c;
-};
+} test_s;
 
 // 5
 int use_struct_5() {
-    int size = sizeof(struct test_s);
-    struct test_s *s = malloc(size);
+    int size = sizeof(test_s);
+    test_s *s = malloc(size);
     // TODO
 //    s->a = 1;
 //    s->c = 'c';
