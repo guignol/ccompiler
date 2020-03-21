@@ -152,8 +152,9 @@ char *kws[] = {
         "enum",
         "switch",
         "case",
-        "break",
         "default",
+        "break",
+        "continue",
         "extern",
         "typedef",
 };

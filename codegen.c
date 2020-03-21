@@ -236,6 +236,11 @@ void gen(Node *node) {
             printf("  jmp  .Lbreak%d\n", context);
             return;
         }
+        case ND_CONTINUE: {
+            const int context = node->contextual_suffix;
+            printf("  jmp  .Lcontinue%d\n", context);
+            return;
+        }
         case ND_SWITCH: {
             ___COMMENT___("switch begin");
             // 条件式の右辺を評価してスタックに積む
@@ -286,7 +291,7 @@ void gen(Node *node) {
             if (node->lhs)
                 gen(node->lhs);
             // begin
-            printf(".Lbegin%d:\n", context);
+            printf(".Lcontinue%d:\n", context);
             // condition
             if (node->condition) {
                 gen(node->condition);
@@ -302,7 +307,7 @@ void gen(Node *node) {
                 gen(node->rhs);
             }
             // goto begin
-            printf("  jmp .Lbegin%d\n", context);
+            printf("  jmp .Lcontinue%d\n", context);
             // end:
             printf(".Lbreak%d:\n", context);
             ___COMMENT___("for end");
@@ -312,7 +317,7 @@ void gen(Node *node) {
             ___COMMENT___("while begin");
             int context = node->contextual_suffix;
             // begin:
-            printf(".Lbegin%d:\n", context);
+            printf(".Lcontinue%d:\n", context);
             // condition
             gen(node->condition);
             printf("  pop rax\n");
@@ -321,7 +326,7 @@ void gen(Node *node) {
             printf("  je  .Lbreak%d\n", context);
             // execute & goto begin
             gen(node->lhs);
-            printf("  jmp .Lbegin%d\n", context);
+            printf("  jmp .Lcontinue%d\n", context);
             // end:
             printf(".Lbreak%d:\n", context);
             ___COMMENT___("while end");
@@ -569,6 +574,7 @@ void gen(Node *node) {
         case ND_FOR:
         case ND_SWITCH:
         case ND_BREAK:
+        case ND_CONTINUE:
         case ND_BLOCK:
         case ND_FUNC:
         case ND_NUM:

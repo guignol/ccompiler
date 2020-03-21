@@ -65,6 +65,7 @@ enum NodeKind {
     ND_FOR,         // for
     ND_SWITCH,      // switch
     ND_BREAK,       // break
+    ND_CONTINUE,    // continue
     ND_BLOCK,       // { }
     ND_FUNC,        // 関数コール
     ND_NUM,         // 整数 : int

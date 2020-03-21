@@ -366,6 +366,21 @@ int scope_for_3() {
     return sum;
 }
 
+// 10
+int scope_for_4() {
+    int i;
+    for (i = 0;; i++) {
+        i++;
+        if (i == 10) {
+            break;
+        } else {
+            continue;
+        }
+        return 4;
+    }
+    return i;
+}
+
 // 1
 int scoped_1() {
     int a_0; // 4
@@ -412,6 +427,21 @@ int scoped_3() {
         sum = sum + a;
     }
     return sum;
+}
+
+// 10
+int scoped_4() {
+    int i = 0;
+    while (1) {
+        i++;
+        if (i == 10) {
+            break;
+        } else {
+            continue;
+        }
+        return 4;
+    }
+    return i;
 }
 
 /////////////////////////////////////////////////
@@ -1719,9 +1749,12 @@ int main() {
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());
+    assert("scope_for_3", 45, scope_for_3());
+    assert("scope_for_4", 10, scope_for_4());
     assert("scoped_1", 1, scoped_1());
     assert("scoped_2", 3, scoped_2());
     assert("scoped_3", 55, scoped_3());
+    assert("scoped_4", 10, scoped_4());
 
     // TODO ポインタを返す関数のテストを追加
     assert("string_return", 8, string_return());

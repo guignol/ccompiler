@@ -7,6 +7,7 @@ Token *token;
 
 int context = 0;
 int_stack *break_stack = NULL;
+int_stack *continue_stack = NULL;
 
 /////////////////////////
 
@@ -837,6 +838,8 @@ Node *stmt(void) {
         node->contextual_suffix = context++;
         // break先をスタックに積む
         push_int(&break_stack, node->contextual_suffix);
+        // continue先をスタックに積む
+        push_int(&continue_stack, node->contextual_suffix);
         node->kind = ND_WHILE;
         expect("(");
         node->condition = expr();
@@ -844,12 +847,16 @@ Node *stmt(void) {
         node->lhs = stmt();
         // break先をスタックから降ろす
         pop_int(&break_stack);
+        // continue先をスタックから降ろす
+        pop_int(&continue_stack);
         return node;
     } else if (consume("for")) {
         Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = context++;
         // break先をスタックに積む
         push_int(&break_stack, node->contextual_suffix);
+        // continue先をスタックに積む
+        push_int(&continue_stack, node->contextual_suffix);
         node->kind = ND_FOR;
         expect("(");
         // 使い捨てるのでallocしない
@@ -885,6 +892,8 @@ Node *stmt(void) {
         node->execution = stmt();
         // break先をスタックから降ろす
         pop_int(&break_stack);
+        // continue先をスタックから降ろす
+        pop_int(&continue_stack);
         // スコープを戻す
         current_scope = disposable.parent;
         return node;
@@ -924,6 +933,16 @@ Node *stmt(void) {
         Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = peek_int(&break_stack);
         node->kind = ND_BREAK;
+        expect(";");
+        return node;
+    } else if (consume("continue")) {
+        if (continue_stack == NULL) {
+            error_at(token->str, "ここではcontinueできません");
+            exit(1);
+        }
+        Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = peek_int(&break_stack);
+        node->kind = ND_CONTINUE;
         expect(";");
         return node;
     } else {
