@@ -486,6 +486,7 @@ Variable *consume_member() {
         error_at(token->str, "構造体のメンバーにvoidは使えません");
         exit(1);
     }
+    // TODO 構造体やenumがここで定義される場合がある
     Type *type;
     Token *const identifier = consume_type(base, &type);
     if (!identifier) {
@@ -576,6 +577,7 @@ struct Program *parse(Token *tok) {
         }
         // enumの定義
         if (consume_enum_def(base)) {
+            expect(";");
             continue;
         }
         if (typedef_) {

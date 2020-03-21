@@ -156,17 +156,19 @@ typedef struct STRUCT_INFO STRUCT_INFO;
 
 typedef struct ENUM_INFO ENUM_INFO;
 
+enum TypeType {
+    TYPE_VOID,
+    TYPE_CHAR, // 1byte
+    TYPE_BOOL, // 1byte
+    TYPE_INT, // 4byte
+    TYPE_POINTER, // 8byte
+    TYPE_ARRAY, // array_size * sizeof(point_to) byte
+    TYPE_STRUCT,
+    TYPE_ENUM,
+};
+
 struct Type {
-    enum {
-        TYPE_VOID,
-        TYPE_CHAR, // 1byte
-        TYPE_BOOL, // 1byte
-        TYPE_INT, // 4byte
-        TYPE_POINTER, // 8byte
-        TYPE_ARRAY, // array_size * sizeof(point_to) byte
-        TYPE_STRUCT,
-        TYPE_ENUM,
-    } ty;
+    enum TypeType ty;
     Type *point_to;
 
     /**

@@ -55,7 +55,6 @@ bool consume_enum_def(Type *base) {
 
         } while (consume(","));
         expect("}");
-        expect(";");
         return true;
     }
     return false;
