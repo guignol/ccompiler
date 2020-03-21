@@ -33,9 +33,13 @@ void push_struct(STRUCT_INFO *target) {
     const int len = target->name_length;
     STRUCT_INFO *const same_struct = find_struct(name, len);
     if (same_struct) {
-        //　TODO 定義が重複する場合
         if (same_struct->members == NULL) {
             same_struct->members = target->members;
+        } else if (target->members != NULL) {
+            //　定義が重複する場合
+            error_at(token->str, "構造体の定義が重複しています");
+            exit(1);
+
         }
         return;
     }

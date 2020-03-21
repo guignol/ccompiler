@@ -79,7 +79,7 @@ Node *new_node_string_literal() {
 
 Global *find_global_variable_by_name(char *name, int len) {
     for (Global *g = globals->head; g; g = g->next) {
-        if (g->label_length == len && !strncmp(name, g->label, g->label_length)) {
+        if (g->label_length == len && !strncmp(name, g->label, len)) {
             return g;
         }
     }

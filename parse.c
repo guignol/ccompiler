@@ -91,30 +91,20 @@ Type *consume_base_type() {
 }
 
 Token *consume_type(Type *base, Type **r_type) {
-    // TODO 構造体の宣言、定義は、ローカルでも可能で
-    //  定義なしに宣言しただけでもポインタなら変数宣言が可能（たぶんサイズが決まるから）
-    //  グローバルならどこかで定義されていれば利用可能（対応は後回しの予定）
-    // TODO
-    //  本来この関数は、型か変数宣言を読むもの
-    //  構造体は、さらに型定義と型宣言のパターンがある
-    //  しかし、そうすると、型定義が存在するかどうかはどこでやる？
-    //  他の型は、この関数が呼ぶ前後で、型の存在は前提している
-    //  型の定義や宣言ができない場所からも呼ばれる
     /**
-     * TODO どこから呼ばれてるか
+     * どこから呼ばれてるか
      * 1. グローバル（ファイル）スコープ
      * 2. ローカルでの変数宣言および初期化 local_variable_declaration
      *   2.1. 関数スコープまたはブロックスコープ
      *   2.2. forスコープ
      * 3. sizeof
-     * TODO 何ができるか
+     *
+     * 何ができるか
      * 型利用（変数宣言、関数宣言、関数定義、サイズ）
      * 1. 型定義　型宣言 型利用
      * 2.1. 型定義　型宣言 型利用
      * 2.2. 型利用
      * 3. 型利用（identifierなし）
-     *
-     * TODO とりあえずグローバルから？
      */
     bool backwards = consume("(");
     Type *type = backwards ? NULL : base;
@@ -549,6 +539,7 @@ struct Program *parse(Token *tok) {
     head_f.next = NULL;
     Function *tail_f = &head_f;
     while (!at_eof()) {
+        bool typedef_ = consume("typedef");
         bool extern_ = consume("extern");
         Type *base = consume_base_type();
         if (!base) {
@@ -561,6 +552,17 @@ struct Program *parse(Token *tok) {
         }
         // enumの定義
         if (consume_enum_def(base)) {
+            continue;
+        }
+        if (typedef_) {
+            // TODO 構造体やenumは宣言ではなく定義の場合もある
+            Type *type = base;
+            while (consume("*")) {
+                type = create_pointer_type(type);
+            }
+            Token *alias = consume_ident();
+            expect(";");
+            register_type_def(type, alias);
             continue;
         }
         Type *type;

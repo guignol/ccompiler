@@ -24,7 +24,9 @@ add_executable(ccompiler
         struct.c
         switch.c
         tokenize.c
-        type.c)
+        type.c
+        type_def.c
+        )
 
 # TODO IDEに認識させるため
 add_executable(test_0
