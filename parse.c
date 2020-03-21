@@ -24,7 +24,53 @@ struct Scope {
 Scope *current_scope;
 Token *function_name;
 
-Variable *find_local_variable(Scope *scope, char *name, int len);
+//////////////////////////////////////////////////////////////////
+
+Variable *find_local_variable(Scope *const scope, char *name, int len) {
+    if (!scope) {
+        return NULL;
+    }
+    for (Variable *var = scope->variables; var; var = var->next) {
+        if (var->len == len && !memcmp(name, var->name, len)) {
+            return var;
+        }
+    }
+    return find_local_variable(scope->parent, name, len);
+}
+
+Variable *register_variable(char *str, int len, Type *type) {
+    Variable *variable = calloc(1, sizeof(Variable));
+    variable->type = type;
+    variable->name = str;
+    variable->len = len;
+    variable->type_size = get_size(type);
+    variable->offset = stack_size = stack_size + variable->type_size;
+    variable->index = -1;
+    if (current_scope->variables) {
+        current_scope->tail = current_scope->tail->next = variable;
+    } else {
+        current_scope->variables = variable;
+        current_scope->tail = variable;
+    }
+    return variable;
+}
+
+void void_arg(char *loc) {
+    Variable *void_arg = calloc(1, sizeof(Variable));
+    void_arg->type = shared_void_type();
+    void_arg->name = NULL;
+    void_arg->len = 0;
+    void_arg->type_size = 0;
+    void_arg->offset = 0;
+    void_arg->index = -1;
+    if (current_scope->variables) {
+        error_at(loc, "引数にvoid以外のものがあります？");
+        exit(1);
+    } else {
+        current_scope->variables = void_arg;
+        current_scope->tail = void_arg;
+    }
+}
 
 //////////////////////////////////////////////////////////////////
 
@@ -182,6 +228,80 @@ Token *consume_type(Type *base, Type **r_type) {
     return identifier_token;
 }
 
+Variable *consume_member() {
+    Type *base = consume_base_type();
+    if (!base) {
+        error_at(token->str, "構造体のメンバーが正しく定義されていません");
+        exit(1);
+    }
+    if (base->ty == TYPE_VOID) {
+        // TODO voidポインタ
+        error_at(token->str, "構造体のメンバーにvoidは使えません");
+        exit(1);
+    }
+    // TODO 構造体やenumがここで定義される場合がある
+    Type *type;
+    Token *const identifier = consume_type(base, &type);
+    if (!identifier) {
+        error_at(token->str, "構造体のメンバーに名前がありません");
+        exit(1);
+    }
+    Variable *variable = register_variable(identifier->str, identifier->len, type);
+    expect(";");
+    return variable;
+}
+
+bool consume_struct_def_or_dec(Type *base) {
+    if (base->ty == TYPE_STRUCT) {
+        // 構造体の定義
+        if (consume("{")) {
+            // 前処理
+            const int saved_stack = stack_size; // TODO ローカルで定義されると効いてくる
+            stack_size = 0;
+            Scope *const saved_scope = current_scope;
+            {
+                // 構造体メンバー名の重複チェックに使う
+                Scope disposable;
+                disposable.variables = NULL;
+                disposable.parent = NULL;
+                current_scope = &disposable;
+            }
+
+            STRUCT_INFO *const struct_info = base->struct_info;
+            Variable head;
+            head.next = NULL;
+            Variable *tail = &head;
+            do {
+                Variable *const member = consume_member();
+                tail = tail->next = member;
+            } while (!consume("}"));
+            struct_info->members = head.next;
+
+            // 後処理
+            current_scope = saved_scope;
+            stack_size = saved_stack;
+
+            push_struct(base->struct_info);
+            return true;
+        }
+        // 構造体の宣言
+        if (check(";")) {
+            push_struct(base->struct_info);
+            return true;
+        }
+    }
+    return false;
+}
+
+void consume_type_def(Type *base) {
+    Type *type = base;
+    while (consume("*")) {
+        type = create_pointer_type(type);
+    }
+    Token *alias = consume_ident();
+    register_type_def(type, alias);
+}
+
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
 void expect(char *op) {
@@ -226,52 +346,6 @@ char *copy(char *str, int len) {
     strncpy(copied, str, len);
     copied[len] = '\0';
     return copied;
-}
-
-Variable *find_local_variable(Scope *const scope, char *name, int len) {
-    if (!scope) {
-        return NULL;
-    }
-    for (Variable *var = scope->variables; var; var = var->next) {
-        if (var->len == len && !memcmp(name, var->name, len)) {
-            return var;
-        }
-    }
-    return find_local_variable(scope->parent, name, len);
-}
-
-Variable *register_variable(char *str, int len, Type *type) {
-    Variable *variable = calloc(1, sizeof(Variable));
-    variable->type = type;
-    variable->name = str;
-    variable->len = len;
-    variable->type_size = get_size(type);
-    variable->offset = stack_size = stack_size + variable->type_size;
-    variable->index = -1;
-    if (current_scope->variables) {
-        current_scope->tail = current_scope->tail->next = variable;
-    } else {
-        current_scope->variables = variable;
-        current_scope->tail = variable;
-    }
-    return variable;
-}
-
-void void_arg(char *loc) {
-    Variable *void_arg = calloc(1, sizeof(Variable));
-    void_arg->type = shared_void_type();
-    void_arg->name = NULL;
-    void_arg->len = 0;
-    void_arg->type_size = 0;
-    void_arg->offset = 0;
-    void_arg->index = -1;
-    if (current_scope->variables) {
-        error_at(loc, "引数にvoid以外のものがあります？");
-        exit(1);
-    } else {
-        current_scope->variables = void_arg;
-        current_scope->tail = void_arg;
-    }
 }
 
 void assert_assignable(char *loc,
@@ -471,80 +545,6 @@ Node *with_accessor(Node *left) {
 }
 
 //////////////////////////////////////////////////////////////////
-
-Variable *consume_member() {
-    Type *base = consume_base_type();
-    if (!base) {
-        error_at(token->str, "構造体のメンバーが正しく定義されていません");
-        exit(1);
-    }
-    if (base->ty == TYPE_VOID) {
-        // TODO voidポインタ
-        error_at(token->str, "構造体のメンバーにvoidは使えません");
-        exit(1);
-    }
-    // TODO 構造体やenumがここで定義される場合がある
-    Type *type;
-    Token *const identifier = consume_type(base, &type);
-    if (!identifier) {
-        error_at(token->str, "構造体のメンバーに名前がありません");
-        exit(1);
-    }
-    Variable *variable = register_variable(identifier->str, identifier->len, type);
-    expect(";");
-    return variable;
-}
-
-bool consume_struct_def_or_dec(Type *base) {
-    if (base->ty == TYPE_STRUCT) {
-        // 構造体の定義
-        if (consume("{")) {
-            // 前処理
-            const int saved_stack = stack_size; // TODO ローカルで定義されると効いてくる
-            stack_size = 0;
-            Scope *const saved_scope = current_scope;
-            {
-                // 構造体メンバー名の重複チェックに使う
-                Scope disposable;
-                disposable.variables = NULL;
-                disposable.parent = NULL;
-                current_scope = &disposable;
-            }
-
-            STRUCT_INFO *const struct_info = base->struct_info;
-            Variable head;
-            head.next = NULL;
-            Variable *tail = &head;
-            do {
-                Variable *const member = consume_member();
-                tail = tail->next = member;
-            } while (!consume("}"));
-            struct_info->members = head.next;
-
-            // 後処理
-            current_scope = saved_scope;
-            stack_size = saved_stack;
-
-            push_struct(base->struct_info);
-            return true;
-        }
-        // 構造体の宣言
-        if (check(";")) {
-            push_struct(base->struct_info);
-            return true;
-        }
-    }
-    return false;
-}
-
-void consume_type_def(Type *base) {
-    Type *type = base;
-    while (consume("*")) {
-        type = create_pointer_type(type);
-    }
-    Token *alias = consume_ident();
-    register_type_def(type, alias);
-}
 
 struct Program *parse(Token *tok) {
     token = tok;
@@ -902,6 +902,7 @@ Node *stmt(void) {
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
+        // TODO voidの場合
         node->lhs = expr();
         // returnする関数名
         node->name = function_name->str;
