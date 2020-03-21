@@ -336,6 +336,8 @@ Node *new_node_dereference(Node *operand) {
         case TYPE_CHAR:
         case TYPE_BOOL:
         case TYPE_INT:
+        case TYPE_STRUCT:
+        case TYPE_ENUM:
             return NULL;
         case TYPE_POINTER:
             if (type->point_to->ty == TYPE_ARRAY) {
@@ -343,14 +345,6 @@ Node *new_node_dereference(Node *operand) {
             }
         case TYPE_ARRAY:
             return new_node(ND_DEREF, operand, NULL);
-        case TYPE_STRUCT:
-            // TODO
-            error("[parse]構造体実装中\n");
-            exit(1);
-        case TYPE_ENUM:
-            // TODO
-            error("[parse]enum実装中\n");
-            exit(1);
     }
 }
 
@@ -458,14 +452,22 @@ Node *with_dot(Node *left, Token *const dot) {
 Node *with_accessor(Node *left) {
     // [] access
     left = with_index(left);
-    // . access
-    Token *const dot = consume(".");
-    if (dot) {
-        Node *const dot_access = with_dot(left, dot);
-        return with_accessor(dot_access);
-    } else {
-        return left;
+    {
+        Token *const dot = consume(".");
+        if (dot) {
+            Node *const dot_access = with_dot(left, dot);
+            return with_accessor(dot_access);
+        }
     }
+    {
+        Token *const arrow = consume("->");
+        if (arrow) {
+            left = new_node_dereference(left);
+            Node *const dot_access = with_dot(left, arrow);
+            return with_accessor(dot_access);
+        }
+    }
+    return left;
 }
 
 //////////////////////////////////////////////////////////////////

@@ -283,11 +283,17 @@ typedef struct {
 int use_struct_5() {
     int size = sizeof(test_s);
     test_s *s = malloc(size);
-    // TODO
-//    s->a = 1;
-//    s->c = 'c';
     free(s);
     return size;
+}
+
+// 49
+int use_struct_6() {
+    test_s s_;
+    test_s *s = &s_;
+    s->a = -50;
+    s->c = 'c';
+    return s->a + s->c;
 }
 
 /////////////////////////////////////////////////
@@ -1645,6 +1651,7 @@ int main() {
     assert("use_struct_3", 55, use_struct_3());
     assert("use_struct_4", 11, use_struct_4());
     assert("use_struct_5", 5, use_struct_5());
+    assert("use_struct_6", 49, use_struct_6());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

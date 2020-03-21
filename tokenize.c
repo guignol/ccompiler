@@ -158,8 +158,8 @@ char *kws[] = {
         "typedef",
 };
 
-// Multi-letter punctuator
-char *ops[] = {"==", "!=", "<=", ">=", "||"};
+// two-letter punctuator
+char *ops[] = {"==", "!=", "<=", ">=", "||", "->"};
 
 int reserved(const char *p) {
     for (int i = 0; i < sizeof(kws) / sizeof(*kws); i++) {
