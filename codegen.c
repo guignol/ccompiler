@@ -318,12 +318,12 @@ void gen(Node *node) {
             printf("  pop rax\n");
             printf("  cmp rax, 0\n");
             // if 0, goto end
-            printf("  je  .Lend%d\n", context);
+            printf("  je  .Lbreak%d\n", context);
             // execute & goto begin
             gen(node->lhs);
             printf("  jmp .Lbegin%d\n", context);
             // end:
-            printf(".Lend%d:\n", context);
+            printf(".Lbreak%d:\n", context);
             ___COMMENT___("while end");
             return;
         }

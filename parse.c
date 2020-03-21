@@ -835,11 +835,15 @@ Node *stmt(void) {
     } else if (consume("while")) {
         Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = context++;
+        // break先をスタックに積む
+        push_int(&break_stack, node->contextual_suffix);
         node->kind = ND_WHILE;
         expect("(");
         node->condition = expr();
         expect(")");
         node->lhs = stmt();
+        // break先をスタックから降ろす
+        pop_int(&break_stack);
         return node;
     } else if (consume("for")) {
         Node *const node = calloc(1, sizeof(Node));

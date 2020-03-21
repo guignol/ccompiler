@@ -387,6 +387,22 @@ int scoped_2() {
     return a;
 }
 
+// 55
+int scoped_3() {
+    int sum = 0;
+    for (int i = 0; i < 10; i = i + 1) {
+        int a = 0;
+        while (1) {
+            a = a + 1;
+            if (i < a) {
+                break;
+            }
+        }
+        sum = sum + a;
+    }
+    return sum;
+}
+
 /////////////////////////////////////////////////
 
 char *moji_direct_return() {
@@ -1693,6 +1709,7 @@ int main() {
     assert("scope_for_2", 12, scope_for_2());
     assert("scoped_1", 1, scoped_1());
     assert("scoped_2", 3, scoped_2());
+    assert("scoped_3", 55, scoped_3());
 
     // TODO ポインタを返す関数のテストを追加
     assert("string_return", 8, string_return());
