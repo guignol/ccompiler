@@ -602,7 +602,7 @@ void arguments_to_stack(Variable *param) {
 void prepare_stack(int stack_size, Variable *const parameters) {
     if (stack_size) {
         while (stack_size % 16 != 0) {
-            stack_size += 1;
+            stack_size++;
         }
         // スタックに領域を確保
         printf("  sub rsp, %i  # stack size\n", stack_size);

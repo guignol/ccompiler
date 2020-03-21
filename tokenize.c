@@ -228,7 +228,8 @@ Token *tokenize(char *p) {
         }
 
         if (start_with(p, "//")) {
-            p += 2;
+            p++;
+            p++;
             while (!start_with(p, "\n")) {
                 p++;
             }
@@ -245,11 +246,13 @@ Token *tokenize(char *p) {
             continue;
         }
         if (start_with(p, "/*")) {
-            p += 2;
+            p++;
+            p++;
             while (!start_with(p, "*/")) {
                 p++;
             }
-            p += 2;
+            p++;
+            p++;
             continue;
         }
         if (start_with(p, SINGLE_QUOTE)) {
@@ -299,7 +302,7 @@ Token *tokenize(char *p) {
         int len = reserved(p);
         if (0 < len) {
             cur = new_token(TK_RESERVED, cur, p, len);
-            p += len;
+            p = p + len;
             continue;
         }
 
