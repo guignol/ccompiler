@@ -25,7 +25,7 @@ extern Token *token;
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary　| "%" unary)*
 // unary      = "sizeof" unary
-//				| ("+" | "-" | "*"* | "&" | "!")? primary
+//				| ("+" | "++" | "-" | "*"* | "&" | "!")? primary
 // primary    = literal_str
 //				| ident "(" args? ")"
 //				| ident ("++")?

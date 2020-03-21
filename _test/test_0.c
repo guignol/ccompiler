@@ -354,7 +354,7 @@ int scope_for_3() {
     int temp = 0;
     int sum = 0;
     for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
+        for (int j = 0; j < 10; ++j) {
             temp = j;
 //            printf("i: %d, j: %d\n", i, j);
             if (i == j) {
@@ -652,7 +652,7 @@ int char_array_and_pointer_8() {
             },
     };
     for (int i = 0; i < 2; i++) {
-        for (int j = 0; j < 3; j++) {
+        for (int j = 0; j < 3; ++j) {
             for (int k = 0; k < 4; k++) {
                 printf("%d, ", charata[i][j][k]);
                 if (k == 3) {

@@ -1064,6 +1064,20 @@ Node *unary() {
         return new_node_num(size);
     } else if (consume("+")) {
         return primary();
+    } else if (consume("++")) {
+        char *const loc = token->str;
+        Node *const node = primary();
+        Node *const block = calloc(1, sizeof(Node));
+        block->kind = ND_BLOCK;
+        // インクリメントする計算
+        Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
+        // 変数に代入
+        Node *const assign = new_node_assign(loc, node, incremented);
+        // 代入式の値をスタックに残さない
+        block->statement = new_node(ND_EXPR_STMT, assign, NULL);
+        // スタックに現在の値を積む
+        block->statement->statement = node;
+        return block;
     } else if (consume("-")) {
         return new_node(ND_SUB, new_node_num(0), primary());
     } else if (consume("*")) {
