@@ -140,6 +140,7 @@ struct Box {
 //    char a;
 //    int c;
 };
+typedef struct Box Box;
 struct Box box;
 
 struct A;
@@ -155,9 +156,9 @@ struct Box a_a[3];
 struct Box a_0;
 struct Box a_1;
 struct Box a_2;
-struct Box a_0;
-struct Box a_1;
-struct Box a_2;
+Box a_0;
+Box a_1;
+Box a_2;
 
 // 13
 int use_struct_1() {
@@ -198,7 +199,7 @@ int use_struct_3() {
 
 // 11
 int use_struct_4() {
-    struct Box b;
+    Box b;
     b.a = 22;
     b.b = 33;
     // グローバル変数にローカル変数を代入

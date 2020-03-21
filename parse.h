@@ -158,4 +158,6 @@ struct Case *consume_case();
 
 void register_type_def(Type *type, Token *alias_t);
 
+Type *find_alias(Token *alias_t);
+
 //////////////////////////////////////////////////////////////////

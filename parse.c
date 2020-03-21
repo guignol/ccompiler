@@ -57,7 +57,14 @@ Token *consume_num_char() {
 }
 
 Type *consume_base_type() {
-    if (consume("int")) {
+    Token *const alias = consume_ident();
+    if (alias) {
+        Type *type = find_alias(alias);
+        if (type == NULL) {
+            token = alias;
+        }
+        return type;
+    } else if (consume("int")) {
         return shared_int_type();
     } else if (consume("char")) {
         return shared_char_type();
@@ -471,6 +478,7 @@ Variable *consume_member() {
         exit(1);
     }
     if (base->ty == TYPE_VOID) {
+        // TODO voidポインタ
         error_at(token->str, "構造体のメンバーにvoidは使えません");
         exit(1);
     }
