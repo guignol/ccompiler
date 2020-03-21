@@ -110,6 +110,25 @@ int enum_switch_3() {
     }
 }
 
+// 29
+int enum_switch_4() {
+    int sum;
+    for (int i = 0; i < 10; i = i + 1) {
+        switch (i) {
+            default:
+            case 0:
+                sum = sum + 1;
+            case 1:
+                sum = sum + 2;
+                break;
+            case 2:
+                sum = sum + 3;
+                break;
+        }
+    }
+    return sum;
+}
+
 /////////////////////////////////////////////////
 
 // 11
@@ -1616,6 +1635,7 @@ int main() {
     assert("enum_switch_1", 11, enum_switch_1());
     assert("enum_switch_2", 9, enum_switch_2());
     assert("enum_switch_3", 10, enum_switch_3());
+    assert("enum_switch_4", 29, enum_switch_4());
 
     assert("bool_invert_1", 11, bool_invert_1());
     assert("bool_invert_2", 11, bool_invert_2());

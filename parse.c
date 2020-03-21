@@ -885,6 +885,8 @@ Node *stmt(void) {
     } else if (consume("switch")) {
         Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = context++;
+        // break先をスタックに積む
+        push_int(&break_stack, node->contextual_suffix);
         node->kind = ND_SWITCH;
         expect("(");
         node->lhs = expr();
@@ -892,6 +894,8 @@ Node *stmt(void) {
         expect("{");
         node->cases = consume_case();
         expect("}");
+        // break先をスタックから降ろす
+        pop_int(&break_stack);
         return node;
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
@@ -903,11 +907,11 @@ Node *stmt(void) {
         expect(";");
         return node;
     } else if (consume("break")) {
-        Node *const node = calloc(1, sizeof(Node));
         if (break_stack == NULL) {
             error_at(token->str, "ここではbreakできません");
             exit(1);
         }
+        Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = peek_int(&break_stack);
         node->kind = ND_BREAK;
         expect(";");
