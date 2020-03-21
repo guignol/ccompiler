@@ -976,10 +976,18 @@ Node *ternary(void) {
         char *const loc = token->str;
         expect(":");
         ternary->rhs = expr();
-        // 型チェック
-        Type *const type = find_type(ternary->lhs);
-        assert_assignable(loc, type, ternary->rhs);
-        ternary->type = type;
+        if (ternary->lhs->kind == ND_NUM && ternary->lhs->val == 0) {
+            // 左が0で右がポインタの場合に備える
+            // 型チェック
+            Type *const type = find_type(ternary->rhs);
+            assert_assignable(loc, type, ternary->lhs);
+            ternary->type = type;
+        } else {
+            // 型チェック
+            Type *const type = find_type(ternary->lhs);
+            assert_assignable(loc, type, ternary->rhs);
+            ternary->type = type;
+        }
         return ternary;
     }
     return node;
