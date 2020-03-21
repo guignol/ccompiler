@@ -149,7 +149,12 @@ int FUNC_LESS_EQL(int left, int right) {
     return left <= right;
 }
 
-int reduce_compare(Node *node, int (*operation)(int, int)) {
+enum Compare {
+    LESS,
+    LESS_EQL
+};
+
+int reduce_compare(Node *node, enum Compare operation) {
     Node *left_p = NULL;
     Node *right_p = NULL;
     int left = reduce_int(node->lhs, &left_p);
@@ -172,7 +177,12 @@ int reduce_compare(Node *node, int (*operation)(int, int)) {
         // ポインタ無しの場合はそのまま計算
         // ポインタ2つの場合はオフセット値のみで計算
         if (same_pointer(left_p, right_p)) {
-            return operation(left, right);
+            switch (operation) {
+                case LESS:
+                    return FUNC_LESS(left, right);
+                case LESS_EQL:
+                    return FUNC_LESS_EQL(left, right);
+            }
         }
     }
     error_at(loc__, "ぽっぽえええええええええええええ\n");
@@ -233,10 +243,10 @@ int reduce_int(Node *node, Node **pointed) {
             //  【NG】 1 < (global_string + 3);は不可能
             //  【OK】 (1 - 2) < (global_string + 3);
             //  等号が逆およびイコールつきでも同様
-            return reduce_compare(node, FUNC_LESS);
+            return reduce_compare(node, LESS);
         }
         case ND_LESS_EQL:
-            return reduce_compare(node, FUNC_LESS_EQL);
+            return reduce_compare(node, LESS_EQL);
         case ND_EQL: {
             // TODO ポインタのことは未確認
             int left = reduce_int(node->lhs, NULL);
