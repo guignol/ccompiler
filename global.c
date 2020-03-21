@@ -53,7 +53,7 @@ Global *get_string_literal(char *name, int len) {
     Global *g = find_string_literal(name, len);
     if (!g) {
         char *const label = new_label();
-        const int label_length = (int) strlen(label);
+        const int label_length = /** (int) */ strlen(label);
         g = calloc(1, sizeof(Global));
         g->label = label;
         g->label_length = label_length;

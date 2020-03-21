@@ -657,7 +657,7 @@ void consume_function_parameter() {
             expect_just_declare = true;
         }
         char *name = t ? t->str : NULL;
-        int len = t ? (int) t->len : 0;
+        int len = t ? /** (int) */ t->len : 0;
         Variable *param = register_variable(name, len, param_type);
         param->index = i++;
         if (!consume(",")) {

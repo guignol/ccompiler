@@ -392,7 +392,7 @@ int get_size(Type *type) {
         case TYPE_POINTER:
             return sizeof(int *); // 8
         case TYPE_ARRAY:
-            return (int) type->array_size * get_size(type->point_to);
+            return /** (int) */ type->array_size * get_size(type->point_to);
         case TYPE_STRUCT: {
             if (type->struct_info->members == NULL) {
                 // サイズが不要なグローバル変数の宣言を除くと、
@@ -429,7 +429,7 @@ int get_element_count(Type *type) {
         case TYPE_POINTER:
             return 1;
         case TYPE_ARRAY:
-            return (int) type->array_size * get_element_count(type->point_to);
+            return /** (int) */ type->array_size * get_element_count(type->point_to);
         case TYPE_STRUCT:
             // TODO
             error("[type]構造体実装中\n");

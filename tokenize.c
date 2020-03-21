@@ -23,8 +23,8 @@ int print_with_line_number(const char *loc) {
     }
 
     int indent = fprintf(stderr, "%d: ", line_num);
-    fprintf(stderr, "%.*s\n", (int) (line_end - line_begin), line_begin);
-    int pos = (int) (loc - line_begin) + indent;
+    fprintf(stderr, "%.*s\n", /** (int) */ (line_end - line_begin), line_begin);
+    int pos = /** (int) */ (loc - line_begin) + indent;
     return pos;
 }
 
@@ -257,7 +257,7 @@ Token *tokenize(char *p) {
             while (!start_with(p + 1, SINGLE_QUOTE)) {
                 p++;
             }
-            const int length = (int) (p - start) + 1;
+            const int length = /** (int) */ (p - start) + 1;
             cur = new_token(TK_CHAR_LITERAL, cur, start, length);
             if (1 < length && *(p - 1) == '\\') {
                 cur->val = escaped(p);
@@ -326,7 +326,7 @@ Token *tokenize(char *p) {
         if (is_number(*p)) {
             cur = new_token(TK_NUM, cur, p, 0);
             char *q = p;
-            cur->val = (int) strtol(p, &p, 10);
+            cur->val = /** (int) */ strtol(p, &p, 10);
             cur->len = p - q;
             continue;
         }
