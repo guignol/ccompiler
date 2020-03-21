@@ -156,6 +156,13 @@ enum Assignable are_assignable_type(Type *left, Type *right, bool r_zero) {
          */
         return AS_SAME;
     }
+    // voidポインタ
+    if (left->ty == TYPE_POINTER && right->ty == TYPE_POINTER) {
+        // TODO 配列がどういう扱いか未確認
+        if (left->point_to->ty == TYPE_VOID || right->point_to->ty == TYPE_VOID) {
+            return AS_SAME;
+        }
+    }
     // ポインタ型にはあらゆるポインタ型が入るっぽいので通す
     if (left->ty == TYPE_POINTER &&
         (right->ty == TYPE_POINTER ||

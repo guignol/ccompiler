@@ -19,7 +19,7 @@ Node *consume_case_statement() {
 
 struct Case *consume_default_() {
     if (consume("default")) {
-        struct Case *const case_ = malloc(sizeof(struct Case *));
+        struct Case *const case_ = malloc(sizeof(struct Case));
         case_->default_ = true;
         expect(":");
         case_->statement = consume_case_statement();
@@ -31,7 +31,7 @@ struct Case *consume_default_() {
 struct Case *consume_case_() {
     if (consume("case")) {
         Token *const var = consume_ident();
-        struct Case *const case_ = malloc(sizeof(struct Case *));
+        struct Case *const case_ = malloc(sizeof(struct Case));
         case_->default_ = false;
         if (var) {
             Global *const member = find_enum_member(var->str, var->len);

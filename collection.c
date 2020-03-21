@@ -9,7 +9,7 @@ struct int_stack {
 };
 
 int_stack *create_int_stack() {
-    int_stack *stack = malloc(sizeof(int_stack *));
+    int_stack *stack = malloc(sizeof(int_stack));
     return stack;
 }
 

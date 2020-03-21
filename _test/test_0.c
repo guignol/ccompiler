@@ -1,6 +1,4 @@
 
-#include <signal.h>
-
 int printf();
 
 void exit();
@@ -201,7 +199,8 @@ int use_struct_4() {
     return box.b - box.a;
 }
 
-//int use_struct_3() {
+// 5 TODO ローカルの構造体宣言
+//int use_struct_x() {
 //    // ローカルで宣言した時点でグローバルの同名構造体は隠蔽される
 //    struct A;
 ////    struct A a;
@@ -212,12 +211,34 @@ int use_struct_4() {
 //    struct A *a;
 //    a = 0;
 ////    a++;
-////    struct A {
-////        int a;
-////    };
+//    struct A {
+//        int aa;     // 4byte
+//        char cc;    // 1byte
+//    };
 ////    struct A array[3];
+//    int size = sizeof(struct A); // 5 byte
+//    return a + 1; // sizeof(struct A);
 //}
 
+void *malloc(int /* TODO size_t */ __size);
+
+void free(void *__ptr);
+
+struct test_s {
+    int a;
+    char c;
+};
+
+// 5
+int use_struct_5() {
+    int size = sizeof(struct test_s);
+    struct test_s *s = malloc(size);
+    // TODO
+//    s->a = 1;
+//    s->c = 'c';
+    free(s);
+    return size;
+}
 
 /////////////////////////////////////////////////
 
@@ -1554,6 +1575,7 @@ int main() {
     assert("use_struct_2", 7, use_struct_2());
     assert("use_struct_3", 55, use_struct_3());
     assert("use_struct_4", 11, use_struct_4());
+    assert("use_struct_5", 5, use_struct_5());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());

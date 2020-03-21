@@ -481,6 +481,7 @@ struct Program *parse(Token *tok) {
             if (func) {
                 tail_f = tail_f->next = func;
             }
+            function_name = NULL;
         } else {
             // グローバル変数
             global_variable_declaration(identifier, type);
@@ -504,7 +505,12 @@ void consume_function_parameter() {
     Type *param_type;
     bool expect_just_declare = false;
     while ((param_type = consume_base_type())) {
+        // TODO 複数
+        if (consume("*")) {
+            param_type = create_pointer_type(param_type);
+        }
         // void
+        // voidポインタは先へ進む
         if (param_type->ty == TYPE_VOID) {
             if (i == 0) {
                 void_arg(token->str);
@@ -512,10 +518,6 @@ void consume_function_parameter() {
             }
             error_at(token->str, "voidとその他の引数は共存できません");
             exit(1);
-        }
-        // TODO 複数
-        if (consume("*")) {
-            param_type = create_pointer_type(param_type);
         }
         Token *t = consume_ident();
         if (t) {
@@ -738,7 +740,7 @@ Node *local_variable_declaration(Type *base) {
         error_at(token->str, "変数名がありません");
         exit(1);
     }
-    if (base->ty == TYPE_STRUCT && type->struct_info->members == NULL) {
+    if (base->ty == TYPE_STRUCT && base->struct_info->members == NULL) {
         // ポインタや配列は、構造体の型が必要になったときに存在しないとエラーになるはず
         error_at(token->str, "構造体の定義がありません");
         exit(1);
