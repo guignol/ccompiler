@@ -286,78 +286,78 @@ Type *find_type(const Node *node) {
                         exit(1);
                 }
             }
-            case ND_VARIABLE:
-            case ND_VARIABLE_ARRAY:
+        }
+        case ND_VARIABLE:
+        case ND_VARIABLE_ARRAY:
+            return node->type;
+        case ND_ASSIGN: {
+            // 左右の型が同じことは検証済みの前提
+            return find_type(node->lhs);
+        }
+        case ND_ADDRESS: {
+            Type *operand_type = find_type(node->lhs);
+            return create_pointer_type(operand_type);
+        }
+        case ND_INVERT:
+            return shared_int_type();
+        case ND_DEREF:
+        case ND_DEREF_ARRAY_POINTER: {
+            // オペランドがポインタ型または配列型であることは検証済みの前提
+            Type *type = find_type(node->lhs);
+            switch (type->ty) {
+                case TYPE_VOID:
+                case TYPE_CHAR:
+                case TYPE_BOOL:
+                case TYPE_INT:
+                    error("ポインタ型ではありません\n");
+                    exit(1);
+                case TYPE_POINTER:
+                case TYPE_ARRAY:
+                    return type->point_to;
+                case TYPE_STRUCT:
+                    // TODO
+                    error("[type]構造体実装中\n");
+                    exit(1);
+                case TYPE_ENUM:
+                    // TODO
+                    error("[type]enum実装中\n");
+                    exit(1);
+            }
+        }
+        case ND_BLOCK: {
+            // 前置および後置インクリメント
+            switch (node->incr) {
+                case PRE:
+                    // 計算後の値が必要
+                    return find_type(node->statement->statement);
+                case POST:
+                    // 計算前の値が必要
+                    return find_type(node->statement);
+                case NONE:
+                    break;
+            }
+            Node *last;
+            for (last = node->statement;;) {
+                if (last->statement) {
+                    last = last->statement;
+                } else {
+                    break;
+                }
+            }
+            Type *type = find_type(last);
+            return type;
+        }
+        case ND_LOGICAL_OR:
+        case ND_LOGICAL_AND:
+            return shared_bool_type();
+        case ND_IF:
+            if (node->type) {
+                // 三項演算子
                 return node->type;
-            case ND_ASSIGN: {
-                // 左右の型が同じことは検証済みの前提
-                return find_type(node->lhs);
             }
-            case ND_ADDRESS: {
-                Type *operand_type = find_type(node->lhs);
-                return create_pointer_type(operand_type);
-            }
-            case ND_INVERT:
-                return shared_int_type();
-            case ND_DEREF:
-            case ND_DEREF_ARRAY_POINTER: {
-                // オペランドがポインタ型または配列型であることは検証済みの前提
-                Type *type = find_type(node->lhs);
-                switch (type->ty) {
-                    case TYPE_VOID:
-                    case TYPE_CHAR:
-                    case TYPE_BOOL:
-                    case TYPE_INT:
-                        error("ポインタ型ではありません\n");
-                        exit(1);
-                    case TYPE_POINTER:
-                    case TYPE_ARRAY:
-                        return type->point_to;
-                    case TYPE_STRUCT:
-                        // TODO
-                        error("[type]構造体実装中\n");
-                        exit(1);
-                    case TYPE_ENUM:
-                        // TODO
-                        error("[type]enum実装中\n");
-                        exit(1);
-                }
-            }
-            case ND_BLOCK: {
-                // 前置および後置インクリメント
-                switch (node->incr) {
-                    case PRE:
-                        // 計算後の値が必要
-                        return find_type(node->statement->statement);
-                    case POST:
-                        // 計算前の値が必要
-                        return find_type(node->statement);
-                    case NONE:
-                        break;
-                }
-                Node *last;
-                for (last = node->statement;;) {
-                    if (last->statement) {
-                        last = last->statement;
-                    } else {
-                        break;
-                    }
-                }
-                Type *type = find_type(last);
-                return type;
-            }
-            case ND_LOGICAL_OR:
-            case ND_LOGICAL_AND:
-                return shared_bool_type();
-            case ND_IF:
-                if (node->type) {
-                    // 三項演算子
-                    return node->type;
-                }
-            default: {
-                error("値を返さないはずです？\n");
-                exit(1);
-            }
+        default: {
+            error("値を返さないはずです？\n");
+            exit(1);
         }
     }
 }
@@ -516,7 +516,7 @@ void print_type(FILE *__stream, Type *type) {
     // 配列型を代入する場合は、配列の先頭要素へのポインタを表示する
     const bool point_to_first_element = contains_array && !point_to_array;
 
-    for (int i = 0; i < pointers_outer; i = i -1) {
+    for (int i = 0; i < pointers_outer; i = i - 1) {
         fprintf(__stream, "*");
     }
 
