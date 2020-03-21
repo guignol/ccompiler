@@ -756,13 +756,13 @@ Node *block_statement(void) {
 }
 
 Node *local_variable_declaration(Type *base) {
-    if (base->ty == TYPE_VOID) {
-        error_at(token->str, "変数にvoidは使えません");
-        exit(1);
-    }
     // 変数の登録
     Type *type;
     Token *const identifier = consume_type(base, &type);
+    if (type->ty == TYPE_VOID) {
+        error_at(token->str, "変数にvoidは使えません");
+        exit(1);
+    }
     if (!identifier) {
         error_at(token->str, "変数名がありません");
         exit(1);
