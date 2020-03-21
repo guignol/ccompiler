@@ -614,8 +614,7 @@ void consume_function_parameter() {
     Type *param_type;
     bool expect_just_declare = false;
     while ((param_type = consume_base_type())) {
-        // TODO 複数
-        if (consume("*")) {
+        while (consume("*")) {
             param_type = create_pointer_type(param_type);
         }
         // void

@@ -410,6 +410,23 @@ int string_literal_char_array_4() {
     return sizeof(moji) / sizeof(*moji);
 }
 
+void replace_string(char **str_p) {
+    *str_p = "置き換えました";
+}
+
+int strlen(const char *__s);
+
+// 21
+int string_literal_char_array_5() {
+    char *moji;
+    moji = "プレイスホルダー";
+    replace_string(&moji);
+//    fprintf(stderr, "%s\n", moji);
+    printf("%s\n", moji);
+    return strlen(moji);
+}
+
+
 // 5
 int char_literal_1() {
     char a = 65;
@@ -1604,6 +1621,7 @@ int main() {
     assert("string_literal_char_array_2", 0, string_literal_char_array_2());
     assert("string_literal_char_array_3", 106, string_literal_char_array_3());
     assert("string_literal_char_array_4", 5, string_literal_char_array_4());
+    assert("string_literal_char_array_5", 21, string_literal_char_array_5());
 
     assert("char_literal_1", 5, char_literal_1());
     assert("char_literal_2", 6, char_literal_2());
