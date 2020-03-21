@@ -614,7 +614,7 @@ void generate_function(Function *func) {
 
 void generate_global(Global *globals) {
     for (Global *global = globals; global; global = global->next) {
-        if (global->target->directive == _enum) {
+        if (!global->target || global->target->directive == _enum) {
             continue;
         }
         // ラベル

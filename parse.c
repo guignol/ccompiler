@@ -24,6 +24,8 @@ struct Scope {
 Scope *current_scope;
 Token *function_name;
 
+Variable *find_local_variable(Scope *scope, char *name, int len);
+
 //////////////////////////////////////////////////////////////////
 
 Token *consume(char *op) {
@@ -88,7 +90,102 @@ Type *consume_base_type() {
     }
 }
 
-Token *consume_type(Type *base, Type **r_type);
+Token *consume_type(Type *base, Type **r_type) {
+    // TODO 構造体の宣言、定義は、ローカルでも可能で
+    //  定義なしに宣言しただけでもポインタなら変数宣言が可能（たぶんサイズが決まるから）
+    //  グローバルならどこかで定義されていれば利用可能（対応は後回しの予定）
+    // TODO
+    //  本来この関数は、型か変数宣言を読むもの
+    //  構造体は、さらに型定義と型宣言のパターンがある
+    //  しかし、そうすると、型定義が存在するかどうかはどこでやる？
+    //  他の型は、この関数が呼ぶ前後で、型の存在は前提している
+    //  型の定義や宣言ができない場所からも呼ばれる
+    /**
+     * TODO どこから呼ばれてるか
+     * 1. グローバル（ファイル）スコープ
+     * 2. ローカルでの変数宣言および初期化 local_variable_declaration
+     *   2.1. 関数スコープまたはブロックスコープ
+     *   2.2. forスコープ
+     * 3. sizeof
+     * TODO 何ができるか
+     * 型利用（変数宣言、関数宣言、関数定義、サイズ）
+     * 1. 型定義　型宣言 型利用
+     * 2.1. 型定義　型宣言 型利用
+     * 2.2. 型利用
+     * 3. 型利用（identifierなし）
+     *
+     * TODO とりあえずグローバルから？
+     */
+    bool backwards = consume("(");
+    Type *type = backwards ? NULL : base;
+    while (consume("*")) {
+        Type *pointer = create_pointer_type(type);
+        type = pointer;
+    }
+    Token *identifier_token = consume_ident();
+    // 変数の宣言
+    if (identifier_token && current_scope) {
+        // 同じスコープ内で同名の変数は宣言できない
+        // グローバル変数との重複は可能
+        Scope *parent = current_scope->parent;
+        current_scope->parent = NULL; // 現在のスコープのみ
+        if (find_local_variable(current_scope, identifier_token->str, identifier_token->len)) {
+            error_at(token->str, "変数名またはメンバー名が重複しています");
+            exit(1);
+        }
+        current_scope->parent = parent;
+    }
+    Type *backwards_pointer = NULL;
+    if (backwards) {
+        expect(")");
+        backwards_pointer = type;
+        type = base;
+    }
+
+    while (consume("[")) {
+        /**
+         * intの配列
+         * int p[2]
+         *
+         * ポインタの配列
+         * int *p[3];
+         *
+         * ポインタへのポインタの配列
+         * int **p[4];
+         *
+         * intの配列の配列
+         * int p[5][6];
+         *
+         * 配列へのポインタ
+         * int (*p)[];
+         */
+        Token *size_token = consume_num_char();
+        if (!size_token) {
+            // 最初の[]のみ、初期化式では右辺からサイズを決定できる
+            // 配列へのポインタの場合も同様
+            if (type->ty == TYPE_ARRAY) {
+                error_at(token->str, "配列のサイズを省略できません");
+                exit(1);
+            }
+            type = create_array_type(type, 0);
+            expect("]");
+            continue;
+        }
+        int array_size = size_token->val;
+        type = create_array_type(type, array_size);
+        expect("]");
+    }
+    if (backwards_pointer) {
+        Type *edge = backwards_pointer;
+        while (edge->point_to) {
+            edge = edge->point_to;
+        }
+        edge->point_to = type;
+        type = edge;
+    }
+    *r_type = type;
+    return identifier_token;
+}
 
 // 次のトークンが期待している記号のときには、トークンを1つ読み進める。
 // それ以外の場合にはエラーを報告する。
@@ -452,9 +549,10 @@ struct Program *parse(Token *tok) {
     head_f.next = NULL;
     Function *tail_f = &head_f;
     while (!at_eof()) {
+        bool extern_ = consume("extern");
         Type *base = consume_base_type();
         if (!base) {
-            error_at(token->str, "関数の型が正しく定義されていません");
+            error_at(token->str, "関数または変数の型が正しく定義されていません");
             exit(1);
         }
         // 構造体の定義または宣言
@@ -474,6 +572,17 @@ struct Program *parse(Token *tok) {
         // TODO グローバル変数では定義が後ろにあっても使える
         // 構造体の型データを取得
         load_struct(type);
+
+        // TODO
+        if (extern_) {
+            Global *g = calloc(1, sizeof(Global));
+            g->type = type;
+            g->label = identifier->str;
+            g->label_length = identifier->len;
+            add_globals(g);
+            continue;
+        }
+
         if (consume("(")) {
             // 関数(宣言の場合はNULLが返ってくる)
             function_name = identifier;
@@ -563,9 +672,8 @@ NodeArray *function_body() {
 Function *function(Type *return_type) {
     // 他の関数との重複チェックは、宣言か定義かを確認する必要があるためもう少し先で
     // 他のグローバル変数や関数との名前重複チェック
-    if (find_global_variable(function_name->str, function_name->len)) {
-        error("関数の名前が");
-        error_at(function_name->str, "グローバル変数と重複しています");
+    if (find_global_variable_by_name(function_name->str, function_name->len)) {
+        error_at(function_name->str, "関数の名前がグローバル変数と重複しています");
         exit(1);
     }
     if (return_type->ty == TYPE_ARRAY) {
@@ -629,103 +737,6 @@ Node *block_statement(void) {
 
     current_scope = disposable.parent;
     return node;
-}
-
-Token *consume_type(Type *base, Type **r_type) {
-    // TODO 構造体の宣言、定義は、ローカルでも可能で
-    //  定義なしに宣言しただけでもポインタなら変数宣言が可能（たぶんサイズが決まるから）
-    //  グローバルならどこかで定義されていれば利用可能（対応は後回しの予定）
-    // TODO
-    //  本来この関数は、型か変数宣言を読むもの
-    //  構造体は、さらに型定義と型宣言のパターンがある
-    //  しかし、そうすると、型定義が存在するかどうかはどこでやる？
-    //  他の型は、この関数が呼ぶ前後で、型の存在は前提している
-    //  型の定義や宣言ができない場所からも呼ばれる
-    /**
-     * TODO どこから呼ばれてるか
-     * 1. グローバル（ファイル）スコープ
-     * 2. ローカルでの変数宣言および初期化 local_variable_declaration
-     *   2.1. 関数スコープまたはブロックスコープ
-     *   2.2. forスコープ
-     * 3. sizeof
-     * TODO 何ができるか
-     * 型利用（変数宣言、関数宣言、関数定義、サイズ）
-     * 1. 型定義　型宣言 型利用
-     * 2.1. 型定義　型宣言 型利用
-     * 2.2. 型利用
-     * 3. 型利用（identifierなし）
-     *
-     * TODO とりあえずグローバルから？
-     */
-    bool backwards = consume("(");
-    Type *type = backwards ? NULL : base;
-    while (consume("*")) {
-        Type *pointer = create_pointer_type(type);
-        type = pointer;
-    }
-    Token *identifier_token = consume_ident();
-    // 変数の宣言
-    if (identifier_token && current_scope) {
-        // 同じスコープ内で同名の変数は宣言できない
-        // グローバル変数との重複は可能
-        Scope *parent = current_scope->parent;
-        current_scope->parent = NULL; // 現在のスコープのみ
-        if (find_local_variable(current_scope, identifier_token->str, identifier_token->len)) {
-            error_at(token->str, "変数名またはメンバー名が重複しています");
-            exit(1);
-        }
-        current_scope->parent = parent;
-    }
-    Type *backwards_pointer = NULL;
-    if (backwards) {
-        expect(")");
-        backwards_pointer = type;
-        type = base;
-    }
-
-    while (consume("[")) {
-        /**
-         * intの配列
-         * int p[2]
-         *
-         * ポインタの配列
-         * int *p[3];
-         *
-         * ポインタへのポインタの配列
-         * int **p[4];
-         *
-         * intの配列の配列
-         * int p[5][6];
-         *
-         * 配列へのポインタ
-         * int (*p)[];
-         */
-        Token *size_token = consume_num_char();
-        if (!size_token) {
-            // 最初の[]のみ、初期化式では右辺からサイズを決定できる
-            // 配列へのポインタの場合も同様
-            if (type->ty == TYPE_ARRAY) {
-                error_at(token->str, "配列のサイズを省略できません");
-                exit(1);
-            }
-            type = create_array_type(type, 0);
-            expect("]");
-            continue;
-        }
-        int array_size = size_token->val;
-        type = create_array_type(type, array_size);
-        expect("]");
-    }
-    if (backwards_pointer) {
-        Type *edge = backwards_pointer;
-        while (edge->point_to) {
-            edge = edge->point_to;
-        }
-        edge->point_to = type;
-        type = edge;
-    }
-    *r_type = type;
-    return identifier_token;
 }
 
 Node *local_variable_declaration(Type *base) {

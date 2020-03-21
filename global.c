@@ -77,20 +77,21 @@ Node *new_node_string_literal() {
     return node;
 }
 
-Global *find_global_variable(char *name, int len) {
-    for (Global *g = globals->head; g; g = g->next)
-        if (g->label_length == len && !strncmp(name, g->label, g->label_length))
+Global *find_global_variable_by_name(char *name, int len) {
+    for (Global *g = globals->head; g; g = g->next) {
+        if (g->label_length == len && !strncmp(name, g->label, g->label_length)) {
             return g;
+        }
+    }
     return NULL;
 }
 
 Global *find_enum_member(char *name, int len) {
-    Global *const enum_m = find_global_variable(name, len);
-    if (enum_m && enum_m->target->directive == _enum) {
+    Global *const enum_m = find_global_variable_by_name(name, len);
+    if (enum_m && enum_m->target && enum_m->target->directive == _enum) {
         return enum_m;
     }
     return NULL;
-    
 }
 
 //////////////////////////////////////////////////////////////////
@@ -396,7 +397,7 @@ Directives *global_initializer(char *const loc, Type *type, Node *const node) {
 //////////////////////////////////////////////////////////////////
 
 Node *new_node_global_variable(char *str, int len) {
-    Global *variable = find_global_variable(str, len);
+    Global *variable = find_global_variable_by_name(str, len);
     if (!variable) {
         error_at(str, "変数の宣言がありません。");
         exit(1);
@@ -418,8 +419,12 @@ Node *new_node_global_variable(char *str, int len) {
 
 void global_variable_declaration(Token *variable_name, Type *type) {
     // 他のグローバル変数や関数との名前重複チェック
-    if (find_global_variable(variable_name->str, variable_name->len)) {
-        // TODO 同名で同型のグローバル変数は宣言できる
+    Global *const previously = find_global_variable_by_name(
+            variable_name->str,
+            variable_name->len
+    );
+    // 同じファイル内で、同名で同型のグローバル変数は宣言できる
+    if (previously && !are_same_type(previously->type, type)) {
         error_at(variable_name->str, "グローバル変数の名前が他のグローバル変数と重複しています");
         exit(1);
     }
@@ -473,6 +478,11 @@ void global_variable_declaration(Token *variable_name, Type *type) {
     add_globals(g);
     char *loc = token->str;
     if (consume("=")) {
+        if (previously && previously->target && previously->target->directive != _zero) {
+            // 0初期化以外の初期化が行われている場合
+            error_at(loc, "このグローバル変数は既に初期化済みです");
+            exit(1);
+        }
         // TODO 構造体の初期化 https://ja.cppreference.com/w/c/language/struct_initialization
         if (type->ty == TYPE_ARRAY) {
             if (token->kind == TK_STR_LITERAL) {
@@ -518,6 +528,11 @@ void global_variable_declaration(Token *variable_name, Type *type) {
             g->target = global_initializer(loc, type, node);
         }
     } else {
+        if (previously && previously->target && previously->target->directive == _zero) {
+            // 0初期化済み
+            expect(";");
+            return;
+        }
         if (type->ty == TYPE_ARRAY && type->array_size == 0) {
             error_at(loc, "配列のサイズが指定されていません。");
             exit(1);

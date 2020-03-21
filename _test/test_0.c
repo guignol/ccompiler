@@ -149,6 +149,9 @@ struct Box a_a[3];
 struct Box a_0;
 struct Box a_1;
 struct Box a_2;
+struct Box a_0;
+struct Box a_1;
+struct Box a_2;
 
 // 13
 int use_struct_1() {

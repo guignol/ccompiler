@@ -130,7 +130,7 @@ void add_globals(Global *next);
 
 Global *get_globals();
 
-Global *find_global_variable(char *name, int len);
+Global *find_global_variable_by_name(char *name, int len);
 
 Global *find_enum_member(char *name, int len);
 
