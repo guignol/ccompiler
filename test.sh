@@ -12,11 +12,11 @@
 
 ./build/ccompiler "--file" "$(pwd)/_test/test_0.c" >tmp.s
 gcc -static -o tmp tmp.s
-if [ "$#" == 0 ]; then
+#if [ "$#" == 0 ]; then
   ./tmp >/dev/null
-else
-  ./tmp
-fi
+#else
+#  ./tmp
+#fi
 
 if [ $? == 0 ]; then
   echo "OK"
@@ -48,17 +48,32 @@ test_self_compile() {
   rm -f build_tmp/${FILE_NAME}_.c
 }
 
-test_self_compile "array"
-test_self_compile "codegen"
-test_self_compile "collection"
-test_self_compile "enum"
-test_self_compile "function_declare"
-test_self_compile "global"
-test_self_compile "goto"
-test_self_compile "main"
-test_self_compile "parse"
-test_self_compile "struct"
-test_self_compile "switch"
-test_self_compile "tokenize"
-test_self_compile "type"
-test_self_compile "type_def"
+FILES=()
+FILES+=("array")
+FILES+=("codegen")
+FILES+=("collection")
+FILES+=("enum")
+FILES+=("function_declare")
+FILES+=("global")
+FILES+=("goto")
+FILES+=("main")
+FILES+=("parse")
+FILES+=("struct")
+FILES+=("switch")
+FILES+=("tokenize")
+FILES+=("type")
+FILES+=("type_def")
+
+i=0
+for e in "${FILES[@]}"; do
+    test_self_compile "${e}"
+    ((i++))
+done
+
+cd build_tmp || exit 1
+gcc -static -o tmp "${FILES[@]/%/_.s}"
+#gcc -c -o "parse_.o" "parse_.s"
+#gcc -c -o "struct_.o" "struct_.s"
+if [ $? == 0 ]; then
+  echo "OK"
+fi
