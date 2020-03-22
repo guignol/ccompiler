@@ -1213,32 +1213,43 @@ Node *primary() {
 
     Token *tok = consume_ident();
     if (tok) {
+        Node *node;
         if (consume("(")) {
             // 関数呼び出し
-            return new_node_function_call(tok);
+            node = new_node_function_call(tok);
         } else {
             // 変数アクセス
-            Node *variable = new_node_local_variable(tok->str, tok->len);
-            if (!variable) {
-                variable = new_node_global_variable(tok->str, tok->len);
+            node = new_node_local_variable(tok->str, tok->len);
+            if (!node) {
+                node = new_node_global_variable(tok->str, tok->len);
             }
-            variable = with_accessor(variable);
-            if (consume("++")) {
-                Node *const block = calloc(1, sizeof(Node));
-                block->kind = ND_BLOCK;
-                block->incr = POST;
-                // スタックに現在の値を積む
-                block->statement = variable;
-                // インクリメントする計算
-                Node *const incremented = pointer_calc(ND_ADD, variable, new_node_num(1));
-                // 変数に代入
-                Node *const assign = new_node_assign(tok->str, variable, incremented);
-                // 代入式の値をスタックに残さない
-                variable->statement = new_node(ND_EXPR_STMT, assign, NULL);
-                return block;
-            }
-            return variable;
         }
+        node = with_accessor(node);
+        /**
+         * TODO
+         *  int a = 1;
+         *  int b = a++;
+         *  return b; // 1
+         * TODO
+         *  int a = 1;
+         *  int b = a + a++;
+         *  return b; // 3
+        */
+        if (consume("++")) {
+            Node *const block = calloc(1, sizeof(Node));
+            block->kind = ND_BLOCK;
+            block->incr = POST;
+            // スタックに現在の値を積む
+            block->statement = node;
+            // インクリメントする計算
+            Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
+            // 変数に代入 TODO 関数呼び出しのnodeは再利用できないので、++はcodegenで対応する予定
+            Node *const assign = new_node_assign(tok->str, node , incremented);
+            // 代入式の値をスタックに残さない
+            node->statement = new_node(ND_EXPR_STMT, assign, NULL);
+            return block;
+        }
+        return node;
     }
 
     // 次のトークンが"("なら、"(" expr ")" または "({" stmt "})" または (a[0])[1], (*b)[1]

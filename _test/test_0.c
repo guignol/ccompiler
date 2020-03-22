@@ -347,6 +347,19 @@ int use_struct_7() {
     return s->a;
 }
 
+test_s *return_struct() {
+    test_s *s = malloc(sizeof(test_s));
+    s->a = 19;
+    s->c = 'C';
+    return s;
+}
+
+// 19
+int use_struct_8() {
+    int a = return_struct()->a;
+    return a++;
+}
+
 /////////////////////////////////////////////////
 
 // 11
@@ -1788,6 +1801,7 @@ int main() {
     assert("use_struct_5", 5, use_struct_5());
     assert("use_struct_6", 49, use_struct_6());
     assert("use_struct_7", 3, use_struct_7());
+    assert("use_struct_8", 19, use_struct_8());
 
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());
