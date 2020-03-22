@@ -484,16 +484,6 @@ int count_pointer(void) {
     return count;
 }
 
-int count_array(int counts[]) {
-    int i;
-    for (i = 0; printing->ty == TYPE_ARRAY; ++i) {
-        counts[i] = printing->array_size;
-        printing = printing->point_to;
-    }
-    counts[i + 1] = 0;
-    return i;
-}
-
 void print_type(FILE *__stream, Type *type) {
     printing = type;
 
@@ -501,7 +491,12 @@ void print_type(FILE *__stream, Type *type) {
     // int ***(**)[2][3]
     const int pointers_inner = count_pointer();
     int size_array[10];
-    const int arrays = count_array(size_array);
+    int arrays;
+    for (arrays = 0; printing->ty == TYPE_ARRAY; ++arrays) {
+        size_array[arrays] = printing->array_size;
+        printing = printing->point_to;
+    }
+    size_array[arrays + 1] = 0;
     const int pointers_outer = count_pointer();
 
     // 型に配列を含むかどうか
