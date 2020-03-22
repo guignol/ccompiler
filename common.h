@@ -6,6 +6,8 @@
 
 void error(const char *message);
 
+void error_1_1(const char *fmt, const int len, const char *str);
+
 void error_2(const char *fmt, const char *arg_1, const char *arg_2);
 
 void error_at(const char *loc, const char *message);
@@ -58,6 +60,8 @@ enum NodeKind {
     ND_LESS_EQL,    // <=
     ND_LOGICAL_OR,  // ||
     ND_LOGICAL_AND, // &&
+    ND_GOTO,        // goto
+    ND_LABEL,       // label:
     ND_RETURN,      // return
     ND_EXPR_STMT,   // 式文
     ND_IF,          // if または 三項演算子
@@ -138,7 +142,7 @@ struct Node {
     // グローバル変数はラベルのアドレス（小さい側から）のオフセットで考える
     int offset;    // RBP（またはラベル）からのオフセット
 
-    // 文字列リテラルへの参照
+    // 文字列リテラルへの参照、または関数内ラベル
     char *label;
     int label_length;
 

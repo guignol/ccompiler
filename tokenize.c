@@ -155,6 +155,7 @@ char *kws[] = {
         "default",
         "break",
         "continue",
+        "goto",
         "extern",
         "typedef",
 };

@@ -58,6 +58,27 @@ void assert(char *name, int expected, int actual) {
 
 /////////////////////////////////////////////////
 
+// 2
+int goto_1() {
+    if (17 % 12 == 5) {
+//        goto here_is_label_22;
+        goto here_is_label_2;
+    } else {
+        goto here_is_label_3;
+    }
+
+    here_is_label_1:
+    return 1;
+
+    here_is_label_2:
+    return 2;
+
+    here_is_label_3:
+    return 3;
+}
+
+/////////////////////////////////////////////////
+
 enum Assignable {
     CANNOT_ASSIGN = 0,
     AS_SAME,
@@ -1735,6 +1756,8 @@ int assert_others(void) {
 /////////////////////////////////////////////////
 
 int main() {
+    assert("goto_1", 2, goto_1());
+
     assert("enum_switch_1", 11, enum_switch_1());
     assert("enum_switch_2", 9, enum_switch_2());
     assert("enum_switch_3", 10, enum_switch_3());

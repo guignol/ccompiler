@@ -699,6 +699,8 @@ Function *function(Type *return_type) {
         error_at(token->str, "関数の返り値に配列は使えません");
         exit(1);
     }
+    // ラベルは関数単位
+    init_goto_label();
 
     Scope *const parameter = current_scope = calloc(1, sizeof(Scope));
     consume_function_parameter();
@@ -730,6 +732,8 @@ Function *function(Type *return_type) {
     current_scope = NULL;
     function_name = NULL;
     stack_size = 0;
+    // goto先のラベルが存在するか確認する
+    assert_goto_label();
 
     return function;
 }
@@ -812,7 +816,27 @@ Node *local_variable_declaration(Type *base) {
 }
 
 Node *stmt(void) {
-    Type *base = consume_base_type();
+    {
+        // label:
+        Token *label = consume_ident();
+        if (label != NULL) {
+            if (consume(":")) {
+                return new_node_label(function_name, label);
+            }
+            token = label;
+        }
+    }
+    if (consume("goto")) {
+        Token *const label = consume_ident();
+        if (label == NULL) {
+            error_at(token->str, "goto先のラベル名がありません。");
+            exit(1);
+        }
+        Node *const node = new_node_goto(function_name, label);
+        expect(";");
+        return node;
+    }
+    Type *const base = consume_base_type();
     if (base) {
         // 変数宣言および初期化
         Node *const node = local_variable_declaration(base);
@@ -911,6 +935,22 @@ Node *stmt(void) {
         expect("}");
         // break先をスタックから降ろす
         pop_int(&break_stack);
+        return node;
+    } else if (consume("goto")) {
+        Node *const node = calloc(1, sizeof(Node));
+        node->kind = ND_GOTO;
+        // ラベルは関数内にあれば良い　TODO どうやって確認するか
+        Token *const label = consume_ident();
+        if (label == NULL) {
+            error_at(token->str, "goto先のラベル名がありません。");
+            exit(1);
+        }
+        expect(";");
+        node->label = label->str;
+        node->label_length = label->len;
+        // 所属する関数名
+        node->name = function_name->str;
+        node->len = function_name->len;
         return node;
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));

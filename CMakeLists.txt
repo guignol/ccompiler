@@ -17,6 +17,7 @@ add_executable(ccompiler
         enum.c
         function_declare.c
         global.c
+        goto.c
         main.c
         parse.c
         parse.h

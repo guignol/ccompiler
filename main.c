@@ -59,6 +59,10 @@ void error(const char *message) {
     fprintf(stderr, "%s", message);
 }
 
+void error_1_1(const char *fmt, const int len, const char *str) {
+    fprintf(stderr, fmt, len, str);
+}
+
 void error_2(const char *fmt, const char *arg_1, const char *arg_2) {
     fprintf(stderr, fmt, arg_1, arg_2);
 }

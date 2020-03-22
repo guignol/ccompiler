@@ -409,6 +409,20 @@ void gen(Node *node) {
             // 式文では値をスタックに残さない
             printf("  add rsp, 8\n");
             return;
+        case ND_LABEL:
+            printf(".Llabel.%.*s.%.*s:\n",
+                   node->label_length,
+                   node->label, // ラベル名
+                   node->len,
+                   node->name); // 関数名
+            return;
+        case ND_GOTO:
+            printf("  jmp .Llabel.%.*s.%.*s\n",
+                   node->label_length,
+                   node->label, // ラベル名
+                   node->len,
+                   node->name); // 関数名
+            return;
         case ND_RETURN:
             if (node->type->ty != TYPE_VOID) {
                 // void以外の場合
@@ -568,6 +582,8 @@ void gen(Node *node) {
         case ND_LOGICAL_OR:
         case ND_LOGICAL_AND:
         case ND_RETURN:
+        case ND_GOTO:
+        case ND_LABEL:
         case ND_EXPR_STMT:
         case ND_IF:
         case ND_WHILE:

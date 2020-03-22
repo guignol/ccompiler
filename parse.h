@@ -143,6 +143,16 @@ Node *new_node_global_variable(char *str, int len);
 
 void global_variable_declaration(Token *variable_name, Type *type);
 
+////////////////////////////////////////////////////////////////// goto.c
+
+void init_goto_label();
+
+Node *new_node_goto(Token *function_name, Token *label);
+
+Node *new_node_label(Token *function_name, Token *label);
+
+void assert_goto_label();
+
 ////////////////////////////////////////////////////////////////// struct.c
 
 void init_struct_registry();
