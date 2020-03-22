@@ -420,11 +420,6 @@ int get_size(Type *type) {
                     size = m->offset;
                 }
             }
-            // TODO 8byte == 64bitを超えると別途対応が必要
-            if (64 < size) {
-                error("レジスタサイズを超える構造体は未対応\n");
-                exit(1);
-            }
             return size;
         }
     }

@@ -6,6 +6,8 @@
 
 void error(const char *message);
 
+void error_1(const char *fmt, const int integer);
+
 void error_1_1(const char *fmt, const int len, const char *str);
 
 void error_2(const char *fmt, const char *arg_1, const char *arg_2);
