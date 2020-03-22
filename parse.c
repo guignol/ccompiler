@@ -1178,7 +1178,7 @@ Node *unary() {
         }
         char *loc = token->str;
         Node *operand = primary();
-        for (; 0 < dereference_count; dereference_count--) {
+        for (; 0 < dereference_count; dereference_count = dereference_count - 1) {
             operand = new_node_dereference(operand);
             if (!operand) {
                 error_at(loc, "ポインタ型ではありません\n");
@@ -1244,7 +1244,7 @@ Node *primary() {
             // インクリメントする計算
             Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
             // 変数に代入 TODO 関数呼び出しのnodeは再利用できないので、++はcodegenで対応する予定
-            Node *const assign = new_node_assign(tok->str, node , incremented);
+            Node *const assign = new_node_assign(tok->str, node, incremented);
             // 代入式の値をスタックに残さない
             node->statement = new_node(ND_EXPR_STMT, assign, NULL);
             return block;
