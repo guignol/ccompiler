@@ -857,6 +857,27 @@ Node *stmt(void) {
         node->lhs = stmt();
         node->rhs = consume("else") ? stmt() : NULL;
         return node;
+    } else if (consume("do")) {
+        Node *const node = calloc(1, sizeof(Node));
+        node->contextual_suffix = context++;
+        // break先をスタックに積む
+        push_int(&break_stack, node->contextual_suffix);
+        // continue先をスタックに積む
+        push_int(&continue_stack, node->contextual_suffix);
+        node->kind = ND_DO_WHILE;
+        // 処理
+        node->lhs = stmt();
+        expect("while");
+        // 条件
+        expect("(");
+        node->condition = expr();
+        expect(")");
+        expect(";");
+        // break先をスタックから降ろす
+        pop_int(&break_stack);
+        // continue先をスタックから降ろす
+        pop_int(&continue_stack);
+        return node;
     } else if (consume("while")) {
         Node *const node = calloc(1, sizeof(Node));
         node->contextual_suffix = context++;
@@ -865,9 +886,11 @@ Node *stmt(void) {
         // continue先をスタックに積む
         push_int(&continue_stack, node->contextual_suffix);
         node->kind = ND_WHILE;
+        // 条件
         expect("(");
         node->condition = expr();
         expect(")");
+        // 処理
         node->lhs = stmt();
         // break先をスタックから降ろす
         pop_int(&break_stack);

@@ -142,6 +142,7 @@ char *kws[] = {
         "return",
         "if",
         "else",
+        "do",
         "while",
         "for",
         "int",

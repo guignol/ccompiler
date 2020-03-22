@@ -387,21 +387,6 @@ int scope_for_3() {
     return sum;
 }
 
-// 10
-int scope_for_4() {
-    int i;
-    for (i = 0;; i++) {
-        i++;
-        if (i == 10) {
-            break;
-        } else {
-            continue;
-        }
-        return 4;
-    }
-    return i;
-}
-
 // 1
 int scoped_1() {
     int a_0; // 4
@@ -433,9 +418,25 @@ int scoped_2() {
     }
     return a;
 }
+/////////////////////////////////////////////////
+
+// 10
+int loop_1() {
+    int i;
+    for (i = 0;; i++) {
+        i++;
+        if (i == 10) {
+            break;
+        } else {
+            continue;
+        }
+        return 4;
+    }
+    return i;
+}
 
 // 55
-int scoped_3() {
+int loop_2() {
     int sum = 0;
     for (int i = 0; i < 10; i++) {
         int a = 0;
@@ -451,7 +452,7 @@ int scoped_3() {
 }
 
 // 10
-int scoped_4() {
+int loop_3() {
     int i = 0;
     while (1) {
         i++;
@@ -463,6 +464,19 @@ int scoped_4() {
         return 4;
     }
     return i;
+}
+
+// 3
+int loop_4() {
+    int counter = 0;
+    int max = 2;
+    do
+        counter++;
+    while (counter < max);
+    do {
+        counter++;
+    } while (counter < max);
+    return counter;
 }
 
 /////////////////////////////////////////////////
@@ -1778,11 +1792,13 @@ int main() {
     assert("scope_for_1", 11, scope_for_1());
     assert("scope_for_2", 12, scope_for_2());
     assert("scope_for_3", 45, scope_for_3());
-    assert("scope_for_4", 10, scope_for_4());
     assert("scoped_1", 1, scoped_1());
     assert("scoped_2", 3, scoped_2());
-    assert("scoped_3", 55, scoped_3());
-    assert("scoped_4", 10, scoped_4());
+
+    assert("loop_1", 10, loop_1());
+    assert("loop_2", 55, loop_2());
+    assert("loop_3", 10, loop_3());
+    assert("loop_4", 3, loop_4());
 
     // TODO ポインタを返す関数のテストを追加
     assert("string_return", 8, string_return());

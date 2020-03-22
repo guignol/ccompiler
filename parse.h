@@ -14,6 +14,7 @@ extern Token *token;
 //				| "break" ";"
 //				| "if" "(" expr ")" stmt ("else" stmt)?
 //		        | "while" "(" expr ")" stmt
+//		        | "do" stmt "while" "(" expr ")" ";"
 //				| "for" "(" (expr | decl_b | decl_c)? ";" expr? ";" expr? ")" stmt
 //				| "switch" "(" expr ")" "{" ("case" ident ":" stmt)* "}" // TODO {}は必須ではないけど
 // expr       = assign

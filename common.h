@@ -65,6 +65,7 @@ enum NodeKind {
     ND_RETURN,      // return
     ND_EXPR_STMT,   // 式文
     ND_IF,          // if または 三項演算子
+    ND_DO_WHILE,    // do while
     ND_WHILE,       // while
     ND_FOR,         // for
     ND_SWITCH,      // switch

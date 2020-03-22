@@ -313,6 +313,24 @@ void gen(Node *node) {
             ___COMMENT___("for end");
             return;
         }
+        case ND_DO_WHILE: {
+            ___COMMENT___("do-while begin");
+            int context = node->contextual_suffix;
+            // begin:
+            printf(".Lcontinue%d:\n", context);
+            // execute
+            gen(node->lhs);
+            // condition
+            gen(node->condition);
+            printf("  pop rax\n");
+            printf("  cmp rax, 0\n");
+            // if not 0, goto begin
+            printf("  jne .Lcontinue%d\n", context);
+            // end:
+            printf(".Lbreak%d:\n", context);
+            ___COMMENT___("do-while end");
+            return;
+        }
         case ND_WHILE: {
             ___COMMENT___("while begin");
             int context = node->contextual_suffix;
@@ -586,6 +604,7 @@ void gen(Node *node) {
         case ND_LABEL:
         case ND_EXPR_STMT:
         case ND_IF:
+        case ND_DO_WHILE:
         case ND_WHILE:
         case ND_FOR:
         case ND_SWITCH:
