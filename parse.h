@@ -103,6 +103,12 @@ NodeArray *create_node_array(int capacity);
 
 void push_node(NodeArray *array, Node *node);
 
+void set_last_node(NodeArray *array, Node *node);
+
+Node *peek_last_node(NodeArray *array);
+
+Node *create_node_block(int size);
+
 Node *with_index(Node *left);
 
 ////////////////////////////////////////////////////////////////// enum.c

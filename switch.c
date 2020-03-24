@@ -1,10 +1,8 @@
 #include "parse.h"
 
 Node *consume_case_statement() {
-    Node *const block = calloc(1, sizeof(Node));
     // スコープを作らないブロックとしてまとめる
-    block->kind = ND_BLOCK;
-    block->statement = create_node_array(3);
+    Node *const block = create_node_block(3);
     // caseやdefaultが続く場合がある
     bool no_statement = check("case") || check("default");
     while (!no_statement) {

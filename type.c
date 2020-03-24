@@ -1,4 +1,5 @@
 #include "common.h"
+#include "parse.h"
 
 Type *void_type;
 
@@ -336,7 +337,7 @@ Type *find_type(const Node *node) {
                 case NONE:
                     break;
             }
-            Node *last = node->statement->memory[node->statement->count -1];
+            Node *last = peek_last_node(node->statement);
             Type *type = find_type(last);
             return type;
         }

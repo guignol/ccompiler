@@ -748,9 +748,7 @@ Node *block_statement(void) {
 
     Node *node;
     {
-        node = calloc(1, sizeof(Node));
-        node->kind = ND_BLOCK;
-        node->statement = create_node_array(5);
+        node = create_node_block(5);
         while (!consume("}")) {
             Node *next = stmt();
             push_node(node->statement, next);
@@ -1156,9 +1154,7 @@ Node *unary() {
     } else if (consume("++")) {
         char *const loc = token->str;
         Node *const node = primary();
-        Node *const block = calloc(1, sizeof(Node));
-        block->kind = ND_BLOCK;
-        block->statement = create_node_array(2);
+        Node *const block = create_node_block(2);
         block->incr = PRE;
         // インクリメントする計算
         Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
@@ -1259,10 +1255,10 @@ Node *primary() {
     if (consume("(")) {
         if (consume("{")) {
             Node *node = block_statement();
-            Node *last = node->statement->memory[node->statement->count - 1];
+            Node *last = peek_last_node(node->statement);
             if (last->kind == ND_EXPR_STMT) {
                 // 式文扱いを取り消して、値がスタックに積まれるようにする
-                node->statement->memory[node->statement->count - 1] = last->lhs;
+                set_last_node(node->statement, last->lhs);
             }
             expect(")");
             return node;

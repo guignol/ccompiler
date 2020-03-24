@@ -20,6 +20,23 @@ void push_node(NodeArray *array, Node *node) {
     array->count++;
 }
 
+void set_last_node(NodeArray *array, Node *node) {
+    array->memory[array->count - 1] = node;
+}
+
+Node *peek_last_node(NodeArray *array) {
+    return array->memory[array->count -1];
+}
+
+/////////////////////////
+
+Node *create_node_block(int size) {
+    Node *const block = calloc(1, sizeof(Node));
+    block->kind = ND_BLOCK;
+    block->statement = create_node_array(size);
+    return block;
+}
+
 /////////////////////////
 
 void assert_indexable(Node *left, Node *right) {
@@ -263,9 +280,7 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
         x[2] = foo();
       }
      */
-    Node *const block = calloc(1, sizeof(Node));
-    block->kind = ND_BLOCK;
-    block->statement = create_node_array(5);
+    Node *const block = create_node_block(5);
     for (int i = 0; i < nodeArray->count; ++i) {
         Node *n = nodeArray->memory[i];
         Node *const indexed = new_node_array_index(pointer, new_node_num(i), ND_DEREF);
