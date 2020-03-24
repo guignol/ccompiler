@@ -151,6 +151,16 @@ int enum_switch_4() {
     return sum;
 }
 
+// 12
+int enum_switch_5(void) {
+    switch (1) {
+        case 0:
+            return 8;
+        default:
+            return 12;
+    }
+}
+
 /////////////////////////////////////////////////
 
 // 11
@@ -1789,6 +1799,7 @@ int main() {
     assert("enum_switch_2", 9, enum_switch_2());
     assert("enum_switch_3", 10, enum_switch_3());
     assert("enum_switch_4", 29, enum_switch_4());
+    assert("enum_switch_5", 12, enum_switch_5());
 
     assert("bool_invert_1", 11, bool_invert_1());
     assert("bool_invert_2", 11, bool_invert_2());

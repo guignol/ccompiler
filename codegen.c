@@ -264,7 +264,7 @@ void gen(Node *node) {
             }
             if (has_default) {
                 // 全部当てはまらなかったらdefaultラベルへ
-                printf("  je .Lcase%d_default\n", context);
+                printf("  jmp .Lcase%d_default\n", context);
             } else {
                 // defaultラベルも無ければ終了
                 printf("  jmp  .Lbreak%d\n", context);
