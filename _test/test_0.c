@@ -161,6 +161,24 @@ int enum_switch_5(void) {
     }
 }
 
+void rec(int target) {
+    switch (target) {
+        case 0: {
+            rec(target - 1);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+// 3
+int enum_switch_6(void) {
+    rec(2);
+    rec(3);
+    return 3;
+}
+
 /////////////////////////////////////////////////
 
 // 11
@@ -1800,6 +1818,7 @@ int main() {
     assert("enum_switch_3", 10, enum_switch_3());
     assert("enum_switch_4", 29, enum_switch_4());
     assert("enum_switch_5", 12, enum_switch_5());
+    assert("enum_switch_6", 3, enum_switch_6());
 
     assert("bool_invert_1", 11, bool_invert_1());
     assert("bool_invert_2", 11, bool_invert_2());

@@ -517,9 +517,10 @@ void global_variable_declaration(Token *variable_name, Type *type) {
                 Directives head;
                 head.next = NULL;
                 Directives *tail = &head;
-                for (Node *next = block->statement;
-                     next;
-                     next = next->statement) {
+
+                NodeArray *const array = block->statement;
+                for (int i = 0; i < array->count; ++i) {
+                    Node *next = array->memory[i];
                     // 代入式の右辺
                     Node *right = next->rhs;
                     tail = tail->next = global_initializer(loc, type, right);

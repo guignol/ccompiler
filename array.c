@@ -11,14 +11,13 @@ NodeArray *create_node_array(int capacity) {
     return array;
 }
 
-NodeArray *push_node(NodeArray *array, Node *node) {
+void push_node(NodeArray *array, Node *node) {
     if (array->count == array->capacity) {
         array->memory = realloc(array->memory, sizeof(Node) * array->capacity * 2);
         array->capacity = array->capacity * 2;
     }
     array->memory[array->count] = node;
     array->count++;
-    return array;
 }
 
 /////////////////////////
@@ -266,11 +265,12 @@ Node *array_initializer(Node *const array_variable, Type *const type) {
      */
     Node *const block = calloc(1, sizeof(Node));
     block->kind = ND_BLOCK;
-    Node *last = block;
+    block->statement = create_node_array(5);
     for (int i = 0; i < nodeArray->count; ++i) {
         Node *n = nodeArray->memory[i];
         Node *const indexed = new_node_array_index(pointer, new_node_num(i), ND_DEREF);
-        last = last->statement = new_node_assign(loc, indexed, n);
+        Node *const assign = new_node_assign(loc, indexed, n);
+        push_node(block->statement, assign);
     }
     return block;
 }

@@ -101,7 +101,7 @@ Node *array_initializer(Node *array_variable, Type *type);
 
 NodeArray *create_node_array(int capacity);
 
-NodeArray *push_node(NodeArray *array, Node *node);
+void push_node(NodeArray *array, Node *node);
 
 Node *with_index(Node *left);
 

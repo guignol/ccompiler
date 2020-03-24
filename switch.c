@@ -1,9 +1,10 @@
 #include "parse.h"
 
 Node *consume_case_statement() {
-    Node head;
-    head.statement = NULL;
-    Node *tail = &head;
+    Node *const block = calloc(1, sizeof(Node));
+    // スコープを作らないブロックとしてまとめる
+    block->kind = ND_BLOCK;
+    block->statement = create_node_array(3);
     // caseやdefaultが続く場合がある
     bool no_statement = check("case") || check("default");
     while (!no_statement) {
@@ -11,10 +12,10 @@ Node *consume_case_statement() {
         if (check("}")) {
             break;
         }
-        tail = tail->statement = stmt();
+        push_node(block->statement, stmt());
         no_statement = check("case") || check("default");
     }
-    return head.statement;
+    return block;
 }
 
 struct Case *consume_default_() {

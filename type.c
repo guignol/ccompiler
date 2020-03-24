@@ -329,21 +329,14 @@ Type *find_type(const Node *node) {
             switch (node->incr) {
                 case PRE:
                     // 計算後の値が必要
-                    return find_type(node->statement->statement);
+                    return find_type(node->statement->memory[1]);
                 case POST:
                     // 計算前の値が必要
-                    return find_type(node->statement);
+                    return find_type(node->statement->memory[0]);
                 case NONE:
                     break;
             }
-            Node *last;
-            for (last = node->statement;;) {
-                if (last->statement) {
-                    last = last->statement;
-                } else {
-                    break;
-                }
-            }
+            Node *last = node->statement->memory[node->statement->count -1];
             Type *type = find_type(last);
             return type;
         }

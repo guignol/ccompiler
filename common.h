@@ -128,6 +128,12 @@ enum Increment {
     POST,
 };
 
+typedef struct {
+    Node **memory;
+    int count;
+    int capacity;
+} NodeArray;
+
 // 抽象構文木のノードの型
 struct Node {
     int contextual_suffix; // codegenで使うラベルのsuffix
@@ -151,7 +157,7 @@ struct Node {
 
     Node *condition; // if (condition), while (condition)
     Node *execution; // for (;;) statement
-    Node *statement; // { ...statement }
+    NodeArray *statement; // { ...statement }
     Node *args;         // function( ...args )
 
     // switch
@@ -159,12 +165,6 @@ struct Node {
 
     enum Increment incr;
 };
-
-typedef struct {
-    Node **memory;
-    int count;
-    int capacity;
-} NodeArray;
 
 /////////////////////////////////////////////////
 

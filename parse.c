@@ -750,11 +750,10 @@ Node *block_statement(void) {
     {
         node = calloc(1, sizeof(Node));
         node->kind = ND_BLOCK;
-        Node *last = node;
+        node->statement = create_node_array(5);
         while (!consume("}")) {
             Node *next = stmt();
-            last->statement = next;
-            last = next;
+            push_node(node->statement, next);
         }
     }
 
@@ -1159,15 +1158,17 @@ Node *unary() {
         Node *const node = primary();
         Node *const block = calloc(1, sizeof(Node));
         block->kind = ND_BLOCK;
+        block->statement = create_node_array(2);
         block->incr = PRE;
         // インクリメントする計算
         Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
         // 変数に代入
         Node *const assign = new_node_assign(loc, node, incremented);
         // 代入式の値をスタックに残さない
-        block->statement = new_node(ND_EXPR_STMT, assign, NULL);
+        Node *const first = new_node(ND_EXPR_STMT, assign, NULL);
+        push_node(block->statement, first);
         // スタックに現在の値を積む
-        block->statement->statement = node;
+        push_node(block->statement, node);
         return block;
     } else if (consume("-")) {
         return new_node(ND_SUB, new_node_num(0), primary());
@@ -1238,15 +1239,17 @@ Node *primary() {
         if (consume("++")) {
             Node *const block = calloc(1, sizeof(Node));
             block->kind = ND_BLOCK;
+            block->statement = create_node_array(2);
             block->incr = POST;
             // スタックに現在の値を積む
-            block->statement = node;
+            push_node(block->statement, node);
             // インクリメントする計算
             Node *const incremented = pointer_calc(ND_ADD, node, new_node_num(1));
             // 変数に代入 TODO 関数呼び出しのnodeは再利用できないので、++はcodegenで対応する予定
             Node *const assign = new_node_assign(tok->str, node, incremented);
             // 代入式の値をスタックに残さない
-            node->statement = new_node(ND_EXPR_STMT, assign, NULL);
+            Node *const second = new_node(ND_EXPR_STMT, assign, NULL);
+            push_node(block->statement, second);
             return block;
         }
         return node;
@@ -1256,19 +1259,10 @@ Node *primary() {
     if (consume("(")) {
         if (consume("{")) {
             Node *node = block_statement();
-            Node *last;
-            Node *last_before = node;
-            for (last = node->statement;;) {
-                if (last->statement) {
-                    last_before = last;
-                    last = last->statement;
-                } else {
-                    break;
-                }
-            }
+            Node *last = node->statement->memory[node->statement->count - 1];
             if (last->kind == ND_EXPR_STMT) {
                 // 式文扱いを取り消して、値がスタックに積まれるようにする
-                last_before->statement = last->lhs;
+                node->statement->memory[node->statement->count - 1] = last->lhs;
             }
             expect(")");
             return node;

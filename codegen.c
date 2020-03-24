@@ -226,9 +226,9 @@ void gen(Node *node) {
         }
         case ND_BLOCK: {
             ___COMMENT___("block begin");
-            for (Node *next = node->statement;
-                 next;
-                 next = next->statement) {
+            NodeArray *const array = node->statement;
+            for (int i = 0; i < array->count; ++i) {
+                Node *next = array->memory[i];
                 gen(next);
             }
             ___COMMENT___("block end");
@@ -278,8 +278,8 @@ void gen(Node *node) {
                     printf(".Lcase%d_%d:\n", context, count++);
                 }
                 // caseまたはdefaultが続いていて、statementが無い場合もある
-                for (Node *s = c->statement; s; s = s->statement) {
-                    gen(s);
+                if (c->statement) {
+                    gen(c->statement);
                 }
             }
             // end:
