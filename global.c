@@ -57,6 +57,7 @@ Global *get_string_literal(char *name, int len) {
         g = calloc(1, sizeof(Global));
         g->label = label;
         g->label_length = label_length;
+        g->file_scope = true;
         g->target = calloc(1, sizeof(Directives));
         g->target->directive = _string;
         g->target->literal = name;

@@ -39,9 +39,12 @@ void assert_contains_no_char(char *loc, Variable *const var) {
             case TYPE_POINTER:
             case TYPE_ARRAY:
             case TYPE_STRUCT:
-                continue;
+                // TODO continueだとリンカでエラーになる
+//                continue;
+                break;
         }
     }
+
 }
 
 void assert_function_signature(const Declaration *const old, const Declaration *const new) {

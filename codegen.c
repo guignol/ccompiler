@@ -701,6 +701,9 @@ void generate_global(Global *globals) {
             continue;
         }
         // ラベル
+        if (!global->file_scope) {
+            printf(".global %.*s\n", global->label_length, global->label);
+        }
         printf("%.*s:\n", global->label_length, global->label);
         for (Directives *target = global->target; target; target = target->next) {
             switch (target->directive) {

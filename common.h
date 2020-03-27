@@ -378,6 +378,7 @@ struct Global {
     Type *type;
     char *label;
     int label_length;
+    bool file_scope;
     Directives *target;
 
     Global *next;
