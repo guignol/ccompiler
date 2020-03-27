@@ -436,16 +436,17 @@ Node *new_node_function_call(const Token *tok) {
     node->kind = ND_FUNC;
     node->type = declaration->return_type;
     if (!consume(")")) {
-        Node *last = node;
+        node->args = create_node_array(5);
         Variable *declared_type = declaration->type_only;
         bool type_check = declared_type != NULL;
         do {
             char *const loc = token->str;
-            last = last->args = expr();
+            Node *const arg = expr();
+            push_node(node->args, arg);
             // 引数の型チェック
             if (type_check) {
                 if (declared_type) {
-                    assert_assignable(loc, declared_type->type, last);
+                    assert_assignable(loc, declared_type->type, arg);
                     declared_type = declared_type->next;
                 } else {
                     // 宣言側の型が足りなかったら

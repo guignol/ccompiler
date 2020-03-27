@@ -185,7 +185,9 @@ void gen(Node *node) {
             ___COMMENT___2("begin function call [%.*s]", node->len, node->name);
             int count = 0;
             if (node->args) {
-                for (Node *arg = node->args; arg; arg = arg->args) {
+                NodeArray *const array = node->args;
+                for (int i = 0; i < array->count; ++i) {
+                    Node *arg = array->memory[i];
                     gen(arg);
                     count++;
                 }

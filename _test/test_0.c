@@ -1579,6 +1579,22 @@ int function_19() {
 
 /////////////////////////////////////////////////
 
+int make_arg() {
+    return 1;
+}
+
+int two_args(int a, int b) {
+    return a + b;
+}
+
+// 2
+int function_20() {
+    return two_args(make_arg(), make_arg());
+}
+
+
+/////////////////////////////////////////////////
+
 // 10
 int block_1() {
     int a;
@@ -1966,6 +1982,8 @@ int main() {
     assert("function_17", 12, function_17());
     assert("function_18", 12, function_18());
     assert("function_19", 12, function_19());
+
+    assert("function_20", 2, function_20());
 
     assert("block_1", 10, block_1());
     assert("block_2", 11, block_2());

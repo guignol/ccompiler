@@ -158,7 +158,7 @@ struct Node {
     Node *condition; // if (condition), while (condition)
     Node *execution; // for (;;) statement
     NodeArray *statement; // { ...statement }
-    Node *args;         // function( ...args )
+    NodeArray *args;         // function( ...args )
 
     // switch
     struct Case *cases;
