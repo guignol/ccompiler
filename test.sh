@@ -29,23 +29,26 @@ if [ "$1" != "self" ]; then
   exit 0
 fi
 
-# 1ファイルずつセルフホストを試す
-mkdir -p build_tmp
+# stage2 compiler
+mkdir -p stage2
+rm -f stage2/ccompiler
+rm -f stage2/tmp.s
+rm -f stage2/tmp
 
 test_self_compile() {
   FILE_NAME="$1"
   echo ${FILE_NAME}.c
   # プリプロセス
-  gcc -E ${FILE_NAME}.c | cat -s >build_tmp/${FILE_NAME}_.c
+  gcc -E ${FILE_NAME}.c | cat -s >stage2/${FILE_NAME}_.c
   # コンパイルに成功するまでファイルを吐かない
   t=$(mktemp)
-  ./build/ccompiler "--file" "$(pwd)/build_tmp/${FILE_NAME}_.c" >$t && cat $t >build_tmp/${FILE_NAME}_.s
+  ./build/ccompiler "--file" "$(pwd)/stage2/${FILE_NAME}_.c" >$t && cat $t >stage2/${FILE_NAME}_.s
   rm -f $t
-  if [ -e build_tmp/${FILE_NAME}_.s ]; then
+  if [ -e stage2/${FILE_NAME}_.s ]; then
     echo "success!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
   fi
   # 検索の邪魔なので削除しておく
-  rm -f build_tmp/${FILE_NAME}_.c
+  rm -f stage2/${FILE_NAME}_.c
 }
 
 FILES=()
@@ -64,16 +67,29 @@ FILES+=("tokenize")
 FILES+=("type")
 FILES+=("type_def")
 
-i=0
 for e in "${FILES[@]}"; do
     test_self_compile "${e}"
-    ((i++))
 done
 
-cd build_tmp || exit 1
-gcc -static -o tmp "${FILES[@]/%/_.s}"
+pushd stage2 || exit 1
+gcc -static -o ccompiler "${FILES[@]/%/_.s}"
 #gcc -c -o "parse_.o" "parse_.s"
 #gcc -c -o "struct_.o" "struct_.s"
+for e in "${FILES[@]}"; do
+    rm -f "${e}_.s"
+done
 if [ $? == 0 ]; then
-  echo "OK"
+  echo "OK: stage2 compiler is built"
 fi
+
+# stage2 test by stage2 compiler
+popd || exit 1
+t=$(mktemp)
+./stage2/ccompiler "--file" "$(pwd)/_test/test_0.c" >$t && cat $t >./stage2/tmp.s || exit 1
+#./stage2/ccompiler "--file" "$(pwd)/_test/debug.c" >$t && cat $t >./stage2/tmp.s
+rm -f $t
+gcc -static -o ./stage2/tmp ./stage2/tmp.s || exit 1
+./stage2/tmp
+echo "$?"
+
+#gdb --args ./stage2/ccompiler "--file" "$(pwd)/_test/test_0.c"

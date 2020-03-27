@@ -46,6 +46,7 @@ Type *find_alias(Token *alias_t) {
     char *const alias = alias_t->str;
     const int alias_length = alias_t->len;
     for (struct TypeDef *d = type_def_head; d; d = d->next) {
+        // TODO dにアクセスしたらstage3コンパイラをコンパイルするときに Segmentation fault
         if (d->alias_length == alias_length && !strncmp(alias, d->alias, alias_length)) {
             // 定義済みの構造体型情報があれば読み込む
             load_struct(d->type);

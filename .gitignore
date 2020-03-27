@@ -2,5 +2,5 @@ tmp
 tmp.s
 *.o
 /build/
-/build_tmp/
+/stage2/
 /_test/debug.c
