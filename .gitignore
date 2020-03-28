@@ -4,3 +4,4 @@ tmp.s
 /build/
 /stage2/
 /_test/debug.c
+/stage1/
