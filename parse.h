@@ -142,8 +142,6 @@ Global *find_global_variable_by_name(char *name, int len);
 
 Global *find_enum_member(char *name, int len);
 
-Directives *global_initializer(char *loc, Type *type, Node *node);
-
 Node *new_node_string_literal();
 
 Node *new_node_global_variable(char *str, int len);

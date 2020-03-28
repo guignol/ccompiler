@@ -1055,6 +1055,17 @@ int global_variable_24() {
     }
 }
 
+int *global_null = 0;
+
+// 9
+int global_variable_25() {
+    if (global_null) {
+        return 8;
+    } else {
+        return 9;
+    }
+}
+
 /////////////////////////////////////////////////
 
 int write_stack_4() {
@@ -1920,6 +1931,7 @@ int main() {
     assert("global_variable_22", 39, global_variable_22());
     assert("global_variable_23", 9, global_variable_23());
     assert("global_variable_24", 8, global_variable_24());
+    assert("global_variable_25", 9, global_variable_25());
 
     assert("array_initialize_1", 0, array_initialize_1());
     assert("array_initialize_2", 2, array_initialize_2());

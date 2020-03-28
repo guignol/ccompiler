@@ -2,7 +2,7 @@
 
 # TODO gdb入門
 # $ gdb ./tmp
-# (gdb) display /4i $pc
+# (gdb) display /9i $pc
 # (gdb) start
 # (gdb) stepi
 # (gdb) info r

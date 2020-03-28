@@ -730,9 +730,11 @@ void generate_global(Global *globals) {
                     } else if (target->value < 0) {
                         printf("  .quad %.*s%s%d\n",
                                target->reference_length, target->reference, "-", offset);
-                    } else {
+                    } else if (0 < target->reference_length) {
                         printf("  .quad %.*s\n",
                                target->reference_length, target->reference);
+                    } else {
+                        printf("  .quad 0\n");
                     }
                     break;
                 }
