@@ -119,3 +119,6 @@ gcc -static -o ccompiler "${FILES[@]/%/_.s}"
 result="$?"
 for e in "${FILES[@]}"; do rm -f "${e}_.s" ; done
 check "$result" "stage3 compiler is built"
+
+popd >/dev/null || exit 1
+diff stage2/ccompiler stage3/ccompiler && echo "This is self-host compiler!"
