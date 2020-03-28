@@ -293,10 +293,11 @@ void gen(Node *node) {
             ___COMMENT___("for begin");
             int context = node->contextual_suffix;
             // init
-            if (node->lhs)
+            if (node->lhs) {
                 gen(node->lhs);
+            }
             // begin
-            printf(".Lcontinue%d:\n", context);
+            printf(".Lcondition%d:\n", context);
             // condition
             if (node->condition) {
                 gen(node->condition);
@@ -308,11 +309,12 @@ void gen(Node *node) {
             // execute
             gen(node->execution);
             // post execute
+            printf(".Lcontinue%d:\n", context);
             if (node->rhs) {
                 gen(node->rhs);
             }
             // goto begin
-            printf("  jmp .Lcontinue%d\n", context);
+            printf("  jmp .Lcondition%d\n", context);
             // end:
             printf(".Lbreak%d:\n", context);
             ___COMMENT___("for end");

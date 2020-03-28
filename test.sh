@@ -33,6 +33,7 @@ check "$?" "stage1 test is compiled"
 gcc -static -o stage1/tmp stage1/tmp.s
 check "$?" "stage1 test is built"
 ./stage1/tmp >/dev/null
+#./stage1/tmp
 check "$?" "stage1 test is passed"
 
 if [ "$1" != "self" ]; then
@@ -89,8 +90,9 @@ check "$result" "stage2 compiler is built"
 # stage2 test to be compiled by stage2 compiler
 popd >/dev/null || exit 1
 t=$(mktemp)
+#./stage2/ccompiler "--file" "$TEST_CODE"
+#./stage2/ccompiler "--file" "$TEST_CODE" >./stage2/tmp.s
 ./stage2/ccompiler "--file" "$TEST_CODE" >$t && cat $t >./stage2/tmp.s
-#./stage2/ccompiler "--file" "$TEST_CODE" >$t && cat $t >./stage2/tmp.s
 result="$?"
 rm -f $t
 check "$result" "stage2 test is compiled"
@@ -103,4 +105,5 @@ check "$?" "stage2 test is built"
 ./stage2/tmp
 check "$?" "stage2 test is passed"
 
+# gdb --args ./stage2/ccompiler "--file" "$(pwd)/_test/test_0.c"
 # gdb --args ./stage2/ccompiler "--file" "$(pwd)/_test/debug.c"

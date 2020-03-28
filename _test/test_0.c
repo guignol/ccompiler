@@ -461,19 +461,16 @@ int scoped_2() {
 }
 /////////////////////////////////////////////////
 
-// 10
+// 9
 int loop_1() {
-    int i;
-    for (i = 0;; i++) {
-        i++;
-        if (i == 10) {
-            break;
-        } else {
+    int sum = 0;
+    for (int i = 0; i < 10; ++i) {
+        if (i == 0) {
             continue;
         }
-        return 4;
+        sum++;
     }
-    return i;
+    return sum;
 }
 
 // 55
@@ -1866,7 +1863,7 @@ int main() {
     assert("scoped_1", 1, scoped_1());
     assert("scoped_2", 3, scoped_2());
 
-    assert("loop_1", 10, loop_1());
+    assert("loop_1", 9, loop_1());
     assert("loop_2", 55, loop_2());
     assert("loop_3", 10, loop_3());
     assert("loop_4", 3, loop_4());
