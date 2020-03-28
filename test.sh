@@ -4,7 +4,7 @@ check() {
   if [ "$1" == 0 ]; then
     echo "OK: $2"
   else
-    echo "NG: $2"
+    echo "NG: $2 (not)"
     exit "$1"
   fi
 }

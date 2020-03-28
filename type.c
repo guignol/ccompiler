@@ -399,8 +399,11 @@ int get_size(Type *type) {
             return sizeof(int); // 4
         case TYPE_POINTER:
             return sizeof(int *); // 8
-        case TYPE_ARRAY:
-            return /** (int) */ type->array_size * get_size(type->point_to);
+        case TYPE_ARRAY: {
+            // 初期化式つきの配列の場合、まず0でここを通る
+            int array_size = /** (int) */ type->array_size;
+            return array_size * get_size(type->point_to);
+        }
         case TYPE_STRUCT: {
             if (type->struct_info->members == NULL) {
                 // サイズが不要なグローバル変数の宣言を除くと、

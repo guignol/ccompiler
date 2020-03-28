@@ -51,7 +51,7 @@ const char *size_prefix(int size) {
             // 8byte == 64bit
             return "QWORD PTR";
         default:
-            error_1("[size_prefix]%dbyteには対応していません。", size);
+            error_1("[size_prefix]%dbyteには対応していません。\n", size);
             exit(1);
     }
 }
@@ -68,7 +68,7 @@ const char *register_name_rax(int size) {
             // 8byte == 64bit
             return "rax";
         default:
-            error_1("[register_name_rax]%dbyteには対応していません。", size);
+            error_1("[register_name_rax]%dbyteには対応していません。\n", size);
             exit(1);
     }
 }
@@ -85,7 +85,7 @@ const char *register_name_for_args(int size, int index) {
             // 8byte == 64bit
             return registers_64[index];
         default:
-            error_1("[register_name_for_args]%dbyteには対応していません。", size);
+            error_1("[register_name_for_args]%dbyteには対応していません。\n", size);
             exit(1);
     }
 }
@@ -100,18 +100,19 @@ void load(Node *node) {
     switch (type_size) {
         case 1:
             // 1byte == 8bit
-            printf("  movsx eax, %s [rax]\n", prefix);
+            printf("  movsx rax, %s [rax]\n", prefix);
             break;
         case 4:
             // 4byte == 32bit
-            printf("  mov eax, %s [rax]\n", prefix);
+            // 負の値がcmpでゼロ埋め拡張されないように、符号拡張する
+            printf("  movsxd rax, %s [rax]\n", prefix);
             break;
         case 8:
             // 8byte == 64bit
             printf("  mov rax, [rax]\n");
             break;
         default:
-            error_1("[load]%dbyteには対応していません。", type_size);
+            error_1("[load]%dbyteには対応していません。\n", type_size);
             exit(1);
     }
     printf("  push rax\n");
@@ -659,7 +660,7 @@ void prepare_stack(int stack_size, Variable *const parameters) {
         for (Variable *param = parameters; param; param = param->next) {
             if (param->index < 0) {
                 // 引数がvoidの場合
-                continue;
+                break;
             }
             // レジスタで受け取った引数の値をスタックに積む
             arguments_to_stack(param);
