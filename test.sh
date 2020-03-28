@@ -36,10 +36,6 @@ check "$?" "stage1 test is built"
 #./stage1/tmp
 check "$?" "stage1 test is passed"
 
-if [ "$1" != "self" ]; then
-  exit 0
-fi
-
 # stage2 compiler
 mkdir -p stage2
 rm -f stage2/ccompiler
@@ -48,15 +44,17 @@ rm -f stage2/tmp
 
 test_self_compile() {
   FILE_NAME="$1"
+  PRE_STAGE="$2"
+  POST_STAGE="$3"
 #  echo ${FILE_NAME}.c
   # プリプロセス
-  gcc -E ${FILE_NAME}.c | cat -s >stage2/${FILE_NAME}_.c
+  gcc -E ${FILE_NAME}.c | cat -s >"${POST_STAGE}/${FILE_NAME}_.c"
   # コンパイルに成功するまでファイルを吐かない
   t=$(mktemp)
-  ./stage1/ccompiler "--file" "$(pwd)/stage2/${FILE_NAME}_.c" >$t && cat $t >stage2/${FILE_NAME}_.s
+  ./${PRE_STAGE}/ccompiler "--file" "$(pwd)/${POST_STAGE}/${FILE_NAME}_.c" >$t && cat $t >"${POST_STAGE}/${FILE_NAME}_.s"
   rm -f $t
   # 検索の邪魔なので削除しておく
-  rm -f stage2/${FILE_NAME}_.c
+  rm -f "${POST_STAGE}/${FILE_NAME}_.c"
 }
 
 FILES=()
@@ -76,7 +74,7 @@ FILES+=("type")
 FILES+=("type_def")
 
 for e in "${FILES[@]}"; do
-    test_self_compile "${e}"
+    test_self_compile "${e}" "stage1" "stage2"
 done
 
 pushd stage2 >/dev/null || exit 1
@@ -102,8 +100,22 @@ gcc -static -o ./stage2/tmp ./stage2/tmp.s
 check "$?" "stage2 test is built"
 
 # stage2 test の実行
-./stage2/tmp
+./stage2/tmp >/dev/null
 check "$?" "stage2 test is passed"
 
 # gdb --args ./stage2/ccompiler "--file" "$(pwd)/_test/test_0.c"
 # gdb --args ./stage2/ccompiler "--file" "$(pwd)/_test/debug.c"
+
+# stage3 compiler
+mkdir -p stage3
+rm -f stage3/ccompiler
+
+for e in "${FILES[@]}"; do
+    test_self_compile "${e}" "stage2" "stage3"
+done
+
+pushd stage3 >/dev/null || exit 1
+gcc -static -o ccompiler "${FILES[@]/%/_.s}"
+result="$?"
+for e in "${FILES[@]}"; do rm -f "${e}_.s" ; done
+check "$result" "stage3 compiler is built"
