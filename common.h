@@ -252,7 +252,7 @@ struct Variable {
     Type *type;      // 型
     char *name;     // 変数の名前
     int len;        // 名前の長さ
-    int type_size; // TODO 型のサイズ
+    int type_size; // 型のサイズ TODO 活用しきれてないかも
     int offset;     // RBPや構造体の末端など、上位アドレスからのオフセット
 
     int index; // 関数の仮引数の場合、何番目か

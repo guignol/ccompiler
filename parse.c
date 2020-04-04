@@ -957,22 +957,6 @@ Node *stmt(void) {
         // break先をスタックから降ろす
         pop_int(&break_stack);
         return node;
-    } else if (consume("goto")) {
-        Node *const node = calloc(1, sizeof(Node));
-        node->kind = ND_GOTO;
-        // ラベルは関数内にあれば良い　TODO どうやって確認するか
-        Token *const label = consume_ident();
-        if (label == NULL) {
-            error_at(token->str, "goto先のラベル名がありません。");
-            exit(1);
-        }
-        expect(";");
-        node->label = label->str;
-        node->label_length = label->len;
-        // 所属する関数名
-        node->name = function_name->str;
-        node->len = function_name->len;
-        return node;
     } else if (consume("return")) {
         Node *const node = calloc(1, sizeof(Node));
         node->kind = ND_RETURN;
